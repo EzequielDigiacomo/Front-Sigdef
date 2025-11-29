@@ -1,0 +1,58 @@
+/* Eventos.css */
+.clickable-row {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.clickable-row:hover {
+    background-color: rgba(59, 130, 246, 0.05) !important;
+    transform: translateY(-1px);
+}
+
+.actions-cell {
+    display: flex;
+    gap: 0.25rem;
+    justify-content: center;
+}
+
+/* Asegurar que los botones no hereden el cursor pointer */
+.actions-cell button {
+    cursor: default;
+}
+
+.actions-cell button:hover {
+    cursor: pointer;
+}
+
+/* Mejorar la visualización de eventos finalizados */
+.clickable-row[style*="opacity: 0.6"]:hover {
+    opacity: 0.8 !important;
+}
+
+.evento-actions {
+    display: flex;
+    gap: 1rem;
+    /* ✅ Aumenta el espacio entre botones */
+    align-items: center;
+}
+
+.evento-actions button {
+    padding: 0.75rem 1.5rem;
+    /* ✅ Más padding interno */
+    min-width: 120px;
+    /* ✅ Ancho mínimo para que no estén tan pegados */
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    /* ✅ Espacio entre icono y texto */
+    justify-content: center;
+}
+
+/* Si quieres aún más espacio, puedes agregar márgenes individuales */
+.evento-actions .btn-edit {
+    margin-right: 0.5rem;
+}
+
+.evento-actions .btn-delete {
+    margin-left: 0.5rem;
+}
