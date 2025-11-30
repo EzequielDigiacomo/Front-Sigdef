@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
-import { Plus, Edit, Trash2, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, FileText } from 'lucide-react';
 import { getCategoriaLabel, getEstadoPagoLabel, getEstadoPagoColor } from '../../utils/enums';
 import './Atletas.css';
 import Modal from '../../components/common/Modal';
@@ -34,12 +34,14 @@ const AtletasList = () => {
                     }
 
                     // Calcular edad para saber si necesita tutor
+                    // Calcular edad para saber si necesita tutor
                     const fechaNac = personaData?.fechaNacimiento || atleta.fechaNacimiento;
+                    let edad = null;
                     let tutorInfo = null;
                     if (fechaNac) {
                         const hoy = new Date();
                         const nacimiento = new Date(fechaNac);
-                        let edad = hoy.getFullYear() - nacimiento.getFullYear();
+                        edad = hoy.getFullYear() - nacimiento.getFullYear();
                         const mes = hoy.getMonth() - nacimiento.getMonth();
                         if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
                             edad--;
@@ -66,7 +68,8 @@ const AtletasList = () => {
                     return {
                         ...atleta,
                         documento: personaData?.documento || atleta.documento || '-',
-                        // Priorizar la fecha que viene del backend, luego la de persona, y fallback a hoy
+                        fechaNacimiento: personaData?.fechaNacimiento || atleta.fechaNacimiento || null,
+                        edad: edad,
                         fechaCreacion: atleta.fechaCreacion || personaData?.fechaCreacion || new Date().toISOString(),
                         tutorInfo
                     };
@@ -123,20 +126,22 @@ const AtletasList = () => {
                             <tr>
                                 <th>Nombre Completo</th>
                                 <th>DNI</th>
+                                <th>Edad</th>
                                 <th>Club</th>
                                 <th>Categoría</th>
                                 <th>Fecha Alta</th>
                                 <th>Tutor</th>
                                 <th>Selección</th>
                                 <th>Estado Pago</th>
+                                <th>Documentación</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan="9" className="text-center">Cargando...</td></tr>
+                                <tr><td colSpan="11" className="text-center">Cargando...</td></tr>
                             ) : atletas.length === 0 ? (
-                                <tr><td colSpan="9" className="text-center">No hay atletas registrados</td></tr>
+                                <tr><td colSpan="11" className="text-center">No hay atletas registrados</td></tr>
                             ) : (
                                 atletas.map((atleta) => (
                                     <tr
@@ -147,6 +152,7 @@ const AtletasList = () => {
                                     >
                                         <td>{atleta.nombrePersona || '-'}</td>
                                         <td>{atleta.documento}</td>
+                                        <td>{atleta.edad !== null ? `${atleta.edad} ` : '-'}</td>
                                         <td>{atleta.nombreClub || '-'}</td>
                                         <td>{atleta.categoria != null ? getCategoriaLabel(atleta.categoria) : '-'}</td>
                                         <td>
@@ -179,6 +185,9 @@ const AtletasList = () => {
                                         <td>
                                             <span className={`badge badge-${getEstadoPagoColor(atleta.estadoPago)}`}> {getEstadoPagoLabel(atleta.estadoPago)} </span>
                                         </td>
+                                        <td style={{ textAlign: 'center' }}>
+                                            <FileText size={18} style={{ color: 'var(--text-muted)', opacity: 0.3 }} />
+                                        </td>
                                         <td>
                                             <div className="actions-cell" onClick={(e) => e.stopPropagation()}>
                                                 <Button variant="ghost" size="sm" onClick={() => navigate(`/atletas/editar/${atleta.idPersona}`)}>
@@ -201,7 +210,22 @@ const AtletasList = () => {
                 isOpen={showModal}
                 onClose={handleCloseModal}
                 title="Detalle del Atleta"
-                footer={<Button onClick={handleCloseModal}>Cerrar</Button>}
+                footer={
+                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                        <Button variant="secondary" onClick={handleCloseModal}>Cerrar</Button>
+                        {selectedAtleta && (
+                            <Button
+                                variant="primary"
+                                onClick={() => {
+                                    handleCloseModal();
+                                    navigate(`/atletas/editar/${selectedAtleta.idPersona}`);
+                                }}
+                            >
+                                <Edit size={18} /> Editar Atleta
+                            </Button>
+                        )}
+                    </div>
+                }
             >
                 {selectedAtleta && (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
@@ -254,14 +278,6 @@ const AtletasList = () => {
                             <div>
                                 <span className={`badge badge-${getEstadoPagoColor(selectedAtleta.estadoPago)}`}> {getEstadoPagoLabel(selectedAtleta.estadoPago)} </span>
                             </div>
-                        </div>
-                        <div>
-                            <label className="detail-label">Peso</label>
-                            <div className="detail-value">{selectedAtleta.peso ? `${selectedAtleta.peso} kg` : '-'}</div>
-                        </div>
-                        <div>
-                            <label className="detail-label">Altura</label>
-                            <div className="detail-value">{selectedAtleta.altura ? `${selectedAtleta.altura} cm` : '-'}</div>
                         </div>
                         <div>
                             <label className="detail-label">Fecha de Nacimiento</label>
