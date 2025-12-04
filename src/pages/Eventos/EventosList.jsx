@@ -56,14 +56,14 @@ const EventosList = () => {
 
     // 🔹 FUNCIÓN PARA MANEJAR CLICK EN FILA
     const handleRowClick = (eventoId) => {
-        navigate(`/eventos/${eventoId}`);
+        navigate(`/dashboard/eventos/${eventoId}`);
     };
 
     return (
         <div className="page-container">
             <div className="page-header">
                 <h2 className="page-title">Gestión de Eventos</h2>
-                <Button onClick={() => navigate('/eventos/nuevo')}>
+                <Button onClick={() => navigate('/dashboard/eventos/nuevo')}>
                     <Plus size={20} /> Nuevo Evento
                 </Button>
             </div>
@@ -114,7 +114,7 @@ const EventosList = () => {
                                                     size="sm"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        navigate(`/eventos/editar/${evento.idEvento}`);
+                                                        navigate(`/dashboard/eventos/editar/${evento.idEvento}`);
                                                     }}
                                                 >
                                                     <Edit size={18} />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
-import Navbar from './Navbar';
+import NavbarClub from './NavbarClub';
 import SidebarClub from './SidebarClub';
 import './MainLayout.css';
 
@@ -64,7 +64,7 @@ const MainLayoutClub = () => {
                 />
             </div>
             <div className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-                <Navbar
+                <NavbarClub
                     toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
                     toggleCollapse={toggleSidebar}
                     isCollapsed={sidebarCollapsed}

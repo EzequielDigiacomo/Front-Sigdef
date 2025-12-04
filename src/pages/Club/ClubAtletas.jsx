@@ -34,10 +34,11 @@ const ClubAtletas = () => {
             console.log('📋 PRIMER ATLETA COMPLETO:', todosAtletas[0]);
 
             // Filtrar solo atletas del club actual usando idClub
+            const clubId = user.idClub || user.clubId;
             const atletasDelClub = todosAtletas.filter(a => {
                 const atletaClubId = a.idClub || a.clubId;
-                console.log(`Comparando: atleta.idClub (${atletaClubId}) === user.clubId (${user.clubId})`);
-                return atletaClubId === user.clubId;
+                console.log(`Comparando: atleta.idClub (${atletaClubId}) === user.clubId (${clubId})`);
+                return atletaClubId === clubId;
             });
 
             console.log('✅ Atletas del club filtrados:', atletasDelClub.length);

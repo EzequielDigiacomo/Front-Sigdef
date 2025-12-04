@@ -1,9 +1,11 @@
+// ClubDelegadosForm.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
 import { ArrowLeft, Save } from 'lucide-react';
 import './ClubAtletas.css';
 
@@ -27,6 +29,21 @@ const ClubDelegadosForm = () => {
         idFederacion: 1
     });
 
+    const [modalConfig, setModalConfig] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'info',
+        shouldNavigate: false
+    });
+
+    const handleModalClose = () => {
+        setModalConfig(prev => ({ ...prev, isOpen: false }));
+        if (modalConfig.shouldNavigate) {
+            navigate('/club/delegados');
+        }
+    };
+
     useEffect(() => {
         if (id) loadDelegado();
     }, [id]);
@@ -49,6 +66,13 @@ const ClubDelegadosForm = () => {
             });
         } catch (error) {
             console.error('Error cargando delegado:', error);
+            setModalConfig({
+                isOpen: true,
+                title: 'Error',
+                message: 'Error al cargar los datos del delegado.',
+                type: 'danger',
+                shouldNavigate: true
+            });
         }
     };
 
@@ -67,28 +91,40 @@ const ClubDelegadosForm = () => {
         try {
             let idPersona = null;
 
+            // FIX: Enviar null si es string vacío para evitar errores de validación en backend
+            const emailFinal = (!formData.email || formData.email.trim() === "") ? null : formData.email;
+            const telefonoFinal = (!formData.telefono || formData.telefono.trim() === "") ? null : formData.telefono;
+            const direccionFinal = (!formData.direccion || formData.direccion.trim() === "") ? null : formData.direccion;
+
             const personaPayload = {
                 nombre: formData.nombre,
                 apellido: formData.apellido,
                 documento: formData.documento,
                 fechaNacimiento: formData.fechaNacimiento ? new Date(formData.fechaNacimiento).toISOString() : new Date().toISOString(),
-                email: formData.email || "",
-                telefono: formData.telefono || "",
-                direccion: formData.direccion || ""
+                email: emailFinal,
+                telefono: telefonoFinal,
+                direccion: direccionFinal
+            };
+
+            // Helper para payload de Delegado
+            const getDelegadoPayload = (idPersona) => {
+                const clubId = user.idClub || user.clubId;
+                if (!clubId) {
+                    throw new Error("No se pudo identificar el ID del club del usuario logueado");
+                }
+                return {
+                    idPersona: idPersona,
+                    idClub: clubId, // Aseguramos enviar el idClub
+                    idRol: parseInt(formData.idRol),
+                    idFederacion: parseInt(formData.idFederacion)
+                };
             };
 
             if (id) {
                 // MODO EDICIÓN
                 await api.put(`/Persona/${id}`, personaPayload);
                 idPersona = parseInt(id);
-
-                const delegadoPayload = {
-                    idPersona: idPersona,
-                    idRol: parseInt(formData.idRol),
-                    idFederacion: parseInt(formData.idFederacion)
-                };
-
-                await api.put(`/DelegadoClub/${id}`, delegadoPayload);
+                await api.put(`/DelegadoClub/${id}`, getDelegadoPayload(idPersona));
             } else {
                 // MODO CREACIÓN
                 // Verificar si la persona ya existe
@@ -109,20 +145,44 @@ const ClubDelegadosForm = () => {
                 }
 
                 // Crear delegado
-                const delegadoPayload = {
-                    idPersona: idPersona,
-                    idRol: parseInt(formData.idRol),
-                    idFederacion: parseInt(formData.idFederacion)
-                };
-
-                await api.post('/DelegadoClub', delegadoPayload);
+                // Primero verificamos si ya es delegado para evitar duplicados/errores
+                try {
+                    await api.get(`/DelegadoClub/${idPersona}`);
+                    // Si existe, actualizamos
+                    await api.put(`/DelegadoClub/${idPersona}`, getDelegadoPayload(idPersona));
+                } catch (error) {
+                    // Si no existe (404), creamos
+                    await api.post('/DelegadoClub', getDelegadoPayload(idPersona));
+                }
             }
 
-            alert('Delegado guardado exitosamente!');
-            navigate('/club/delegados');
+            setModalConfig({
+                isOpen: true,
+                title: 'Éxito',
+                message: 'Delegado guardado exitosamente!',
+                type: 'success',
+                shouldNavigate: true
+            });
         } catch (error) {
             console.error('Error guardando:', error);
-            alert('Error al guardar. Revisa la consola para más detalles.');
+            // Si el error es de lectura después de guardar, redirigir de todas formas
+            if (error.message && error.message.includes('Email')) {
+                setModalConfig({
+                    isOpen: true,
+                    title: 'Advertencia',
+                    message: 'Delegado guardado, pero hubo un error al leer los datos. Esto es un problema del backend.',
+                    type: 'warning',
+                    shouldNavigate: true
+                });
+            } else {
+                setModalConfig({
+                    isOpen: true,
+                    title: 'Error',
+                    message: 'Error al guardar. Revisa la consola para más detalles.',
+                    type: 'danger',
+                    shouldNavigate: false
+                });
+            }
         } finally {
             setLoading(false);
         }
@@ -193,6 +253,17 @@ const ClubDelegadosForm = () => {
                     </div>
                 </form>
             </Card>
+
+            <ConfirmationModal
+                isOpen={modalConfig.isOpen}
+                onClose={handleModalClose}
+                onConfirm={handleModalClose}
+                title={modalConfig.title}
+                message={modalConfig.message}
+                confirmText={modalConfig.type === 'danger' ? 'Entendido' : 'Aceptar'}
+                showCancel={false}
+                type={modalConfig.type}
+            />
         </div>
     );
 };

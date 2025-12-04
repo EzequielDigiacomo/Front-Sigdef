@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Plus, MapPin, Users, Edit, Trash2 } from 'lucide-react';
+import { Calendar, Plus, MapPin, Users, Edit, Trash2, UserPlus } from 'lucide-react';
 import Button from '../../components/common/Button';
 import './ClubEventos.css';
 
@@ -40,7 +40,8 @@ const ClubEventos = () => {
         }
     };
 
-    const handleDelete = async (id) => {
+    const handleDelete = async (id, e) => {
+        e.stopPropagation(); // Evitar navegación al hacer click en eliminar
         if (window.confirm('¿Estás seguro de que deseas eliminar este evento?')) {
             try {
                 await api.delete(`/Evento/${id}`);
@@ -51,6 +52,42 @@ const ClubEventos = () => {
                 alert('Error al eliminar el evento. Por favor, intenta nuevamente.');
             }
         }
+    };
+
+    const handleEdit = (id, e) => {
+        e.stopPropagation(); // Evitar navegación al hacer click en editar
+        navigate(`/club/eventos/editar/${id}`);
+    };
+
+    const handleCardClick = (id) => {
+        // Navegar al formulario de inscripción
+        navigate(`/club/inscripciones/nuevo?eventoId=${id}`);
+    };
+
+    // Función helper para parsear fechas de forma robusta
+    const parseDate = (dateStr) => {
+        if (!dateStr) return null;
+        const d = new Date(dateStr);
+        if (!isNaN(d.getTime())) return d;
+        return null;
+    };
+
+    const formatDateRange = (fechaInicio, fechaFin) => {
+        const inicio = parseDate(fechaInicio);
+        const fin = parseDate(fechaFin);
+
+        if (!inicio) return 'Fecha no disponible';
+
+        const options = { day: 'numeric', month: 'short', year: 'numeric' };
+        const inicioStr = inicio.toLocaleDateString('es-AR', options);
+
+        if (!fin) return inicioStr;
+
+        const finStr = fin.toLocaleDateString('es-AR', options);
+
+        if (inicioStr === finStr) return inicioStr;
+
+        return `${inicioStr} - ${finStr}`;
     };
 
     const getEstadoBadgeClass = (estado) => {
@@ -107,7 +144,12 @@ const ClubEventos = () => {
                     </div>
                 ) : (
                     eventos.map(evento => (
-                        <div key={evento.idEvento} className="evento-card glass-panel">
+                        <div
+                            key={evento.idEvento}
+                            className="evento-card glass-panel clickable"
+                            onClick={() => handleCardClick(evento.idEvento)}
+                            style={{ cursor: 'pointer' }}
+                        >
                             <div className="evento-header">
                                 <div className="evento-icon">
                                     <Calendar size={24} />
@@ -123,7 +165,7 @@ const ClubEventos = () => {
                             <div className="evento-details">
                                 <div className="detail-row">
                                     <Calendar size={16} />
-                                    <span>{new Date(evento.fecha).toLocaleDateString('es-AR')}</span>
+                                    <span>{formatDateRange(evento.fechaInicio, evento.fechaFin)}</span>
                                 </div>
                                 <div className="detail-row">
                                     <MapPin size={16} />
@@ -140,7 +182,7 @@ const ClubEventos = () => {
                                     variant="secondary"
                                     size="sm"
                                     icon={Edit}
-                                    onClick={() => navigate(`/club/eventos/editar/${evento.idEvento}`)}
+                                    onClick={(e) => handleEdit(evento.idEvento, e)}
                                 >
                                     Editar
                                 </Button>
@@ -148,7 +190,7 @@ const ClubEventos = () => {
                                     variant="danger"
                                     size="sm"
                                     icon={Trash2}
-                                    onClick={() => handleDelete(evento.idEvento)}
+                                    onClick={(e) => handleDelete(evento.idEvento, e)}
                                 >
                                     Eliminar
                                 </Button>

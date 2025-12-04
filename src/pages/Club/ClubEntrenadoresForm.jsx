@@ -1,9 +1,11 @@
+// ClubEntrenadoresForm.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
 import { ArrowLeft, Save } from 'lucide-react';
 import { CATEGORIA_MAP } from '../../utils/enums';
 import './ClubAtletas.css';
@@ -24,7 +26,7 @@ const ClubEntrenadoresForm = () => {
         telefono: '',
         direccion: '',
         // Datos Entrenador
-        licencia: '',
+        // licencia: '', // Eliminado del frontend
         perteneceSeleccion: false,
         categoriaSeleccion: '',
         becadoEnard: false,
@@ -32,6 +34,21 @@ const ClubEntrenadoresForm = () => {
         montoBeca: 0,
         presentoAptoMedico: false
     });
+
+    const [modalConfig, setModalConfig] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'info',
+        shouldNavigate: false
+    });
+
+    const handleModalClose = () => {
+        setModalConfig(prev => ({ ...prev, isOpen: false }));
+        if (modalConfig.shouldNavigate) {
+            navigate('/club/entrenadores');
+        }
+    };
 
     useEffect(() => {
         if (id) loadEntrenador();
@@ -50,7 +67,7 @@ const ClubEntrenadoresForm = () => {
                 email: persona.email || '',
                 telefono: persona.telefono || '',
                 direccion: persona.direccion || '',
-                licencia: data.licencia || '',
+                // licencia: data.licencia || '', // Ignoramos la licencia al cargar
                 perteneceSeleccion: data.perteneceSeleccion || false,
                 categoriaSeleccion: data.categoriaSeleccion || '',
                 becadoEnard: data.becadoEnard || false,
@@ -60,6 +77,13 @@ const ClubEntrenadoresForm = () => {
             });
         } catch (error) {
             console.error('Error cargando entrenador:', error);
+            setModalConfig({
+                isOpen: true,
+                title: 'Error',
+                message: 'Error al cargar los datos del entrenador.',
+                type: 'danger',
+                shouldNavigate: true
+            });
         }
     };
 
@@ -78,25 +102,31 @@ const ClubEntrenadoresForm = () => {
         try {
             let idPersona = null;
 
+            // FIX: Enviar null si es string vacío para evitar errores de validación en backend
+            const emailFinal = (!formData.email || formData.email.trim() === "") ? null : formData.email;
+            const telefonoFinal = (!formData.telefono || formData.telefono.trim() === "") ? null : formData.telefono;
+            const direccionFinal = (!formData.direccion || formData.direccion.trim() === "") ? null : formData.direccion;
+
             const personaPayload = {
                 nombre: formData.nombre,
                 apellido: formData.apellido,
                 documento: formData.documento,
                 fechaNacimiento: formData.fechaNacimiento ? new Date(formData.fechaNacimiento).toISOString() : new Date().toISOString(),
-                email: formData.email || "",
-                telefono: formData.telefono || "",
-                direccion: formData.direccion || ""
+                email: emailFinal,
+                telefono: telefonoFinal,
+                direccion: direccionFinal
             };
 
-            if (id) {
-                // MODO EDICIÓN
-                await api.put(`/Persona/${id}`, personaPayload);
-                idPersona = parseInt(id);
-
-                const entrenadorPayload = {
+            // Helper para payload de Entrenador
+            const getEntrenadorPayload = (idPersona) => {
+                const clubId = user.idClub || user.clubId;
+                if (!clubId) {
+                    throw new Error("No se pudo identificar el ID del club del usuario logueado");
+                }
+                return {
                     idPersona: idPersona,
-                    idClub: user.clubId,
-                    licencia: formData.licencia,
+                    idClub: clubId,
+                    licencia: "S/L", // Valor por defecto para backend
                     perteneceSeleccion: formData.perteneceSeleccion,
                     categoriaSeleccion: formData.categoriaSeleccion || "",
                     becadoEnard: formData.becadoEnard,
@@ -104,8 +134,13 @@ const ClubEntrenadoresForm = () => {
                     montoBeca: parseFloat(formData.montoBeca) || 0,
                     presentoAptoMedico: formData.presentoAptoMedico
                 };
+            };
 
-                await api.put(`/Entrenador/${id}`, entrenadorPayload);
+            if (id) {
+                // MODO EDICIÓN
+                await api.put(`/Persona/${id}`, personaPayload);
+                idPersona = parseInt(id);
+                await api.put(`/Entrenador/${id}`, getEntrenadorPayload(idPersona));
             } else {
                 // MODO CREACIÓN
                 // Verificar si la persona ya existe
@@ -126,31 +161,43 @@ const ClubEntrenadoresForm = () => {
                 }
 
                 // Crear entrenador
-                const entrenadorPayload = {
-                    idPersona: idPersona,
-                    idClub: user.clubId,
-                    licencia: formData.licencia,
-                    perteneceSeleccion: formData.perteneceSeleccion,
-                    categoriaSeleccion: formData.categoriaSeleccion || "",
-                    becadoEnard: formData.becadoEnard,
-                    becadoSdn: formData.becadoSdn,
-                    montoBeca: parseFloat(formData.montoBeca) || 0,
-                    presentoAptoMedico: formData.presentoAptoMedico
-                };
-
-                await api.post('/Entrenador', entrenadorPayload);
+                // Primero verificamos si ya es entrenador para evitar duplicados/errores
+                try {
+                    await api.get(`/Entrenador/${idPersona}`);
+                    // Si existe, actualizamos
+                    await api.put(`/Entrenador/${idPersona}`, getEntrenadorPayload(idPersona));
+                } catch (error) {
+                    // Si no existe (404), creamos
+                    await api.post('/Entrenador', getEntrenadorPayload(idPersona));
+                }
             }
 
-            alert('Entrenador guardado exitosamente!');
-            navigate('/club/entrenadores');
+            setModalConfig({
+                isOpen: true,
+                title: 'Éxito',
+                message: 'Entrenador guardado exitosamente!',
+                type: 'success',
+                shouldNavigate: true
+            });
         } catch (error) {
             console.error('Error guardando:', error);
             // Si el error es de lectura después de guardar, redirigir de todas formas
             if (error.message && error.message.includes('Email')) {
-                alert('Entrenador guardado, pero hubo un error al leer los datos. Esto es un problema del backend.');
-                navigate('/club/entrenadores');
+                setModalConfig({
+                    isOpen: true,
+                    title: 'Advertencia',
+                    message: 'Entrenador guardado, pero hubo un error al leer los datos. Esto es un problema del backend.',
+                    type: 'warning',
+                    shouldNavigate: true
+                });
             } else {
-                alert('Error al guardar. Revisa la consola para más detalles.');
+                setModalConfig({
+                    isOpen: true,
+                    title: 'Error',
+                    message: 'Error al guardar. Revisa la consola para más detalles.',
+                    type: 'danger',
+                    shouldNavigate: false
+                });
             }
         } finally {
             setLoading(false);
@@ -202,10 +249,8 @@ const ClubEntrenadoresForm = () => {
                         </div>
 
                         <h3 className="form-section-title">Datos del Entrenador</h3>
-                        <div className="form-group">
-                            <label>Licencia *</label>
-                            <input name="licencia" value={formData.licencia} onChange={handleChange} className="form-input" maxLength={50} required />
-                        </div>
+                        {/* Campo Licencia eliminado */}
+
                         <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
                             <input type="checkbox" name="perteneceSeleccion" checked={formData.perteneceSeleccion} onChange={handleChange} id="seleccion" />
                             <label htmlFor="seleccion" style={{ marginBottom: 0 }}>Pertenece a Selección</label>
@@ -256,6 +301,17 @@ const ClubEntrenadoresForm = () => {
                     </div>
                 </form>
             </Card>
+
+            <ConfirmationModal
+                isOpen={modalConfig.isOpen}
+                onClose={handleModalClose}
+                onConfirm={handleModalClose}
+                title={modalConfig.title}
+                message={modalConfig.message}
+                confirmText={modalConfig.type === 'danger' ? 'Entendido' : 'Aceptar'}
+                showCancel={false}
+                type={modalConfig.type}
+            />
         </div>
     );
 };

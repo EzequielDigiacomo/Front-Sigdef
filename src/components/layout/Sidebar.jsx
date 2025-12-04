@@ -1,9 +1,12 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Trophy, Calendar, Shield, DollarSign, UserCheck, ClipboardList, Award, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { LayoutDashboard, Users, Trophy, Calendar, Shield, DollarSign, UserCheck, ClipboardList, Award, ChevronLeft, ChevronRight, Lock } from 'lucide-react';
 import './Sidebar.css';
 
 const Sidebar = ({ isOpen, closeMobile, isCollapsed, toggleSidebar }) => {
+    const { user } = useAuth();
+
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
         { icon: Shield, label: 'Clubes', path: '/clubes' },
@@ -15,6 +18,11 @@ const Sidebar = ({ isOpen, closeMobile, isCollapsed, toggleSidebar }) => {
         { icon: DollarSign, label: 'Pagos', path: '/pagos' },
         { icon: Trophy, label: 'Federación', path: '/federacion' },
     ];
+
+    // Agregar menú de gestión de accesos solo para FEDERACION
+    if (user?.role === 'FEDERACION') {
+        navItems.push({ icon: Lock, label: 'Gestión de Accesos', path: '/dashboard/usuarios' });
+    }
 
     return (
         <>

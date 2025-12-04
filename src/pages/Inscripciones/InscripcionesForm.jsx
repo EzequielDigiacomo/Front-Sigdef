@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
@@ -9,6 +10,13 @@ import { getCategoriaLabel } from '../../utils/enums';
 
 const InscripcionesForm = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const [searchParams] = useSearchParams();
+    const eventoIdFromUrl = searchParams.get('eventoId');
+
+    // Determinar si es contexto de club
+    const isClubContext = user.role === 'CLUB';
+
     const [loading, setLoading] = useState(false);
     const [eventos, setEventos] = useState([]);
     const [clubes, setClubes] = useState([]);
@@ -16,15 +24,19 @@ const InscripcionesForm = () => {
     const [atletasSeleccionados, setAtletasSeleccionados] = useState([]);
 
     const [formData, setFormData] = useState({
-        idEvento: '',
-        idClub: '',
+        idEvento: eventoIdFromUrl || '',
+        idClub: isClubContext ? user.idClub : '',
         fechaInscripcion: new Date().toISOString().split('T')[0]
     });
 
     // Carga inicial de eventos y clubes
     useEffect(() => {
         loadEventos();
-        loadClubes();
+
+        if (!isClubContext) {
+            // Solo cargar clubes si es contexto de federación
+            loadClubes();
+        }
     }, []);
 
     // Cuando cambia el club, recargar atletas del club
@@ -142,7 +154,13 @@ const InscripcionesForm = () => {
             );
             await Promise.all(promesas);
             alert(`${atletasSeleccionados.length} atleta(s) inscrito(s) exitosamente`);
-            navigate('/inscripciones');
+
+            // Navegar según contexto
+            if (isClubContext) {
+                navigate('/club/eventos-disponibles');
+            } else {
+                navigate('/dashboard/inscripciones');
+            }
         } catch (error) {
             console.error('Error guardando inscripciones:', error);
             alert('Error al guardar las inscripciones. Algunos atletas pueden ya estar inscritos.');
@@ -151,11 +169,19 @@ const InscripcionesForm = () => {
         }
     };
 
+    const handleBack = () => {
+        if (isClubContext) {
+            navigate('/club/eventos-disponibles');
+        } else {
+            navigate('/dashboard/inscripciones');
+        }
+    };
+
     return (
         <div className="page-container">
             <div className="page-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Button variant="ghost" onClick={() => navigate('/inscripciones')}>
+                    <Button variant="ghost" onClick={handleBack}>
                         <ArrowLeft size={20} />
                     </Button>
                     <h2 className="page-title">Nueva Inscripción</h2>
@@ -175,6 +201,7 @@ const InscripcionesForm = () => {
                                 onChange={handleChange}
                                 className="form-input"
                                 required
+                                disabled={!!eventoIdFromUrl}
                             >
                                 <option value="">Seleccione un evento</option>
                                 {eventos.map(evento => (
@@ -183,23 +210,30 @@ const InscripcionesForm = () => {
                                     </option>
                                 ))}
                             </select>
+                            {eventoIdFromUrl && (
+                                <small style={{ color: 'var(--text-secondary)', marginTop: '0.25rem', display: 'block' }}>
+                                    Evento pre-seleccionado desde eventos disponibles
+                                </small>
+                            )}
                         </div>
 
-                        <div className="form-group">
-                            <label>Club *</label>
-                            <select
-                                name="idClub"
-                                value={formData.idClub}
-                                onChange={handleChange}
-                                className="form-input"
-                                required
-                            >
-                                <option value="">Seleccione un club</option>
-                                {clubes.map(club => (
-                                    <option key={club.idClub} value={club.idClub}>{club.nombre}</option>
-                                ))}
-                            </select>
-                        </div>
+                        {!isClubContext && (
+                            <div className="form-group">
+                                <label>Club *</label>
+                                <select
+                                    name="idClub"
+                                    value={formData.idClub}
+                                    onChange={handleChange}
+                                    className="form-input"
+                                    required
+                                >
+                                    <option value="">Seleccione un club</option>
+                                    {clubes.map(club => (
+                                        <option key={club.idClub} value={club.idClub}>{club.nombre}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
 
                         <div className="form-group">
                             <label>Fecha de Inscripción *</label>
@@ -315,7 +349,7 @@ const InscripcionesForm = () => {
                 )}
 
                 <div className="form-actions" style={{ marginTop: '1.5rem' }}>
-                    <Button type="button" variant="secondary" onClick={() => navigate('/inscripciones')}>Cancelar</Button>
+                    <Button type="button" variant="secondary" onClick={handleBack}>Cancelar</Button>
                     <Button type="submit" variant="primary" isLoading={loading} disabled={atletasSeleccionados.length === 0}>
                         <Save size={18} /> Inscribir {atletasSeleccionados.length} Atleta(s)
                     </Button>

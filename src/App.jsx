@@ -21,6 +21,7 @@ import InscripcionesList from './pages/Inscripciones/InscripcionesList';
 import InscripcionesForm from './pages/Inscripciones/InscripcionesForm';
 import EntrenadoresSeleccionList from './pages/EntrenadorSeleccion/EntrenadorSeleccionList';
 import EntrenadoresSeleccionForm from './pages/EntrenadorSeleccion/EntrenadorSeleccionForm';
+import UserManagement from './pages/Usuarios/UserManagement';
 
 // Páginas de Club
 import ClubDashboard from './pages/Club/ClubDashboard';
@@ -50,22 +51,45 @@ const PrivateRoute = ({ children, allowedRoles }) => {
   // Si se especifican roles permitidos, verificar que el usuario tenga uno de ellos
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     // Redirigir al dashboard correspondiente según el rol
-    const redirectPath = user.role === 'CLUB' ? '/club' : '/';
+    const redirectPath = user.role === 'CLUB' ? '/club' : '/dashboard';
     return <Navigate to={redirectPath} replace />;
   }
 
   return children;
 };
 
-// Componente para redirigir según el rol del usuario
-const RoleBasedRedirect = () => {
-  const { user } = useAuth();
+// Componente para manejar el acceso a la página de login
+const LoginRoute = () => {
+  const { isAuthenticated, loading, user } = useAuth();
 
+  if (loading) return <div>Cargando...</div>;
+
+  if (isAuthenticated) {
+    // Redirigir al dashboard correspondiente si ya está autenticado
+    const redirectPath = user.role === 'CLUB' ? '/club' : '/dashboard';
+    console.log('Usuario ya autenticado, redirigiendo a:', redirectPath);
+    return <Navigate to={redirectPath} replace />;
+  }
+
+  return <Login />;
+};
+
+// Componente para redirigir desde la raíz según autenticación y rol
+const RootRedirect = () => {
+  const { isAuthenticated, loading, user } = useAuth();
+
+  if (loading) return <div>Cargando...</div>;
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Redirigir según el rol del usuario
   if (user.role === 'CLUB') {
     return <Navigate to="/club" replace />;
   }
 
-  return <Navigate to="/" replace />;
+  return <Navigate to="/dashboard" replace />;
 };
 
 function App() {
@@ -74,10 +98,13 @@ function App() {
       <AuthProvider>
         <Router>
           <Routes>
-            <Route path="/login" element={<Login />} />
+            {/* Ruta raíz - redirige según autenticación y rol */}
+            <Route path="/" element={<RootRedirect />} />
+
+            <Route path="/login" element={<LoginRoute />} />
 
             {/* Rutas de Federación (Administrador) */}
-            <Route path="/" element={
+            <Route path="/dashboard" element={
               <PrivateRoute allowedRoles={['FEDERACION']}>
                 <MainLayout />
               </PrivateRoute>
@@ -118,6 +145,7 @@ function App() {
               {/* Rutas de Pagos */}
               <Route path="pagos" element={<div>Página de Pagos (En construcción)</div>} />
               <Route path="federacion" element={<div>Página de Federación (En construcción)</div>} />
+              <Route path="usuarios" element={<UserManagement />} />
             </Route>
 
             {/* Rutas de Club */}
@@ -148,11 +176,7 @@ function App() {
             </Route>
 
             {/* Ruta por defecto - redirige según el rol */}
-            <Route path="*" element={
-              <PrivateRoute>
-                <RoleBasedRedirect />
-              </PrivateRoute>
-            } />
+            <Route path="*" element={<RootRedirect />} />
           </Routes>
         </Router>
       </AuthProvider>

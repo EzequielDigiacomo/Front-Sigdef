@@ -13,28 +13,28 @@ const Dashboard = () => {
             value: '...',
             icon: Users,
             color: 'var(--primary)',
-            route: '/atletas'
+            route: '/dashboard/atletas'
         },
         {
             label: 'Clubes Registrados',
             value: '...',
             icon: Shield,
             color: 'var(--success)',
-            route: '/clubes'
+            route: '/dashboard/clubes'
         },
         {
             label: 'Atletas con Deuda',
             value: '...',
             icon: DollarSign,
             color: 'var(--danger)',
-            route: '/atletas?filter=deuda'
+            route: '/dashboard/atletas?filter=deuda'
         },
         {
             label: 'Próximos Eventos',
             value: '...',
             icon: Calendar,
             color: 'var(--warning)',
-            route: '/eventos'
+            route: '/dashboard/eventos'
         },
     ]);
     const [proximosEventos, setProximosEventos] = useState([]);
@@ -143,28 +143,28 @@ const Dashboard = () => {
                         value: totalAtletas,
                         icon: Users,
                         color: 'var(--primary)',
-                        route: '/atletas'
+                        route: '/dashboard/atletas'
                     },
                     {
                         label: 'Clubes Registrados',
                         value: totalClubes,
                         icon: Shield,
                         color: 'var(--success)',
-                        route: '/clubes'
+                        route: '/dashboard/clubes'
                     },
                     {
                         label: 'Atletas con Deuda',
                         value: atletasConDeuda,
                         icon: DollarSign,
                         color: 'var(--danger)',
-                        route: '/atletas?filter=deuda'
+                        route: '/dashboard/atletas?filter=deuda'
                     },
                     {
                         label: 'Próximos Eventos',
                         value: eventosProcesados.filter(e => new Date(e.fechaFin) >= new Date()).length,
                         icon: Calendar,
                         color: 'var(--warning)',
-                        route: '/eventos'
+                        route: '/dashboard/eventos'
                     },
                 ]);
 
@@ -182,7 +182,7 @@ const Dashboard = () => {
     }, []);
 
     const handleEventoClick = (idEvento) => {
-        navigate(`/eventos/${idEvento}`);
+        navigate(`/dashboard/eventos/${idEvento}`);
     };
 
     const handleCardClick = (route) => {

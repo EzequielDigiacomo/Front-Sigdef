@@ -1,30 +1,24 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { NavLink } from 'react-router-dom';
-import { LogOut, User, Menu, LayoutDashboard, Shield, Users, Award, Calendar, ClipboardList, UserCheck, DollarSign, Trophy, Lock } from 'lucide-react';
+import { LogOut, User, Menu, LayoutDashboard, Users, Calendar, Trophy, Info, UserCheck, Award, Shield } from 'lucide-react';
 import Button from '../common/Button';
 import ThemeToggle from '../common/ThemeToggle';
 import './Navbar.css';
 
-const Navbar = ({ toggleSidebar }) => {
+const NavbarClub = ({ toggleSidebar }) => {
     const { user, logout } = useAuth();
 
     const navItems = [
-        { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-        { icon: Shield, label: 'Clubes', path: '/dashboard/clubes' },
-        { icon: Users, label: 'Atletas', path: '/dashboard/atletas' },
-        { icon: Award, label: 'Selección', path: '/dashboard/entrenadores-seleccion' },
-        { icon: Calendar, label: 'Eventos', path: '/dashboard/eventos' },
-        { icon: ClipboardList, label: 'Inscripciones', path: '/dashboard/inscripciones' },
-        { icon: UserCheck, label: 'Tutores', path: '/dashboard/tutores' },
-        { icon: DollarSign, label: 'Pagos', path: '/dashboard/pagos' },
-        { icon: Trophy, label: 'Federación', path: '/dashboard/federacion' },
+        { icon: LayoutDashboard, label: 'Dashboard', path: '/club' },
+        { icon: Info, label: 'Mi Club', path: '/club/info' },
+        { icon: Users, label: 'Atletas', path: '/club/atletas' },
+        { icon: UserCheck, label: 'Tutores', path: '/club/tutores' },
+        { icon: Award, label: 'Entrenadores', path: '/club/entrenadores' },
+        { icon: Shield, label: 'Delegados', path: '/club/delegados' },
+        { icon: Calendar, label: 'Eventos', path: '/club/eventos' },
+        { icon: Trophy, label: 'Disponibles', path: '/club/eventos-disponibles' },
     ];
-
-    // Agregar menú de gestión de accesos solo para FEDERACION
-    if (user?.role === 'FEDERACION') {
-        navItems.push({ icon: Lock, label: 'Gestión de Accesos', path: '/dashboard/usuarios' });
-    }
 
     return (
         <nav className="navbar glass-panel">
@@ -51,7 +45,7 @@ const Navbar = ({ toggleSidebar }) => {
             <div className="navbar-right">
                 <ThemeToggle />
                 <div className="user-info">
-                    <span className="user-name">{user?.nombre || 'Usuario'}</span>
+                    <span className="user-name">{user?.nombreCompleto || 'Usuario'}</span>
                     <div className="avatar">
                         <User size={20} />
                     </div>
@@ -64,4 +58,4 @@ const Navbar = ({ toggleSidebar }) => {
     );
 };
 
-export default Navbar;
+export default NavbarClub;

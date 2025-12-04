@@ -1,84 +1,95 @@
+// ClubInfo.jsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
-import { MapPin, Phone, Mail, Users, Calendar, Award, User } from 'lucide-react';
+import { MapPin, Phone, Mail, Users, Award, User, Shield } from 'lucide-react';
 import './ClubInfo.css';
 
 const ClubInfo = () => {
     const { user } = useAuth();
     const [clubData, setClubData] = useState(null);
     const [entrenadores, setEntrenadores] = useState([]);
+    const [delegados, setDelegados] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         fetchClubData();
-    }, [user.clubId]);
+    }, [user.clubId, user.idClub]);
 
     const fetchClubData = async () => {
         try {
             setLoading(true);
+            const clubId = user.idClub || user.clubId;
 
             // 1. Obtener información del club
-            const club = await api.get(`/Club/${user.clubId}`);
+            const club = await api.get(`/Club/${clubId}`);
 
-            // 2. Obtener atletas del club
-            const atletas = await api.get('/Atleta');
-            const atletasDelClub = atletas.filter(a => a.idClub === user.clubId);
-
-            // 3. Obtener entrenadores del club
+            // 2. Obtener entrenadores del club
             let entrenadoresDelClub = [];
             try {
-                // Obtener todos los entrenadores
                 const todosEntrenadores = await api.get('/Entrenador');
+                entrenadoresDelClub = todosEntrenadores.filter(e => {
+                    const eClubId = e.idClub || e.clubId;
+                    return eClubId == clubId;
+                });
 
-                // Filtrar por club
-                entrenadoresDelClub = todosEntrenadores.filter(e => e.idClub === user.clubId);
-
-                // Para cada entrenador, obtener los datos de la persona
+                // Enriquecer con datos de persona
                 const entrenadoresConPersona = await Promise.all(
                     entrenadoresDelClub.map(async (entrenador) => {
                         try {
                             const persona = await api.get(`/Persona/${entrenador.idPersona}`);
-                            return {
-                                ...entrenador,
-                                persona: persona
-                            };
+                            return { ...entrenador, persona };
                         } catch (error) {
-                            console.error(`Error obteniendo persona para entrenador ${entrenador.idPersona}:`, error);
-                            return {
-                                ...entrenador,
-                                persona: null
-                            };
+                            return { ...entrenador, persona: null };
+                        }
+                    })
+                );
+                setEntrenadores(entrenadoresConPersona);
+            } catch (error) {
+                console.error('Error al cargar entrenadores:', error);
+            }
+
+            // 3. Obtener delegados del club
+            try {
+                const todosDelegados = await api.get('/DelegadoClub');
+                const delegadosDelClub = todosDelegados.filter(d => {
+                    const dClubId = d.idClub || d.clubId;
+                    return dClubId == clubId;
+                });
+
+                // Enriquecer con datos de persona (si el endpoint no los trae ya)
+                // Nota: El endpoint DelegadoClub suele traer nombrePersona, pero por consistencia:
+                const delegadosConPersona = await Promise.all(
+                    delegadosDelClub.map(async (delegado) => {
+                        try {
+                            const persona = await api.get(`/Persona/${delegado.idPersona}`);
+                            return { ...delegado, persona };
+                        } catch (error) {
+                            return { ...delegado, persona: null };
                         }
                     })
                 );
 
-                setEntrenadores(entrenadoresConPersona);
+                setDelegados(delegadosConPersona);
             } catch (error) {
-                console.error('Error al cargar entrenadores:', error);
-                setEntrenadores([]);
+                console.error('Error al cargar delegados:', error);
             }
 
             setClubData({
                 ...club,
-                totalAtletas: atletasDelClub.length,
-                totalEntrenadores: entrenadoresDelClub.length,
                 logros: club.logros || []
             });
         } catch (error) {
             console.error('Error al cargar información del club:', error);
-            // Si falla, usar datos del usuario
+            // Fallback con datos de usuario
             setClubData({
                 id: user.clubId,
                 nombre: user.clubNombre || user.nombre,
                 direccion: user.clubData?.direccion || 'No especificada',
                 telefono: user.clubData?.telefono || 'No especificado',
                 email: user.email,
-                totalAtletas: 0,
-                totalEntrenadores: 0,
                 logros: []
             });
-            setEntrenadores([]);
         } finally {
             setLoading(false);
         }
@@ -121,7 +132,7 @@ const ClubInfo = () => {
                             </div>
                             <div className="info-content">
                                 <span className="info-label">Dirección</span>
-                                <span className="info-value">{clubData.direccion}</span>
+                                <span className="info-value">{clubData.direccion || 'No especificada'}</span>
                             </div>
                         </div>
 
@@ -131,7 +142,7 @@ const ClubInfo = () => {
                             </div>
                             <div className="info-content">
                                 <span className="info-label">Teléfono</span>
-                                <span className="info-value">{clubData.telefono}</span>
+                                <span className="info-value">{clubData.telefono || 'No especificado'}</span>
                             </div>
                         </div>
 
@@ -141,7 +152,7 @@ const ClubInfo = () => {
                             </div>
                             <div className="info-content">
                                 <span className="info-label">Email</span>
-                                <span className="info-value">{clubData.email}</span>
+                                <span className="info-value">{clubData.email || 'No especificado'}</span>
                             </div>
                         </div>
                     </div>
@@ -165,25 +176,11 @@ const ClubInfo = () => {
                                             }
                                         </span>
                                         <div className="entrenador-details">
-                                            <span className="entrenador-licencia">
-                                                Licencia: {entrenador.licencia || 'No especificada'}
-                                            </span>
                                             {entrenador.persona && (
                                                 <span className="entrenador-contacto">
                                                     {entrenador.persona.telefono && `Tel: ${entrenador.persona.telefono}`}
                                                     {entrenador.persona.email && ` | Email: ${entrenador.persona.email}`}
                                                 </span>
-                                            )}
-                                        </div>
-                                        <div className="entrenador-estado">
-                                            {entrenador.perteneceSeleccion && (
-                                                <span className="badge seleccion">Selección Nacional</span>
-                                            )}
-                                            {entrenador.becadoEnard && (
-                                                <span className="badge beca-enard">Beca ENARD</span>
-                                            )}
-                                            {entrenador.becadoSdn && (
-                                                <span className="badge beca-sdn">Beca SDN</span>
                                             )}
                                         </div>
                                     </div>
@@ -192,52 +189,49 @@ const ClubInfo = () => {
                         ) : (
                             <div className="no-entrenadores">
                                 <User size={32} color="var(--text-secondary)" />
-                                <p>No hay entrenadores asignados a este club</p>
+                                <p>No hay entrenadores asignados</p>
                             </div>
                         )}
                     </div>
                 </div>
 
-                {/* Estadísticas */}
+                {/* Delegados del Club */}
                 <div className="info-section glass-panel">
-                    <h2>Estadísticas</h2>
-                    <div className="stats-list">
-                        <div className="stat-box">
-                            <div className="stat-icon-wrapper">
-                                <Users size={32} color="var(--primary)" />
+                    <h2>Delegados</h2>
+                    <div className="entrenadores-list"> {/* Reutilizamos clase de lista */}
+                        {delegados.length > 0 ? (
+                            delegados.map((delegado) => (
+                                <div key={delegado.idPersona} className="entrenador-item">
+                                    <div className="entrenador-avatar">
+                                        <Shield size={24} />
+                                    </div>
+                                    <div className="entrenador-info">
+                                        <span className="entrenador-nombre">
+                                            {delegado.persona
+                                                ? `${delegado.persona.nombre} ${delegado.persona.apellido}`
+                                                : 'Delegado'
+                                            }
+                                        </span>
+                                        <div className="entrenador-details">
+                                            {delegado.persona && (
+                                                <span className="entrenador-contacto">
+                                                    {delegado.persona.telefono && `Tel: ${delegado.persona.telefono}`}
+                                                    {delegado.persona.email && ` | Email: ${delegado.persona.email}`}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="no-entrenadores">
+                                <Shield size={32} color="var(--text-secondary)" />
+                                <p>No hay delegados asignados</p>
                             </div>
-                            <div className="stat-info">
-                                <span className="stat-number">{clubData.totalAtletas}</span>
-                                <span className="stat-label">Atletas Activos</span>
-                            </div>
-                        </div>
-
-                        <div className="stat-box">
-                            <div className="stat-icon-wrapper">
-                                <User size={32} color="var(--success)" />
-                            </div>
-                            <div className="stat-info">
-                                <span className="stat-number">{clubData.totalEntrenadores}</span>
-                                <span className="stat-label">Entrenadores</span>
-                            </div>
-                        </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Logros */}
-                {clubData.logros && clubData.logros.length > 0 && (
-                    <div className="info-section glass-panel logros-section">
-                        <h2>Logros y Reconocimientos</h2>
-                        <div className="logros-list">
-                            {clubData.logros.map((logro, index) => (
-                                <div key={index} className="logro-item">
-                                    <Award size={18} color="var(--warning)" />
-                                    <span>{logro}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );

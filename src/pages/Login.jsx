@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/common/Button';
-import { Shield } from 'lucide-react';
+import { Shield, Eye, EyeOff } from 'lucide-react';
 import './Login.css';
 
 const Login = () => {
@@ -10,12 +10,10 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const { login } = useAuth();
     const navigate = useNavigate();
-    const location = useLocation();
-
-    const from = location.state?.from?.pathname || '/';
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -25,7 +23,9 @@ const Login = () => {
         try {
             const success = await login(username, password);
             if (success) {
-                navigate(from, { replace: true });
+                // Redirigir a la raíz, RootRedirect se encargará de redirigir según el rol
+                console.log('Login exitoso, redirigiendo...');
+                navigate('/', { replace: true });
             } else {
                 setError('Credenciales inválidas. Prueba: admin/admin o club1/club1');
             }
@@ -63,15 +63,25 @@ const Login = () => {
 
                     <div className="form-group">
                         <label htmlFor="password">Contraseña</label>
-                        <input
-                            type="password"
-                            id="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Ingrese su contraseña"
-                            required
-                            className="form-input"
-                        />
+                        <div className="password-input-wrapper">
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                id="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Ingrese su contraseña"
+                                required
+                                className="form-input"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="password-toggle-btn"
+                                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                            >
+                                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </button>
+                        </div>
                     </div>
 
                     {error && <div className="error-message">{error}</div>}
@@ -83,10 +93,8 @@ const Login = () => {
                     <div className="login-info">
                         <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '1rem', textAlign: 'center' }}>
                             <strong>Credenciales de prueba:</strong><br />
-                            <strong>Federación:</strong> admin / admin<br />
-                            <strong>Club Central:</strong> central / central<br />
-                            <strong>Club Argentino:</strong> argentino / argentino<br />
-                            <strong>Club Náutica:</strong> nautica / nautica
+                            <strong>Federación:</strong> admin / admin123<br />
+                            <strong>Club:</strong> club2 / club123
                         </p>
                     </div>
                 </form>

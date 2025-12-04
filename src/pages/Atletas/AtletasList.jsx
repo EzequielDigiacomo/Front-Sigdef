@@ -7,6 +7,9 @@ import { Plus, Edit, Trash2, Search, FileText } from 'lucide-react';
 import { getCategoriaLabel, getEstadoPagoLabel, getEstadoPagoColor } from '../../utils/enums';
 import './Atletas.css';
 import Modal from '../../components/common/Modal';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const AtletasList = () => {
     const [atletas, setAtletas] = useState([]);
@@ -103,13 +106,55 @@ const AtletasList = () => {
         setSelectedAtleta(null);
     };
 
+    const exportToExcel = () => {
+        const dataToExport = atletas.map(atleta => ({
+            'Nombre Completo': atleta.nombrePersona,
+            'DNI': atleta.documento,
+            'Edad': atleta.edad,
+            'Club': atleta.nombreClub,
+            'Categoría': atleta.categoria != null ? getCategoriaLabel(atleta.categoria) : '-',
+            'Fecha Alta': atleta.fechaCreacion ? new Date(atleta.fechaCreacion).toLocaleDateString('es-AR') : '-',
+            'Tutor': atleta.tutorInfo ? `${atleta.tutorInfo.nombre} ${atleta.tutorInfo.apellido}` : '-',
+            'Selección': atleta.perteneceSeleccion ? 'Sí' : 'No',
+            'Estado Pago': getEstadoPagoLabel(atleta.estadoPago)
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Atletas");
+        XLSX.writeFile(wb, "Atletas_SIGDEF.xlsx");
+    };
+
+    const exportToPDF = async () => {
+        const input = document.getElementById('modal-content-export');
+        if (!input) return;
+
+        try {
+            const canvas = await html2canvas(input, { scale: 2 });
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`Atleta_${selectedAtleta.nombrePersona.replace(/\s+/g, '_')}.pdf`);
+        } catch (err) {
+            console.error("Error exportando PDF", err);
+        }
+    };
+
     return (
         <div className="page-container">
             <div className="page-header">
                 <h2 className="page-title">Gestión de Atletas</h2>
-                <Button onClick={() => navigate('/atletas/nuevo')}>
-                    <Plus size={20} /> Nuevo Atleta
-                </Button>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    <Button variant="secondary" onClick={exportToExcel}>
+                        <FileText size={20} /> Exportar Excel
+                    </Button>
+                    <Button onClick={() => navigate('/atletas/nuevo')}>
+                        <Plus size={20} /> Nuevo Atleta
+                    </Button>
+                </div>
             </div>
 
             <Card>
@@ -212,6 +257,9 @@ const AtletasList = () => {
                 title="Detalle del Atleta"
                 footer={
                     <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                        <Button variant="secondary" onClick={exportToPDF}>
+                            <FileText size={18} /> PDF
+                        </Button>
                         <Button variant="secondary" onClick={handleCloseModal}>Cerrar</Button>
                         {selectedAtleta && (
                             <Button
@@ -228,7 +276,11 @@ const AtletasList = () => {
                 }
             >
                 {selectedAtleta && (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                    <div id="modal-content-export" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', padding: '1rem', backgroundColor: 'var(--bg-secondary)' }}>
+                        <div style={{ gridColumn: '1 / -1', textAlign: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+                            <h2 style={{ margin: 0, color: 'var(--primary)' }}>Ficha del Atleta</h2>
+                            <p style={{ margin: 0, color: 'var(--text-secondary)' }}>SIGDEF - Sistema de Gestión Deportiva</p>
+                        </div>
                         <div>
                             <label className="detail-label">Nombre Completo</label>
                             <div className="detail-value">{selectedAtleta.nombrePersona}</div>

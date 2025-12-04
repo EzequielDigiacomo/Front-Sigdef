@@ -5,7 +5,8 @@ import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
-import { ArrowLeft, Save, UserCheck } from 'lucide-react';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
+import { ArrowLeft, Save } from 'lucide-react';
 import { CATEGORIA_MAP, PARENTESCO_MAP } from '../../utils/enums';
 import './ClubAtletas.css';
 
@@ -43,6 +44,21 @@ const ClubAtletasForm = () => {
         existe: false,
         idPersona: null,
     });
+
+    const [modalConfig, setModalConfig] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'info',
+        shouldNavigate: false
+    });
+
+    const handleModalClose = () => {
+        setModalConfig(prev => ({ ...prev, isOpen: false }));
+        if (modalConfig.shouldNavigate) {
+            navigate('/club/atletas');
+        }
+    };
 
     // Load athlete when editing
     useEffect(() => {
@@ -110,6 +126,13 @@ const ClubAtletasForm = () => {
             }
         } catch (error) {
             console.error('Error cargando atleta:', error);
+            setModalConfig({
+                isOpen: true,
+                title: 'Error',
+                message: 'Error al cargar los datos del atleta.',
+                type: 'danger',
+                shouldNavigate: true
+            });
         }
     };
 
@@ -229,9 +252,10 @@ const ClubAtletasForm = () => {
             const emailInput = formData.email || (esMenor && tutorData.email ? tutorData.email : null);
             const telefonoInput = formData.telefono || (esMenor && tutorData.telefono ? tutorData.telefono : null);
 
-            const emailFinal = emailInput === "" ? null : emailInput;
-            const telefonoFinal = telefonoInput === "" ? null : telefonoInput;
-            const direccionFinal = formData.direccion === "" ? null : formData.direccion;
+            // FIX: Enviar null si es string vacío para evitar errores de validación en backend
+            const emailFinal = (!emailInput || emailInput.trim() === "") ? null : emailInput;
+            const telefonoFinal = (!telefonoInput || telefonoInput.trim() === "") ? null : telefonoInput;
+            const direccionFinal = (!formData.direccion || formData.direccion.trim() === "") ? null : formData.direccion;
 
             // Fecha ISO para el backend
             const fechaNacimientoISO = formData.fechaNacimiento ? new Date(formData.fechaNacimiento).toISOString() : new Date().toISOString();
@@ -241,24 +265,30 @@ const ClubAtletasForm = () => {
                 apellido: formData.apellido,
                 documento: formData.documento,
                 fechaNacimiento: fechaNacimientoISO,
-                email: emailFinal || "",
-                telefono: telefonoFinal || "",
-                direccion: direccionFinal || ""
+                email: emailFinal,
+                telefono: telefonoFinal,
+                direccion: direccionFinal
             };
 
             // Helper para payload de Atleta
-            const getAtletaPayload = (idPersona) => ({
-                idPersona: idPersona,
-                idClub: user.clubId,
-                categoria: parseInt(formData.categoria) || 0,
-                becadoEnard: formData.becadoEnard,
-                becadoSdn: formData.becadoSdn,
-                montoBeca: parseFloat(formData.montoBeca) || 0,
-                presentoAptoMedico: formData.presentoAptoMedico,
-                estadoPago: 0,
-                perteneceSeleccion: false,
-                fechaAptoMedico: null
-            });
+            const getAtletaPayload = (idPersona) => {
+                const clubId = user.idClub || user.clubId;
+                if (!clubId) {
+                    throw new Error("No se pudo identificar el ID del club del usuario logueado");
+                }
+                return {
+                    idPersona: idPersona,
+                    idClub: clubId,
+                    categoria: parseInt(formData.categoria) || 0,
+                    becadoEnard: formData.becadoEnard,
+                    becadoSdn: formData.becadoSdn,
+                    montoBeca: parseFloat(formData.montoBeca) || 0,
+                    presentoAptoMedico: formData.presentoAptoMedico,
+                    estadoPago: 0,
+                    perteneceSeleccion: false,
+                    fechaAptoMedico: null
+                };
+            };
 
             if (id) {
                 // MODO EDICIÓN
@@ -324,11 +354,22 @@ const ClubAtletasForm = () => {
                 }
             }
 
-            alert('Atleta guardado exitosamente!');
-            navigate('/club/atletas');
+            setModalConfig({
+                isOpen: true,
+                title: 'Éxito',
+                message: 'Atleta guardado exitosamente!',
+                type: 'success',
+                shouldNavigate: true
+            });
         } catch (error) {
             console.error('Error guardando:', error);
-            alert('Error al guardar. Revisa la consola para más detalles.');
+            setModalConfig({
+                isOpen: true,
+                title: 'Error',
+                message: 'Error al guardar. Revisa la consola para más detalles.',
+                type: 'danger',
+                shouldNavigate: false
+            });
         } finally {
             setLoading(false);
         }
@@ -447,15 +488,8 @@ const ClubAtletasForm = () => {
                         )}
 
                         <h3 className="form-section-title">Datos Deportivos</h3>
-                        <div className="form-group">
-                            <label>Club</label>
-                            <input
-                                value={user.clubNombre || `Club ID: ${user.clubId}`}
-                                className="form-input"
-                                disabled
-                            />
-                            <small>El atleta se registrará automáticamente en tu club</small>
-                        </div>
+                        {/* Campo Club eliminado por redundancia */}
+
                         <div className="form-group">
                             <label>Categoría</label>
                             <select name="categoria" value={formData.categoria} onChange={handleChange} className="form-input">
@@ -491,6 +525,17 @@ const ClubAtletasForm = () => {
                     </div>
                 </form>
             </Card>
+
+            <ConfirmationModal
+                isOpen={modalConfig.isOpen}
+                onClose={handleModalClose}
+                onConfirm={handleModalClose}
+                title={modalConfig.title}
+                message={modalConfig.message}
+                confirmText={modalConfig.type === 'danger' ? 'Entendido' : 'Aceptar'}
+                showCancel={false}
+                type={modalConfig.type}
+            />
         </div>
     );
 };

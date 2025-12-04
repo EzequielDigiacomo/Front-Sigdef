@@ -1,3 +1,4 @@
+// ClubEntrenadores.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -16,7 +17,7 @@ const ClubEntrenadores = () => {
 
     useEffect(() => {
         fetchEntrenadores();
-    }, []);
+    }, [user.clubId, user.idClub]);
 
     const fetchEntrenadores = async () => {
         try {
@@ -24,7 +25,11 @@ const ClubEntrenadores = () => {
             const data = await api.get('/Entrenador');
 
             // Filtrar solo entrenadores del club actual
-            const entrenadoresDelClub = data.filter(e => e.idClub == user.clubId);
+            const clubId = user.idClub || user.clubId;
+            const entrenadoresDelClub = data.filter(e => {
+                const entrenadorClubId = e.idClub || e.clubId;
+                return entrenadorClubId == clubId;
+            });
 
             setEntrenadores(entrenadoresDelClub);
         } catch (error) {
@@ -88,7 +93,7 @@ const ClubEntrenadores = () => {
                         <thead>
                             <tr>
                                 <th>Nombre</th>
-                                <th>Licencia</th>
+                                {/* <th>Licencia</th> Eliminado */}
                                 <th>Selección</th>
                                 <th>Becas</th>
                                 <th>Apto Médico</th>
@@ -98,7 +103,7 @@ const ClubEntrenadores = () => {
                         <tbody>
                             {filteredEntrenadores.length === 0 ? (
                                 <tr>
-                                    <td colSpan="6" className="text-center">
+                                    <td colSpan="5" className="text-center">
                                         No hay entrenadores registrados
                                     </td>
                                 </tr>
@@ -108,7 +113,7 @@ const ClubEntrenadores = () => {
                                         <td>
                                             <strong>{entrenador.nombrePersona || 'Sin nombre'}</strong>
                                         </td>
-                                        <td>{entrenador.licencia || '-'}</td>
+                                        {/* <td>{entrenador.licencia || '-'}</td> Eliminado */}
                                         <td>
                                             {entrenador.perteneceSeleccion ? (
                                                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--success)' }}>
