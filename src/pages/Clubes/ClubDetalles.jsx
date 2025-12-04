@@ -75,7 +75,7 @@ const ClubDetalles = () => {
             </div>
 
             <div style={{ display: 'grid', gap: '2rem' }}>
-                {/* Información del Club */}
+                {}
                 <Card>
                     <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Información del Club</h3>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
@@ -94,7 +94,7 @@ const ClubDetalles = () => {
                     </div>
                 </Card>
 
-                {/* Estadísticas Resumen */}
+                {}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                     <Card style={{ textAlign: 'center', padding: '1.5rem' }}>
                         <Target size={32} style={{ margin: '0 auto 0.5rem', color: 'var(--primary)' }} />
@@ -108,7 +108,7 @@ const ClubDetalles = () => {
                     </Card>
                 </div>
 
-                {/* Lista de Entrenadores */}
+                {}
                 <Card>
                     <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <Target size={20} />
@@ -163,7 +163,7 @@ const ClubDetalles = () => {
                     )}
                 </Card>
 
-                {/* Lista de Atletas */}
+                {}
                 <Card>
                     <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <Users size={20} />

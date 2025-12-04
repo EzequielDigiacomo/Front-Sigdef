@@ -1,19 +1,5 @@
 import React from 'react';
 
-/**
- * FormSelect - Select reutilizable
- * 
- * @param {String} label - Etiqueta del campo
- * @param {String} name - Nombre del campo
- * @param {String|Number} value - Valor actual
- * @param {Function} onChange - Callback de cambio
- * @param {Array} options - Array de opciones: [{ value, label }]
- * @param {String} error - Mensaje de error
- * @param {Boolean} required - Si es requerido
- * @param {String} placeholder - Placeholder (primera opción)
- * @param {Boolean} disabled - Si está deshabilitado
- * @param {String} helpText - Texto de ayuda
- */
 const FormSelect = ({
     label,
     name,

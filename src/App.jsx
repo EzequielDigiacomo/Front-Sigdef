@@ -5,7 +5,6 @@ import MainLayout from './components/layout/MainLayout';
 import MainLayoutClub from './components/layout/MainLayoutClub';
 import Login from './pages/Login';
 
-// Páginas de Federación
 import Dashboard from './pages/Dashboard';
 import AtletasList from './pages/Atletas/AtletasList';
 import AtletasForm from './pages/Atletas/AtletasForm';
@@ -21,9 +20,10 @@ import InscripcionesList from './pages/Inscripciones/InscripcionesList';
 import InscripcionesForm from './pages/Inscripciones/InscripcionesForm';
 import EntrenadoresSeleccionList from './pages/EntrenadorSeleccion/EntrenadorSeleccionList';
 import EntrenadoresSeleccionForm from './pages/EntrenadorSeleccion/EntrenadorSeleccionForm';
+import SeleccionCategoriaDetalle from './pages/EntrenadorSeleccion/SeleccionCategoriaDetalle';
+import EntrenadoresList from './pages/Entrenadores/EntrenadoresList';
 import UserManagement from './pages/Usuarios/UserManagement';
 
-// Páginas de Club
 import ClubDashboard from './pages/Club/ClubDashboard';
 import ClubInfo from './pages/Club/ClubInfo';
 import ClubAtletas from './pages/Club/ClubAtletas';
@@ -40,7 +40,6 @@ import ClubDelegadosForm from './pages/Club/ClubDelegadosForm';
 
 import { ThemeProvider } from './context/ThemeContext';
 
-// Componente para proteger rutas
 const PrivateRoute = ({ children, allowedRoles }) => {
   const { isAuthenticated, loading, user } = useAuth();
 
@@ -48,9 +47,8 @@ const PrivateRoute = ({ children, allowedRoles }) => {
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
-  // Si se especifican roles permitidos, verificar que el usuario tenga uno de ellos
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    // Redirigir al dashboard correspondiente según el rol
+
     const redirectPath = user.role === 'CLUB' ? '/club' : '/dashboard';
     return <Navigate to={redirectPath} replace />;
   }
@@ -58,14 +56,13 @@ const PrivateRoute = ({ children, allowedRoles }) => {
   return children;
 };
 
-// Componente para manejar el acceso a la página de login
 const LoginRoute = () => {
   const { isAuthenticated, loading, user } = useAuth();
 
   if (loading) return <div>Cargando...</div>;
 
   if (isAuthenticated) {
-    // Redirigir al dashboard correspondiente si ya está autenticado
+
     const redirectPath = user.role === 'CLUB' ? '/club' : '/dashboard';
     console.log('Usuario ya autenticado, redirigiendo a:', redirectPath);
     return <Navigate to={redirectPath} replace />;
@@ -74,7 +71,6 @@ const LoginRoute = () => {
   return <Login />;
 };
 
-// Componente para redirigir desde la raíz según autenticación y rol
 const RootRedirect = () => {
   const { isAuthenticated, loading, user } = useAuth();
 
@@ -84,7 +80,6 @@ const RootRedirect = () => {
     return <Navigate to="/login" replace />;
   }
 
-  // Redirigir según el rol del usuario
   if (user.role === 'CLUB') {
     return <Navigate to="/club" replace />;
   }
@@ -98,12 +93,12 @@ function App() {
       <AuthProvider>
         <Router>
           <Routes>
-            {/* Ruta raíz - redirige según autenticación y rol */}
+            { }
             <Route path="/" element={<RootRedirect />} />
 
             <Route path="/login" element={<LoginRoute />} />
 
-            {/* Rutas de Federación (Administrador) */}
+            { }
             <Route path="/dashboard" element={
               <PrivateRoute allowedRoles={['FEDERACION']}>
                 <MainLayout />
@@ -111,44 +106,46 @@ function App() {
             }>
               <Route index element={<Dashboard />} />
 
-              {/* Rutas de Atletas */}
+              { }
               <Route path="atletas" element={<AtletasList />} />
               <Route path="atletas/nuevo" element={<AtletasForm />} />
               <Route path="atletas/editar/:id" element={<AtletasForm />} />
 
-              {/* Rutas de Clubes */}
+              { }
               <Route path="clubes" element={<ClubesList />} />
               <Route path="clubes/nuevo" element={<ClubesForm />} />
               <Route path="clubes/editar/:id" element={<ClubesForm />} />
               <Route path="clubes/detalles/:id" element={<ClubDetalles />} />
 
-              {/* Rutas de Eventos */}
+              { }
               <Route path="eventos" element={<EventosList />} />
               <Route path="eventos/nuevo" element={<EventosForm />} />
               <Route path="eventos/editar/:id" element={<EventosForm />} />
               <Route path="eventos/:id" element={<EventoDetalle />} />
 
-              {/* Rutas de Tutores */}
+              { }
               <Route path="tutores" element={<TutoresList />} />
               <Route path="tutores/new" element={<TutoresForm />} />
               <Route path="tutores/:id/edit" element={<TutoresForm />} />
 
-              {/* Rutas de Inscripciones */}
+              { }
               <Route path="inscripciones" element={<InscripcionesList />} />
               <Route path="inscripciones/new" element={<InscripcionesForm />} />
 
-              {/* Rutas de Entrenadores de Selección */}
+              { }
+              <Route path="entrenadores" element={<EntrenadoresList />} />
               <Route path="entrenadores-seleccion" element={<EntrenadoresSeleccionList />} />
               <Route path="entrenadores-seleccion/nuevo" element={<EntrenadoresSeleccionForm />} />
               <Route path="entrenadores-seleccion/editar/:id" element={<EntrenadoresSeleccionForm />} />
+              <Route path="entrenadores-seleccion/categoria/:categoryId" element={<SeleccionCategoriaDetalle />} />
 
-              {/* Rutas de Pagos */}
+              { }
               <Route path="pagos" element={<div>Página de Pagos (En construcción)</div>} />
               <Route path="federacion" element={<div>Página de Federación (En construcción)</div>} />
               <Route path="usuarios" element={<UserManagement />} />
             </Route>
 
-            {/* Rutas de Club */}
+            { }
             <Route path="/club" element={
               <PrivateRoute allowedRoles={['CLUB']}>
                 <MainLayoutClub />
@@ -175,7 +172,7 @@ function App() {
               <Route path="inscripciones/nuevo" element={<InscripcionesForm />} />
             </Route>
 
-            {/* Ruta por defecto - redirige según el rol */}
+            { }
             <Route path="*" element={<RootRedirect />} />
           </Routes>
         </Router>

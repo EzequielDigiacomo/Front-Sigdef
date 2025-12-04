@@ -14,7 +14,6 @@ const InscripcionesForm = () => {
     const [searchParams] = useSearchParams();
     const eventoIdFromUrl = searchParams.get('eventoId');
 
-    // Determinar si es contexto de club
     const isClubContext = user.role === 'CLUB';
 
     const [loading, setLoading] = useState(false);
@@ -29,17 +28,15 @@ const InscripcionesForm = () => {
         fechaInscripcion: new Date().toISOString().split('T')[0]
     });
 
-    // Carga inicial de eventos y clubes
     useEffect(() => {
         loadEventos();
 
         if (!isClubContext) {
-            // Solo cargar clubes si es contexto de federación
+            
             loadClubes();
         }
     }, []);
 
-    // Cuando cambia el club, recargar atletas del club
     useEffect(() => {
         if (formData.idClub) {
             loadAtletasPorClub(formData.idClub);
@@ -67,8 +64,6 @@ const InscripcionesForm = () => {
         }
     };
 
-
-
     const loadAtletasPorClub = async (idClub) => {
         try {
             const todosAtletas = await api.get('/Atleta');
@@ -84,7 +79,6 @@ const InscripcionesForm = () => {
                 atletasParaMostrar = atletasDelClub;
             }
 
-            // Ordenar por categoría (0 a 7)
             atletasParaMostrar.sort((a, b) => {
                 const catA = a.categoria !== null ? a.categoria : 999;
                 const catB = b.categoria !== null ? b.categoria : 999;
@@ -102,7 +96,6 @@ const InscripcionesForm = () => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    // Seleccionar atleta y crear campo editable de categoría
     const handleSelectAtleta = (atleta) => {
         if (!atletasSeleccionados.find(a => a.idPersona === atleta.idPersona)) {
             const atletaConCategoria = { ...atleta, categoriaSeleccionada: atleta.categoria || '' };
@@ -110,7 +103,6 @@ const InscripcionesForm = () => {
         }
     };
 
-    // Cambiar categoría de un atleta seleccionado
     const handleCategoryChange = (idAtleta, nuevaCategoria) => {
         setAtletasSeleccionados(prev =>
             prev.map(a => (a.idPersona === idAtleta ? { ...a, categoriaSeleccionada: nuevaCategoria } : a))
@@ -122,7 +114,7 @@ const InscripcionesForm = () => {
     };
 
     const handleSelectAll = () => {
-        // Al seleccionar todos, copiamos la categoría actual de cada atleta
+        
         const todosConCategoria = atletasDisponibles.map(atleta => ({ ...atleta, categoriaSeleccionada: atleta.categoria || '' }));
         setAtletasSeleccionados(todosConCategoria);
     };
@@ -155,7 +147,6 @@ const InscripcionesForm = () => {
             await Promise.all(promesas);
             alert(`${atletasSeleccionados.length} atleta(s) inscrito(s) exitosamente`);
 
-            // Navegar según contexto
             if (isClubContext) {
                 navigate('/club/eventos-disponibles');
             } else {
@@ -249,7 +240,7 @@ const InscripcionesForm = () => {
                     </div>
                 </Card>
 
-                {/* Tabla de atletas disponibles */}
+                {}
                 {formData.idClub && (
                     <Card style={{ marginTop: '1.5rem' }}>
                         <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -300,7 +291,7 @@ const InscripcionesForm = () => {
                     </Card>
                 )}
 
-                {/* Tabla de atletas seleccionados */}
+                {}
                 {atletasSeleccionados.length > 0 && (
                     <Card style={{ marginTop: '1.5rem' }}>
                         <h3 className="form-section-title">Atletas Seleccionados ({atletasSeleccionados.length})</h3>

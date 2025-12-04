@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
+import FormField from '../../components/forms/FormField';
 import { Plus, Edit, Trash2, Search, Users, Target } from 'lucide-react';
 import { getCategoriaLabel } from '../../utils/enums';
 import './Clubes.css';
@@ -98,16 +99,7 @@ const ClubesList = () => {
 
             <Card>
                 <div className="filters-bar">
-                    <div className="search-input-wrapper">
-                        <Search size={18} className="search-icon" />
-                        <input
-                            type="text"
-                            placeholder="Buscar club por nombre, siglas o direcciÃ³n..."
-                            className="search-input"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
+                    <FormField icon={Search} placeholder="Buscar club por nombre, siglas o dirección..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                 </div>
 
                 {loading ? (

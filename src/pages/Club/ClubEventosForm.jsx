@@ -5,7 +5,7 @@ import { api } from '../../services/api';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import { ArrowLeft, Save } from 'lucide-react';
-import './ClubEventos.css'; // Reutilizamos estilos
+import './ClubEventos.css'; 
 
 const ClubEventosForm = () => {
     const { id } = useParams();
@@ -56,7 +56,7 @@ const ClubEventosForm = () => {
         setLoading(true);
 
         try {
-            // Validaciones básicas
+            
             if (new Date(formData.fechaFin) < new Date(formData.fechaInicio)) {
                 alert('La fecha de fin no puede ser anterior a la fecha de inicio');
                 setLoading(false);
@@ -65,8 +65,8 @@ const ClubEventosForm = () => {
 
             const payload = {
                 ...formData,
-                idClub: user.clubId, // Aseguramos que el evento pertenezca al club
-                // Aseguramos formato ISO para fechas
+                idClub: user.clubId, 
+                
                 fechaInicio: new Date(formData.fechaInicio).toISOString(),
                 fechaFin: new Date(formData.fechaFin).toISOString()
             };

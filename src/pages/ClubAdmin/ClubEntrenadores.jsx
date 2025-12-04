@@ -25,7 +25,6 @@ const ClubEntrenadores = () => {
             setLoading(true);
             const data = await api.get('/Entrenador');
 
-            // Filtrar solo entrenadores del club actual
             const entrenadoresDelClub = data.filter(e => e.idClub == user.clubId);
 
             setEntrenadores(entrenadoresDelClub);

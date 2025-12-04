@@ -1,11 +1,10 @@
-/* EventoDetalle.css */
+
 .evento-detalle-container {
     padding: 1.5rem;
     max-width: 1200px;
     margin: 0 auto;
 }
 
-/* Header */
 .evento-header {
     display: flex;
     justify-content: space-between;
@@ -60,11 +59,10 @@
     color: var(--success);
 }
 
-/* Grid Layout */
 .evento-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    /* Two equal columns */
+    
     gap: 1.5rem;
     align-items: start;
 }
@@ -81,7 +79,6 @@
     gap: 1rem;
 }
 
-/* Cards */
 .detail-card {
     padding: 1.25rem;
     border-radius: var(--radius-lg);
@@ -90,14 +87,14 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    /* Center content horizontally */
+    
 }
 
 .detail-card h3 {
     display: flex;
     align-items: center;
     justify-content: center;
-    /* Center header */
+    
     gap: 0.5rem;
     font-size: 1rem;
     font-weight: 600;
@@ -111,11 +108,11 @@
 .detail-row {
     display: flex;
     flex-direction: column;
-    /* Stack icon and text */
+    
     align-items: center;
-    /* Center horizontally */
+    
     text-align: center;
-    /* Center text */
+    
     gap: 0.25rem;
     margin-bottom: 1.25rem;
     width: 100%;
@@ -127,7 +124,7 @@
 
 .detail-row svg {
     color: var(--primary);
-    /* Highlight icon */
+    
     width: 24px;
     height: 24px;
     padding: 4px;
@@ -161,7 +158,6 @@
     max-width: 90%;
 }
 
-/* Fechas Grid */
 .fechas-grid {
     display: flex;
     flex-direction: column;
@@ -191,7 +187,6 @@
     color: var(--text-primary);
 }
 
-/* Distancias List */
 .distancias-list {
     list-style: none;
     padding: 0;
@@ -226,7 +221,6 @@
     font-size: 0.8rem;
 }
 
-/* Responsive */
 @media (max-width: 1024px) {
     .evento-grid {
         grid-template-columns: 1fr;

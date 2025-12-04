@@ -1,4 +1,4 @@
-// ClubEntrenadoresForm.jsx
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -17,7 +17,7 @@ const ClubEntrenadoresForm = () => {
     const [loading, setLoading] = useState(false);
 
     const [formData, setFormData] = useState({
-        // Datos Persona
+        
         nombre: '',
         apellido: '',
         documento: '',
@@ -25,8 +25,7 @@ const ClubEntrenadoresForm = () => {
         email: '',
         telefono: '',
         direccion: '',
-        // Datos Entrenador
-        // licencia: '', // Eliminado del frontend
+
         perteneceSeleccion: false,
         categoriaSeleccion: '',
         becadoEnard: false,
@@ -67,7 +66,7 @@ const ClubEntrenadoresForm = () => {
                 email: persona.email || '',
                 telefono: persona.telefono || '',
                 direccion: persona.direccion || '',
-                // licencia: data.licencia || '', // Ignoramos la licencia al cargar
+                
                 perteneceSeleccion: data.perteneceSeleccion || false,
                 categoriaSeleccion: data.categoriaSeleccion || '',
                 becadoEnard: data.becadoEnard || false,
@@ -102,7 +101,6 @@ const ClubEntrenadoresForm = () => {
         try {
             let idPersona = null;
 
-            // FIX: Enviar null si es string vacío para evitar errores de validación en backend
             const emailFinal = (!formData.email || formData.email.trim() === "") ? null : formData.email;
             const telefonoFinal = (!formData.telefono || formData.telefono.trim() === "") ? null : formData.telefono;
             const direccionFinal = (!formData.direccion || formData.direccion.trim() === "") ? null : formData.direccion;
@@ -117,7 +115,6 @@ const ClubEntrenadoresForm = () => {
                 direccion: direccionFinal
             };
 
-            // Helper para payload de Entrenador
             const getEntrenadorPayload = (idPersona) => {
                 const clubId = user.idClub || user.clubId;
                 if (!clubId) {
@@ -126,7 +123,7 @@ const ClubEntrenadoresForm = () => {
                 return {
                     idPersona: idPersona,
                     idClub: clubId,
-                    licencia: "S/L", // Valor por defecto para backend
+                    licencia: "S/L", 
                     perteneceSeleccion: formData.perteneceSeleccion,
                     categoriaSeleccion: formData.categoriaSeleccion || "",
                     becadoEnard: formData.becadoEnard,
@@ -137,13 +134,12 @@ const ClubEntrenadoresForm = () => {
             };
 
             if (id) {
-                // MODO EDICIÓN
+                
                 await api.put(`/Persona/${id}`, personaPayload);
                 idPersona = parseInt(id);
                 await api.put(`/Entrenador/${id}`, getEntrenadorPayload(idPersona));
             } else {
-                // MODO CREACIÓN
-                // Verificar si la persona ya existe
+
                 try {
                     const personaExistente = await api.get(`/Persona/documento/${formData.documento}`, { silentErrors: true });
                     if (personaExistente && personaExistente.idPersona) {
@@ -154,20 +150,17 @@ const ClubEntrenadoresForm = () => {
                     console.log('Persona no encontrada, se creará una nueva.');
                 }
 
-                // Crear persona si no existe
                 if (!idPersona) {
                     const personaResponse = await api.post('/Persona', personaPayload);
                     idPersona = personaResponse.idPersona || personaResponse.IdPersona;
                 }
 
-                // Crear entrenador
-                // Primero verificamos si ya es entrenador para evitar duplicados/errores
                 try {
                     await api.get(`/Entrenador/${idPersona}`);
-                    // Si existe, actualizamos
+                    
                     await api.put(`/Entrenador/${idPersona}`, getEntrenadorPayload(idPersona));
                 } catch (error) {
-                    // Si no existe (404), creamos
+                    
                     await api.post('/Entrenador', getEntrenadorPayload(idPersona));
                 }
             }
@@ -181,7 +174,7 @@ const ClubEntrenadoresForm = () => {
             });
         } catch (error) {
             console.error('Error guardando:', error);
-            // Si el error es de lectura después de guardar, redirigir de todas formas
+            
             if (error.message && error.message.includes('Email')) {
                 setModalConfig({
                     isOpen: true,
@@ -249,7 +242,7 @@ const ClubEntrenadoresForm = () => {
                         </div>
 
                         <h3 className="form-section-title">Datos del Entrenador</h3>
-                        {/* Campo Licencia eliminado */}
+                        {}
 
                         <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
                             <input type="checkbox" name="perteneceSeleccion" checked={formData.perteneceSeleccion} onChange={handleChange} id="seleccion" />

@@ -29,12 +29,11 @@ const DataTable = ({
     };
 
     const renderCell = (row, column) => {
-        // Si hay función de render personalizada, usarla
+        
         if (column.render) {
             return column.render(row[column.key], row);
         }
 
-        // Sino, mostrar el valor directo
         return row[column.key] ?? '-';
     };
 

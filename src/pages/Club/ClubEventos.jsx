@@ -20,13 +20,11 @@ const ClubEventos = () => {
         try {
             setLoading(true);
             const todosEventos = await api.get('/Evento');
-            // Filtrar solo eventos del club actual
+            
             const eventosDelClub = todosEventos.filter(e => e.idClub == user.clubId);
 
-            // Obtener inscripciones para cada evento
             const inscripciones = await api.get('/Inscripcion');
 
-            // Agregar contador de inscritos a cada evento
             const eventosConInscritos = eventosDelClub.map(evento => ({
                 ...evento,
                 inscritos: inscripciones.filter(i => i.idEvento === evento.idEvento).length
@@ -41,11 +39,11 @@ const ClubEventos = () => {
     };
 
     const handleDelete = async (id, e) => {
-        e.stopPropagation(); // Evitar navegación al hacer click en eliminar
+        e.stopPropagation(); 
         if (window.confirm('¿Estás seguro de que deseas eliminar este evento?')) {
             try {
                 await api.delete(`/Evento/${id}`);
-                // Actualizar lista local
+                
                 setEventos(eventos.filter(e => e.idEvento !== id));
             } catch (error) {
                 console.error('Error al eliminar evento:', error);
@@ -55,16 +53,15 @@ const ClubEventos = () => {
     };
 
     const handleEdit = (id, e) => {
-        e.stopPropagation(); // Evitar navegación al hacer click en editar
+        e.stopPropagation(); 
         navigate(`/club/eventos/editar/${id}`);
     };
 
     const handleCardClick = (id) => {
-        // Navegar al formulario de inscripción
+        
         navigate(`/club/inscripciones/nuevo?eventoId=${id}`);
     };
 
-    // Función helper para parsear fechas de forma robusta
     const parseDate = (dateStr) => {
         if (!dateStr) return null;
         const d = new Date(dateStr);

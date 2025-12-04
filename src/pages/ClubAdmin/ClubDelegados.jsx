@@ -25,8 +25,6 @@ const ClubDelegados = () => {
             setLoading(true);
             const data = await api.get('/DelegadoClub');
 
-            // Filtrar solo delegados del club actual (si aplica)
-            // Nota: Los delegados pueden ser de la federación, ajustar según necesidad
             setDelegados(data);
         } catch (error) {
             console.error('Error cargando delegados:', error);

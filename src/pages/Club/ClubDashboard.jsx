@@ -5,7 +5,6 @@ import { api } from '../../services/api';
 import { Users, Calendar, Trophy, TrendingUp, User } from 'lucide-react';
 import './ClubDashboard.css';
 
-// Función helper para calcular tiempo transcurrido
 const getTimeAgo = (fecha) => {
     const ahora = new Date();
     const fechaPasada = new Date(fecha);
@@ -44,7 +43,6 @@ const ClubDashboard = () => {
         try {
             setLoading(true);
 
-            // Obtener información del club
             try {
                 const club = await api.get(`/Club/${user.idClub}`);
                 setClubNombre(club.nombre || 'Club');
@@ -55,34 +53,29 @@ const ClubDashboard = () => {
 
             const clubId = user.idClub || user.clubId;
 
-            // Obtener atletas del club
             const atletas = await api.get('/Atleta');
             const atletasDelClub = atletas.filter(a => {
                 const atletaClubId = a.idClub || a.clubId;
                 return atletaClubId == clubId;
             });
 
-            // Obtener entrenadores del club
             const entrenadores = await api.get('/Entrenador');
             const entrenadoresDelClub = entrenadores.filter(e => {
                 const entrenadorClubId = e.idClub || e.clubId;
                 return entrenadorClubId == clubId;
             });
 
-            // Obtener eventos del club
             const eventos = await api.get('/Evento');
             const eventosDelClub = eventos.filter(e => {
                 const eventoClubId = e.idClub || e.clubId;
                 return eventoClubId == clubId;
             });
 
-            // Obtener inscripciones de atletas del club
             const inscripciones = await api.get('/Inscripcion');
             const inscripcionesDelClub = inscripciones.filter(i =>
                 atletasDelClub.some(a => a.idPersona === i.idAtleta)
             );
 
-            // Función helper para parsear fechas de forma robusta
             const parseDate = (dateStr) => {
                 if (!dateStr) return null;
                 const d = new Date(dateStr);
@@ -90,7 +83,6 @@ const ClubDashboard = () => {
                 return null;
             };
 
-            // Clasificar eventos (Próximos vs Finalizados)
             const hoy = new Date();
             hoy.setHours(0, 0, 0, 0);
 
@@ -119,10 +111,8 @@ const ClubDashboard = () => {
                 proximosEventos: eventosProximos.length
             });
 
-            // Preparar actividad reciente (últimos 5 registros)
             const actividades = [];
 
-            // Agregar atletas recientes
             for (const atleta of atletasDelClub.slice(0, 3).sort((a, b) => new Date(b.fechaCreacion || 0) - new Date(a.fechaCreacion || 0))) {
                 let documento = 'Sin DNI';
                 try {
@@ -140,7 +130,6 @@ const ClubDashboard = () => {
                 });
             }
 
-            // Agregar eventos recientes
             eventosDelClub
                 .sort((a, b) => new Date(b.fechaCreacion || 0) - new Date(a.fechaCreacion || 0))
                 .slice(0, 2)
@@ -158,7 +147,6 @@ const ClubDashboard = () => {
 
             setActividadReciente(actividadesOrdenadas);
 
-            // Ordenar eventos para la lista: Próximos primero (asc), luego Finalizados (desc)
             const proximosOrdenados = eventosProximos.sort((a, b) => {
                 const fechaA = parseDate(a.fechaInicio) || new Date(0);
                 const fechaB = parseDate(b.fechaInicio) || new Date(0);
@@ -168,10 +156,9 @@ const ClubDashboard = () => {
             const finalizadosOrdenados = eventosFinalizados.sort((a, b) => {
                 const fechaA = parseDate(a.fechaInicio) || new Date(0);
                 const fechaB = parseDate(b.fechaInicio) || new Date(0);
-                return fechaB - fechaA; // Descendente para finalizados
+                return fechaB - fechaA; 
             });
 
-            // Combinar listas, marcando los finalizados
             const todosEventosOrdenados = [
                 ...proximosOrdenados.map(e => ({ ...e, finalizado: false })),
                 ...finalizadosOrdenados.map(e => ({ ...e, finalizado: true }))
@@ -199,7 +186,7 @@ const ClubDashboard = () => {
             title: 'Total Entrenadores',
             value: stats.totalEntrenadores,
             icon: User,
-            color: 'var(--secondary)', // Ajustar color si es necesario
+            color: 'var(--secondary)', 
             bgColor: 'rgba(168, 85, 247, 0.1)',
             path: '/club/entrenadores'
         },
@@ -217,7 +204,7 @@ const ClubDashboard = () => {
             icon: Trophy,
             color: 'var(--warning)',
             bgColor: 'rgba(251, 146, 60, 0.1)',
-            path: '/club/inscripciones' // Asumiendo ruta, si no existe redirigir a dashboard o atletas
+            path: '/club/inscripciones' 
         },
         {
             title: 'Próximos Eventos',

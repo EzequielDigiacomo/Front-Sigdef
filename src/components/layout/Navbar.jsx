@@ -13,6 +13,7 @@ const Navbar = ({ toggleSidebar }) => {
         { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
         { icon: Shield, label: 'Clubes', path: '/dashboard/clubes' },
         { icon: Users, label: 'Atletas', path: '/dashboard/atletas' },
+        { icon: Award, label: 'Entrenadores', path: '/dashboard/entrenadores' },
         { icon: Award, label: 'Selección', path: '/dashboard/entrenadores-seleccion' },
         { icon: Calendar, label: 'Eventos', path: '/dashboard/eventos' },
         { icon: ClipboardList, label: 'Inscripciones', path: '/dashboard/inscripciones' },
@@ -21,7 +22,6 @@ const Navbar = ({ toggleSidebar }) => {
         { icon: Trophy, label: 'Federación', path: '/dashboard/federacion' },
     ];
 
-    // Agregar menú de gestión de accesos solo para FEDERACION
     if (user?.role === 'FEDERACION') {
         navItems.push({ icon: Lock, label: 'Gestión de Accesos', path: '/dashboard/usuarios' });
     }

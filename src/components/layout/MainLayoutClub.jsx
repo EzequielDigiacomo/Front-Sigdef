@@ -9,7 +9,6 @@ const MainLayoutClub = () => {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [isHovering, setIsHovering] = useState(false);
 
-    // Timer para colapsar automáticamente después de 10 segundos de inactividad
     useEffect(() => {
         let inactivityTimer;
 
@@ -18,17 +17,16 @@ const MainLayoutClub = () => {
             if (!sidebarCollapsed && !isHovering) {
                 inactivityTimer = setTimeout(() => {
                     setSidebarCollapsed(true);
-                }, 10000); // 10 segundos
+                }, 10000); 
             }
         };
 
-        // Eventos para detectar actividad del usuario
         const events = ['mousemove', 'keypress', 'click', 'scroll', 'touchstart'];
         events.forEach(event => {
             document.addEventListener(event, resetTimer);
         });
 
-        resetTimer(); // Iniciar el timer
+        resetTimer(); 
 
         return () => {
             clearTimeout(inactivityTimer);

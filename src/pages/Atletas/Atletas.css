@@ -1,6 +1,6 @@
-/* ✅ NUEVO: Variables CSS para los temas */
+
 :root {
-    /* Colores modo claro */
+    
     --bg-primary: #ffffff;
     --bg-secondary: #f8f9fa;
     --text-primary: #212529;
@@ -9,25 +9,24 @@
     --primary-color: #007bff;
     --hover-color: #e9ecef;
     --input-bg: #f1f3f5;
-    /* Distinct input background for light mode */
+    
 }
 
 .dark {
-    /* Colores modo oscuro */
+    
     --bg-primary: #0f172a;
-    /* Slate 900 */
+    
     --bg-secondary: #1e293b;
-    /* Slate 800 */
+    
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --border-color: rgba(148, 163, 184, 0.1);
     --primary-color: #3b82f6;
     --hover-color: #334155;
     --input-bg: rgba(0, 0, 0, 0.3);
-    /* Darker background for inputs in dark mode */
+    
 }
 
-/* ✅ NUEVO: Transiciones suaves para el cambio de tema */
 * {
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
@@ -41,7 +40,6 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* ✅ NUEVO: Botón de cambio de tema */
 .theme-toggle-btn {
     background: none;
     border: 1px solid var(--border-color);
@@ -62,7 +60,6 @@ body {
     transform: scale(1.05);
 }
 
-/* ✅ NUEVO: Estilos para componentes comunes con variables CSS */
 .card {
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-color);
@@ -80,10 +77,9 @@ body {
     align-items: center;
 }
 
-/* ✅ MODIFICADO: Usando variables CSS */
 #root {
     max-width: 100%;
-    /* Ensure root takes full width */
+    
     margin: 0 auto;
     padding: 2rem;
     text-align: center;
@@ -130,17 +126,20 @@ body {
     color: #888;
 }
 
-/* Search styles - Unified & Fixed */
 .filters-bar {
     margin-bottom: 1.5rem;
     width: 100%;
+}
+.filters-bar .form-group {
+    width: 100%;
+    margin-bottom: 0;
 }
 
 .search-input-wrapper {
     position: relative;
     width: 100%;
     display: block;
-    /* Ensure block display */
+    
 }
 
 .search-icon {
@@ -155,17 +154,17 @@ body {
 
 .search-input {
     width: 100% !important;
-    /* Force full width */
+    
     padding: 0.875rem 1rem 0.875rem 2.75rem;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     background: var(--input-bg) !important;
-    /* Distinct background */
+    
     color: var(--text-primary);
     font-size: 0.95rem;
     transition: all 0.2s ease;
     box-sizing: border-box;
-    /* Ensure padding doesn't affect width */
+    
 }
 
 .search-input:focus {
@@ -173,7 +172,7 @@ body {
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     background: var(--bg-primary) !important;
-    /* Slightly lighter on focus */
+    
 }
 
 .search-input::placeholder {
@@ -181,7 +180,6 @@ body {
     opacity: 0.7;
 }
 
-/* Loading state */
 .clubes-loading {
     display: flex;
     justify-content: center;
@@ -191,7 +189,6 @@ body {
     font-size: 1.1rem;
 }
 
-/* Empty state */
 .clubes-empty {
     text-align: center;
     padding: 3rem;
@@ -204,7 +201,6 @@ body {
     opacity: 0.5;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
     .clubes-container {
         padding: 1rem;

@@ -11,7 +11,6 @@ const EventosForm = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
 
-    // Mappings for Enums (Frontend String <-> Backend Int)
     const tipoEventoMap = {
         'CarreraOficial': 1,
         'Campeonato': 2,
@@ -36,7 +35,6 @@ const EventosForm = () => {
         'TreintaDosKilometros': 13
     };
 
-    // Helper to get key by value (Int -> String)
     const getKeyByValue = (object, value) => {
         return Object.keys(object).find(key => object[key] === value);
     };
@@ -76,7 +74,7 @@ const EventosForm = () => {
         ubicacion: '',
         ciudad: '',
         provincia: '',
-        distancias: [], // List of DistanciaDTO { distancia: Enum, descripcion: string }
+        distancias: [], 
         precioBase: 0,
         cupoMaximo: 100,
         tieneCronometraje: true,
@@ -84,7 +82,6 @@ const EventosForm = () => {
         observaciones: ''
     });
 
-    // State for managing a new distance input
     const [newDistancia, setNewDistancia] = useState({ distancia: 'DoscientosMetros', descripcion: '' });
 
     useEffect(() => {
@@ -97,7 +94,6 @@ const EventosForm = () => {
         try {
             const data = await api.get(`/Evento/${id}`);
 
-            // Convert Int Enums back to Strings for the form
             const tipoEventoStr = getKeyByValue(tipoEventoMap, data.tipoEvento) || 'CarreraOficial';
             const distanciasStr = (data.distancias || []).map(d => ({
                 ...d,
@@ -150,7 +146,7 @@ const EventosForm = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            // Convert Strings back to Ints for the API
+            
             const payload = {
                 ...formData,
                 tipoEvento: tipoEventoMap[formData.tipoEvento],
@@ -192,7 +188,7 @@ const EventosForm = () => {
             <Card>
                 <form onSubmit={handleSubmit}>
                     <div className="form-grid">
-                        {/* Información Básica */}
+                        {}
                         <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                             <label>Nombre del Evento *</label>
                             <input name="nombre" value={formData.nombre} onChange={handleChange} className="form-input" required maxLength={100} />
@@ -212,7 +208,7 @@ const EventosForm = () => {
                             </select>
                         </div>
 
-                        {/* Fechas */}
+                        {}
                         <div className="form-group">
                             <label>Fecha Inicio *</label>
                             <input type="date" name="fechaInicio" value={formData.fechaInicio} onChange={handleChange} className="form-input" required />
@@ -231,7 +227,7 @@ const EventosForm = () => {
                             <input type="date" name="fechaFinInscripciones" value={formData.fechaFinInscripciones} onChange={handleChange} className="form-input" />
                         </div>
 
-                        {/* Ubicación */}
+                        {}
                         <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                             <label>Ubicación</label>
                             <input name="ubicacion" value={formData.ubicacion} onChange={handleChange} className="form-input" maxLength={200} />
@@ -245,7 +241,7 @@ const EventosForm = () => {
                             <input name="provincia" value={formData.provincia} onChange={handleChange} className="form-input" maxLength={100} />
                         </div>
 
-                        {/* Configuración */}
+                        {}
                         <div className="form-group">
                             <label>Precio Base</label>
                             <input type="number" name="precioBase" value={formData.precioBase} onChange={handleChange} className="form-input" min="0" max="100000" />
@@ -270,7 +266,7 @@ const EventosForm = () => {
                         </div>
                     </div>
 
-                    {/* Distancias */}
+                    {}
                     <div style={{ marginTop: '2rem' }}>
                         <h3>Distancias</h3>
                         <div className="form-grid" style={{ alignItems: 'end' }}>

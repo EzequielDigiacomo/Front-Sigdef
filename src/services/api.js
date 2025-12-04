@@ -4,20 +4,16 @@ const defaultHeaders = {
     'Content-Type': 'application/json',
 };
 
-// 🔹 FUNCIÓN CORREGIDA - Maneja tanto JSON como texto plano
 const handleResponse = async (response, options = {}) => {
     const { silentErrors = false } = options;
 
-    // Si la respuesta es 204 No Content, retornar null
     if (response.status === 204) {
         console.log('✅ 204 No Content - Operación exitosa');
         return null;
     }
 
-    // Primero intentamos obtener el texto de la respuesta
     const responseText = await response.text();
 
-    // Si la respuesta no es exitosa, lanzar error con el texto
     if (!response.ok) {
         if (!silentErrors) {
             console.error('❌ Error del servidor:', responseText);
@@ -25,19 +21,17 @@ const handleResponse = async (response, options = {}) => {
         throw new Error(responseText || `Error ${response.status}: ${response.statusText}`);
     }
 
-    // Si la respuesta es exitosa pero está vacía
     if (!responseText) {
         console.log('✅ Respuesta vacía - Operación exitosa');
         return { success: true };
     }
 
-    // Intentar parsear como JSON
     try {
         const data = JSON.parse(responseText);
         console.log('✅ Respuesta JSON exitosa:', data);
         return data;
     } catch (error) {
-        // Si no es JSON válido, devolver el texto como mensaje
+        
         console.log('✅ Respuesta de texto - Operación exitosa:', responseText);
         return {
             message: responseText,

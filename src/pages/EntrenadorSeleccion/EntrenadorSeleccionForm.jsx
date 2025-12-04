@@ -1,4 +1,4 @@
-// src/pages/EntrenadoresSeleccion/EntrenadoresSeleccionForm.jsx
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../services/api';
@@ -15,7 +15,7 @@ const EntrenadorSeleccionForm = () => {
     const [clubes, setClubes] = useState([]);
 
     const [formData, setFormData] = useState({
-        // Datos de Persona
+        
         nombre: '',
         apellido: '',
         documento: '',
@@ -24,13 +24,12 @@ const EntrenadorSeleccionForm = () => {
         telefono: '',
         direccion: '',
 
-        // Datos de Entrenador
         idClub: '',
         licencia: '',
         categoriaSeleccion: '0',
         becadoEnard: false,
         becadoSdn: false,
-        montoBeca: '', // 🔹 CAMBIADO: de 0 a string vacío
+        montoBeca: '', 
         presentoAptoMedico: false
     });
 
@@ -64,7 +63,7 @@ const EntrenadorSeleccionForm = () => {
                 categoriaSeleccion: data.categoriaSeleccion || '0',
                 becadoEnard: data.becadoEnard || false,
                 becadoSdn: data.becadoSdn || false,
-                montoBeca: data.montoBeca?.toString() || '', // 🔹 CONVERTIR A STRING
+                montoBeca: data.montoBeca?.toString() || '', 
                 presentoAptoMedico: data.presentoAptoMedico || false
             });
         } catch (error) {
@@ -76,8 +75,7 @@ const EntrenadorSeleccionForm = () => {
         const { name, value, type, checked } = e.target;
 
         if (name === 'montoBeca') {
-            // 🔹 MANEJO ESPECIAL PARA MONTO BECA
-            // Permitir solo números y punto decimal, o string vacío
+
             if (value === '' || /^\d*\.?\d*$/.test(value)) {
                 setFormData(prev => ({
                     ...prev,
@@ -92,7 +90,6 @@ const EntrenadorSeleccionForm = () => {
         }
     };
 
-    // 🔹 FUNCIÓN PARA CONVERTIR MONTO BECA A NÚMERO
     const getMontoBecaNumber = (montoBecaString) => {
         if (montoBecaString === '' || montoBecaString === null || montoBecaString === undefined) {
             return 0;
@@ -109,10 +106,9 @@ const EntrenadorSeleccionForm = () => {
             console.log('📤 Enviando datos...', formData);
 
             if (id) {
-                // 🔹 ACTUALIZAR - Primero persona, luego entrenador
+                
                 console.log('🔄 Actualizando entrenador existente...');
 
-                // 1. Actualizar Persona
                 const personaData = {
                     nombre: formData.nombre,
                     apellido: formData.apellido,
@@ -125,7 +121,6 @@ const EntrenadorSeleccionForm = () => {
                 console.log('👤 Datos persona:', personaData);
                 await api.put(`/Persona/${id}`, personaData);
 
-                // 2. Actualizar Entrenador
                 const entrenadorData = {
                     idPersona: parseInt(id),
                     idClub: parseInt(formData.idClub),
@@ -134,17 +129,16 @@ const EntrenadorSeleccionForm = () => {
                     categoriaSeleccion: formData.categoriaSeleccion,
                     becadoEnard: Boolean(formData.becadoEnard),
                     becadoSdn: Boolean(formData.becadoSdn),
-                    montoBeca: getMontoBecaNumber(formData.montoBeca), // 🔹 USAR FUNCIÓN DE CONVERSIÓN
+                    montoBeca: getMontoBecaNumber(formData.montoBeca), 
                     presentoAptoMedico: Boolean(formData.presentoAptoMedico)
                 };
                 console.log('🏃 Datos entrenador:', entrenadorData);
                 await api.put(`/Entrenador/${id}`, entrenadorData);
 
             } else {
-                // 🔹 CREAR - Primero persona, luego entrenador
+                
                 console.log('🆕 Creando nuevo entrenador...');
 
-                // 1. Crear Persona
                 const personaData = {
                     nombre: formData.nombre,
                     apellido: formData.apellido,
@@ -158,7 +152,6 @@ const EntrenadorSeleccionForm = () => {
                 const personaResponse = await api.post('/Persona', personaData);
                 console.log('✅ Persona creada:', personaResponse);
 
-                // 🔹 OBTENER ID DE PERSONA (manejar diferentes nombres de propiedad)
                 const idPersona = personaResponse.idPersona || personaResponse.IdPersona || personaResponse.id;
                 console.log('🆔 ID Persona obtenido:', idPersona);
 
@@ -166,7 +159,6 @@ const EntrenadorSeleccionForm = () => {
                     throw new Error('No se pudo obtener el ID de la persona creada');
                 }
 
-                // 2. Crear Entrenador
                 const entrenadorData = {
                     idPersona: parseInt(idPersona),
                     idClub: parseInt(formData.idClub),
@@ -175,7 +167,7 @@ const EntrenadorSeleccionForm = () => {
                     categoriaSeleccion: formData.categoriaSeleccion,
                     becadoEnard: Boolean(formData.becadoEnard),
                     becadoSdn: Boolean(formData.becadoSdn),
-                    montoBeca: getMontoBecaNumber(formData.montoBeca), // 🔹 USAR FUNCIÓN DE CONVERSIÓN
+                    montoBeca: getMontoBecaNumber(formData.montoBeca), 
                     presentoAptoMedico: Boolean(formData.presentoAptoMedico)
                 };
                 console.log('🏃 Creando entrenador:', entrenadorData);
@@ -371,13 +363,13 @@ const EntrenadorSeleccionForm = () => {
                         <div className="form-group">
                             <label>Monto Beca</label>
                             <input
-                                type="text" // 🔹 CAMBIADO: de "number" a "text" para mejor control
+                                type="text" 
                                 name="montoBeca"
                                 value={formData.montoBeca}
                                 onChange={handleChange}
                                 className="form-input"
                                 placeholder="Ingrese el monto de la beca"
-                                inputMode="decimal" // 🔹 MEJORA UX en móviles
+                                inputMode="decimal" 
                             />
                         </div>
                     </div>

@@ -56,12 +56,12 @@ const RegisterClubForm = () => {
 
         setLoading(true);
         try {
-            // Ensure idClub is sent as a number if the API expects it
+            
             const payload = {
                 ...formData,
                 idClub: Number(formData.idClub),
-                rol: 'Club', // Try lowercase
-                Role: 'Club' // Try PascalCase
+                rol: 'Club', 
+                Role: 'Club' 
             };
 
             await api.post('/Auth/registrar-club', payload);

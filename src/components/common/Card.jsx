@@ -5,13 +5,13 @@ const Card = ({ children, className = '', title, actions, onClick }) => {
         <div
             className={`glass-panel ${className}`}
             style={{
-                padding: '1.5rem',
+                padding: '1rem',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '1rem',
-                cursor: onClick ? 'pointer' : 'default' // Cambia el cursor si es clickeable
+                cursor: onClick ? 'pointer' : 'default'
             }}
-            onClick={onClick} // Agregar onClick aquí
+            onClick={onClick}
         >
             {(title || actions) && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>

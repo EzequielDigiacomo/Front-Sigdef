@@ -13,7 +13,6 @@ const UserTable = ({ users, clubs = [], onUserUpdated }) => {
         return club ? club.nombre : idClub;
     };
 
-    // Definición de columnas para el DataTable
     const columns = [
         {
             key: 'username',

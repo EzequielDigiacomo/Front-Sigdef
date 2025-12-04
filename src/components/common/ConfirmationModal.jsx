@@ -11,7 +11,7 @@ const ConfirmationModal = ({
     message,
     confirmText = 'Confirmar',
     cancelText = 'Cancelar',
-    type = 'danger', // 'danger' | 'info' | 'success'
+    type = 'danger', 
     isLoading = false,
     showCancel = true
 }) => {
@@ -32,7 +32,7 @@ const ConfirmationModal = ({
     const getConfirmButtonVariant = () => {
         switch (type) {
             case 'danger': return 'danger';
-            case 'success': return 'success'; // Assuming you have a success variant, otherwise primary
+            case 'success': return 'success'; 
             case 'info': return 'primary';
             default: return 'primary';
         }

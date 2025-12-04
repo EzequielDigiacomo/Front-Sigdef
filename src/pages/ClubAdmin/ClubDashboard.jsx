@@ -5,7 +5,6 @@ import { api } from '../../services/api';
 import { Users, Calendar, Trophy, TrendingUp } from 'lucide-react';
 import './ClubDashboard.css';
 
-// Función helper para calcular tiempo transcurrido
 const getTimeAgo = (fecha) => {
     const ahora = new Date();
     const fechaPasada = new Date(fecha);
@@ -42,21 +41,17 @@ const ClubDashboard = () => {
         try {
             setLoading(true);
 
-            // Obtener atletas del club
             const atletas = await api.get('/Atleta');
             const atletasDelClub = atletas.filter(a => a.idClub == user.clubId);
 
-            // Obtener eventos del club
             const eventos = await api.get('/Evento');
             const eventosDelClub = eventos.filter(e => e.idClub == user.clubId);
 
-            // Obtener inscripciones de atletas del club
             const inscripciones = await api.get('/Inscripcion');
             const inscripcionesDelClub = inscripciones.filter(i =>
                 atletasDelClub.some(a => a.id === i.atletaId)
             );
 
-            // Contar eventos próximos (eventos de cualquier club que estén programados)
             const hoy = new Date();
             const eventosProximos = eventos.filter(e => {
                 const fechaEvento = new Date(e.fechaInicio);
@@ -70,14 +65,12 @@ const ClubDashboard = () => {
                 proximosEventos: eventosProximos.length
             });
 
-            // Preparar actividad reciente (últimos 5 registros)
             const actividades = [];
 
-            // Agregar atletas recientes
             for (const atleta of atletasDelClub.slice(0, 3).sort((a, b) => new Date(b.fechaCreacion || 0) - new Date(a.fechaCreacion || 0))) {
                 let documento = 'Sin DNI';
                 try {
-                    // Obtener DNI desde el endpoint Persona
+                    
                     const persona = await api.get(`/Persona/${atleta.idPersona}`);
                     documento = persona.documento || 'Sin DNI';
                 } catch (error) {
@@ -92,7 +85,6 @@ const ClubDashboard = () => {
                 });
             }
 
-            // Agregar eventos recientes
             eventosDelClub
                 .sort((a, b) => new Date(b.fechaCreacion || 0) - new Date(a.fechaCreacion || 0))
                 .slice(0, 2)
@@ -104,14 +96,12 @@ const ClubDashboard = () => {
                     });
                 });
 
-            // Ordenar por fecha y tomar los 5 más recientes
             const actividadesOrdenadas = actividades
                 .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
                 .slice(0, 5);
 
             setActividadReciente(actividadesOrdenadas);
 
-            // Preparar próximos eventos (próximos 5 eventos programados)
             const proximosEventosOrdenados = eventosProximos
                 .sort((a, b) => new Date(a.fechaInicio) - new Date(b.fechaInicio))
                 .slice(0, 5);

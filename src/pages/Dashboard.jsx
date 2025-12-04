@@ -72,17 +72,14 @@ const Dashboard = () => {
                     console.error('Error cargando inscripciones:', error);
                 }
 
-                // Calcular estadísticas
                 const totalAtletas = atletas.length;
                 const totalClubes = clubes.length;
                 const atletasConDeuda = atletas.filter(a => a.estadoPago === 2).length;
 
-                // Procesar eventos
                 const eventosProcesados = eventos.map(evento => {
                     const inscripcionesEvento = inscripciones.filter(i => i.idEvento === evento.idEvento);
                     const atletasInscritos = inscripcionesEvento.map(i => i.idAtleta);
 
-                    // Obtener clubes únicos
                     const clubesInscritos = new Set();
                     inscripcionesEvento.forEach(inscripcion => {
                         const atleta = atletas.find(a => a.idPersona === inscripcion.idAtleta);
@@ -91,19 +88,17 @@ const Dashboard = () => {
                         }
                     });
 
-                    // Determinar estado
                     const hoy = new Date();
                     const fechaFin = new Date(evento.fechaFin);
                     let estadoTexto = 'Pendiente';
                     let estadoColor = 'warning';
 
-                    // Normalizar fechas para comparación (ignorar hora)
                     const fechaFinNorm = new Date(fechaFin.getFullYear(), fechaFin.getMonth(), fechaFin.getDate());
                     const hoyNorm = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
 
                     if (fechaFinNorm < hoyNorm) {
                         estadoTexto = 'Finalizado';
-                        estadoColor = 'secondary'; // Gris para finalizados
+                        estadoColor = 'secondary'; 
                     } else if (evento.estado === 1) {
                         estadoTexto = 'Confirmado';
                         estadoColor = 'success';
@@ -118,7 +113,6 @@ const Dashboard = () => {
                     };
                 });
 
-                // Ordenar: Próximos primero (fecha más cercana), luego finalizados (más recientes primero)
                 eventosProcesados.sort((a, b) => {
                     const fechaA = new Date(a.fechaInicio);
                     const fechaB = new Date(b.fechaInicio);
@@ -130,10 +124,8 @@ const Dashboard = () => {
                     if (aEsFuturo && !bEsFuturo) return -1;
                     if (!aEsFuturo && bEsFuturo) return 1;
 
-                    // Si ambos son futuros, el más cercano primero
                     if (aEsFuturo) return fechaA - fechaB;
 
-                    // Si ambos son pasados, el más reciente primero
                     return fechaB - fechaA;
                 });
 
@@ -168,7 +160,6 @@ const Dashboard = () => {
                     },
                 ]);
 
-                // Mostrar más eventos (10 en lugar de 5)
                 setProximosEventos(eventosProcesados.slice(0, 10));
 
             } catch (error) {

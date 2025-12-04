@@ -15,7 +15,7 @@ const ClubDelegadosForm = () => {
     const [loading, setLoading] = useState(false);
 
     const [formData, setFormData] = useState({
-        // Datos Persona
+        
         nombre: '',
         apellido: '',
         documento: '',
@@ -23,7 +23,7 @@ const ClubDelegadosForm = () => {
         email: '',
         telefono: '',
         direccion: '',
-        // Datos Delegado
+        
         idRol: 1,
         idFederacion: 1
     });
@@ -101,7 +101,7 @@ const ClubDelegadosForm = () => {
             };
 
             if (id) {
-                // MODO EDICIÓN
+                
                 await api.put(`/Persona/${id}`, personaPayload);
                 idPersona = parseInt(id);
 
@@ -113,8 +113,7 @@ const ClubDelegadosForm = () => {
 
                 await api.put(`/DelegadoClub/${id}`, delegadoPayload);
             } else {
-                // MODO CREACIÓN
-                // Verificar si la persona ya existe
+
                 try {
                     const personaExistente = await api.get(`/Persona/documento/${formData.documento}`, { silentErrors: true });
                     if (personaExistente && personaExistente.idPersona) {
@@ -125,13 +124,11 @@ const ClubDelegadosForm = () => {
                     console.log('Persona no encontrada, se creará una nueva.');
                 }
 
-                // Crear persona si no existe
                 if (!idPersona) {
                     const personaResponse = await api.post('/Persona', personaPayload);
                     idPersona = personaResponse.idPersona || personaResponse.IdPersona;
                 }
 
-                // Crear delegado
                 const delegadoPayload = {
                     idPersona: idPersona,
                     idRol: parseInt(formData.idRol),

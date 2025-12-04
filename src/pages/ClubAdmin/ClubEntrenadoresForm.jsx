@@ -16,7 +16,7 @@ const ClubEntrenadoresForm = () => {
     const [loading, setLoading] = useState(false);
 
     const [formData, setFormData] = useState({
-        // Datos Persona
+        
         nombre: '',
         apellido: '',
         documento: '',
@@ -24,7 +24,7 @@ const ClubEntrenadoresForm = () => {
         email: '',
         telefono: '',
         direccion: '',
-        // Datos Entrenador
+        
         licencia: '',
         perteneceSeleccion: false,
         categoriaSeleccion: '',
@@ -112,7 +112,7 @@ const ClubEntrenadoresForm = () => {
             };
 
             if (id) {
-                // MODO EDICIÓN
+                
                 await api.put(`/Persona/${id}`, personaPayload);
                 idPersona = parseInt(id);
 
@@ -130,8 +130,7 @@ const ClubEntrenadoresForm = () => {
 
                 await api.put(`/Entrenador/${id}`, entrenadorPayload);
             } else {
-                // MODO CREACIÓN
-                // Verificar si la persona ya existe
+
                 try {
                     const personaExistente = await api.get(`/Persona/documento/${formData.documento}`, { silentErrors: true });
                     if (personaExistente && personaExistente.idPersona) {
@@ -142,13 +141,11 @@ const ClubEntrenadoresForm = () => {
                     console.log('Persona no encontrada, se creará una nueva.');
                 }
 
-                // Crear persona si no existe
                 if (!idPersona) {
                     const personaResponse = await api.post('/Persona', personaPayload);
                     idPersona = personaResponse.idPersona || personaResponse.IdPersona;
                 }
 
-                // Crear entrenador
                 const entrenadorPayload = {
                     idPersona: idPersona,
                     idClub: user.clubId,
@@ -173,7 +170,7 @@ const ClubEntrenadoresForm = () => {
             });
         } catch (error) {
             console.error('Error guardando:', error);
-            // Si el error es de lectura después de guardar, redirigir de todas formas
+            
             if (error.message && error.message.includes('Email')) {
                 setModalConfig({
                     isOpen: true,

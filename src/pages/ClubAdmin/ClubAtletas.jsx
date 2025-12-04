@@ -38,7 +38,6 @@ const ClubAtletas = () => {
             console.log('📊 Total de atletas en la DB:', todosAtletas.length);
             console.log('📋 PRIMER ATLETA COMPLETO:', todosAtletas[0]);
 
-            // Filtrar solo atletas del club actual usando idClub
             const atletasDelClub = todosAtletas.filter(a => {
                 const atletaClubId = a.idClub || a.clubId;
                 console.log(`Comparando: atleta.idClub (${atletaClubId}) === user.clubId (${user.clubId})`);
@@ -91,11 +90,10 @@ const ClubAtletas = () => {
         setLoadingDetails(true);
 
         try {
-            // Obtener datos completos de la persona
+            
             const persona = await api.get(`/Persona/${atleta.idPersona}`);
             console.log('📋 Datos completos de la persona:', persona);
 
-            // Intentar obtener tutor si existe
             let tutor = null;
             if (persona.idTutor) {
                 try {
@@ -129,7 +127,6 @@ const ClubAtletas = () => {
         setAtletaDetails(null);
     };
 
-    // Mapeo de categorías (ajustar según tu enum en el backend)
     const getCategoriaTexto = (categoria) => {
         const categorias = {
             0: 'PRE-MINI',
@@ -280,7 +277,7 @@ const ClubAtletas = () => {
                 )}
             </div>
 
-            {/* Modal de Detalles del Atleta */}
+            {}
             <Modal
                 isOpen={showModal}
                 onClose={handleCloseModal}
@@ -293,7 +290,7 @@ const ClubAtletas = () => {
                     </div>
                 ) : atletaDetails ? (
                     <div className="atleta-details-modal">
-                        {/* Información Personal */}
+                        {}
                         <div className="detail-section">
                             <h4><User size={18} /> Información Personal</h4>
                             <div className="detail-grid">
@@ -320,7 +317,7 @@ const ClubAtletas = () => {
                             </div>
                         </div>
 
-                        {/* Contacto */}
+                        {}
                         <div className="detail-section">
                             <h4><Phone size={18} /> Contacto</h4>
                             <div className="detail-grid">
@@ -339,7 +336,7 @@ const ClubAtletas = () => {
                             </div>
                         </div>
 
-                        {/* Información Deportiva */}
+                        {}
                         <div className="detail-section">
                             <h4><Award size={18} /> Información Deportiva</h4>
                             <div className="detail-grid">
@@ -376,7 +373,7 @@ const ClubAtletas = () => {
                             </div>
                         </div>
 
-                        {/* Tutor */}
+                        {}
                         <div className="detail-section">
                             <h4><Users size={18} /> Tutor</h4>
                             {atletaDetails.tutor ? (
@@ -413,7 +410,7 @@ const ClubAtletas = () => {
                             )}
                         </div>
 
-                        {/* Acciones */}
+                        {}
                         <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
                             <Button
                                 variant="secondary"

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
+import FormField from '../../components/forms/FormField';
+import Pagination from '../../components/common/Pagination';
 import { Plus, Edit, Trash2, Search, FileText } from 'lucide-react';
 import { getCategoriaLabel, getEstadoPagoLabel, getEstadoPagoColor } from '../../utils/enums';
 import './Atletas.css';
@@ -16,6 +18,9 @@ const AtletasList = () => {
     const [loading, setLoading] = useState(true);
     const [selectedAtleta, setSelectedAtleta] = useState(null);
     const [showModal, setShowModal] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(6);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -107,7 +112,7 @@ const AtletasList = () => {
     };
 
     const exportToExcel = () => {
-        const dataToExport = atletas.map(atleta => ({
+        const dataToExport = currentAtletas.map(atleta => ({
             'Nombre Completo': atleta.nombrePersona,
             'DNI': atleta.documento,
             'Edad': atleta.edad,
@@ -142,6 +147,30 @@ const AtletasList = () => {
             console.error("Error exportando PDF", err);
         }
     };
+    // Filtrar atletas por búsqueda
+    const filteredAtletas = atletas.filter(atleta => {
+        if (!searchTerm) return true;
+        const search = searchTerm.toLowerCase();
+        return (
+            atleta.nombrePersona?.toLowerCase().includes(search) ||
+            atleta.documento?.toLowerCase().includes(search) ||
+            atleta.nombreClub?.toLowerCase().includes(search) ||
+            atleta.tutorInfo?.nombre?.toLowerCase().includes(search) ||
+            atleta.tutorInfo?.apellido?.toLowerCase().includes(search)
+        );
+    });
+
+    // Paginación
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentAtletas = filteredAtletas.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(filteredAtletas.length / itemsPerPage);
+
+    const handlePageChange = (pageNumber) => {
+        setCurrentPage(pageNumber);
+    };
+
+
 
     return (
         <div className="page-container">
@@ -159,10 +188,7 @@ const AtletasList = () => {
 
             <Card>
                 <div className="filters-bar">
-                    <div className="search-input-wrapper">
-                        <Search size={18} className="search-icon" />
-                        <input type="text" placeholder="Buscar por nombre..." className="search-input" />
-                    </div>
+                    <FormField icon={Search} placeholder="Buscar por nombre, DNI, club..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                 </div>
 
                 <div className="table-responsive">
@@ -188,7 +214,7 @@ const AtletasList = () => {
                             ) : atletas.length === 0 ? (
                                 <tr><td colSpan="11" className="text-center">No hay atletas registrados</td></tr>
                             ) : (
-                                atletas.map((atleta) => (
+                                currentAtletas.map((atleta) => (
                                     <tr
                                         key={atleta.idPersona}
                                         onClick={() => handleRowClick(atleta)}
@@ -249,6 +275,7 @@ const AtletasList = () => {
                         </tbody>
                     </table>
                 </div>
+                    <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
             </Card>
 
             <Modal

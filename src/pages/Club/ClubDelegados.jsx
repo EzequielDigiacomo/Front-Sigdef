@@ -23,7 +23,6 @@ const ClubDelegados = () => {
             setLoading(true);
             const data = await api.get('/DelegadoClub');
 
-            // Filtrar solo delegados del club actual
             const clubId = user.idClub || user.clubId;
             const delegadosDelClub = data.filter(d => {
                 const delegadoClubId = d.idClub || d.clubId;

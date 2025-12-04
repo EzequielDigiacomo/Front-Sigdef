@@ -16,7 +16,6 @@ const RegisterPersonForm = () => {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
 
-    // Roles disponibles para registro desde Federación
     const roles = [
         { value: 'Admin', label: 'Administrador' },
         { value: 'Entrenador', label: 'Entrenador' },

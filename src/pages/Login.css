@@ -3,7 +3,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    /* Fondo gris intermedio degradado */
+    
     background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
     padding: 1rem;
 }
@@ -12,14 +12,13 @@
     width: 100%;
     max-width: 400px;
     padding: 2.5rem;
-    /* Tarjeta blanca limpia */
+    
     background: #ffffff;
     border: 1px solid #e5e7eb;
     border-radius: 1rem;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
-/* Override para quitar el efecto glass si entra en conflicto */
 .login-card.glass-panel {
     background: #ffffff;
     backdrop-filter: none;
@@ -47,7 +46,7 @@
 }
 
 .text-gradient {
-    /* Forzamos color sólido gris oscuro */
+    
     background: none;
     -webkit-text-fill-color: initial;
     color: #1f2937;
@@ -108,10 +107,9 @@
     border: 1px solid #fecaca;
 }
 
-/* Ajuste para el botón si usa clases globales, aseguramos contraste */
 button[type="submit"] {
     background-color: #4b5563;
-    /* Gris oscuro */
+    
     border-color: #4b5563;
 }
 
@@ -120,7 +118,6 @@ button[type="submit"]:hover {
     border-color: #374151;
 }
 
-/* Password input wrapper */
 .password-input-wrapper {
     position: relative;
     width: 100%;
@@ -131,7 +128,6 @@ button[type="submit"]:hover {
     padding-right: 2.5rem;
 }
 
-/* Password toggle button */
 .password-toggle-btn {
     position: absolute;
     right: 0.75rem;

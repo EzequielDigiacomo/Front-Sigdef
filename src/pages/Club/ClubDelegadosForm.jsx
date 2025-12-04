@@ -1,4 +1,4 @@
-// ClubDelegadosForm.jsx
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -16,7 +16,7 @@ const ClubDelegadosForm = () => {
     const [loading, setLoading] = useState(false);
 
     const [formData, setFormData] = useState({
-        // Datos Persona
+        
         nombre: '',
         apellido: '',
         documento: '',
@@ -24,7 +24,7 @@ const ClubDelegadosForm = () => {
         email: '',
         telefono: '',
         direccion: '',
-        // Datos Delegado
+        
         idRol: 1,
         idFederacion: 1
     });
@@ -91,7 +91,6 @@ const ClubDelegadosForm = () => {
         try {
             let idPersona = null;
 
-            // FIX: Enviar null si es string vacío para evitar errores de validación en backend
             const emailFinal = (!formData.email || formData.email.trim() === "") ? null : formData.email;
             const telefonoFinal = (!formData.telefono || formData.telefono.trim() === "") ? null : formData.telefono;
             const direccionFinal = (!formData.direccion || formData.direccion.trim() === "") ? null : formData.direccion;
@@ -106,7 +105,6 @@ const ClubDelegadosForm = () => {
                 direccion: direccionFinal
             };
 
-            // Helper para payload de Delegado
             const getDelegadoPayload = (idPersona) => {
                 const clubId = user.idClub || user.clubId;
                 if (!clubId) {
@@ -114,20 +112,19 @@ const ClubDelegadosForm = () => {
                 }
                 return {
                     idPersona: idPersona,
-                    idClub: clubId, // Aseguramos enviar el idClub
+                    idClub: clubId, 
                     idRol: parseInt(formData.idRol),
                     idFederacion: parseInt(formData.idFederacion)
                 };
             };
 
             if (id) {
-                // MODO EDICIÓN
+                
                 await api.put(`/Persona/${id}`, personaPayload);
                 idPersona = parseInt(id);
                 await api.put(`/DelegadoClub/${id}`, getDelegadoPayload(idPersona));
             } else {
-                // MODO CREACIÓN
-                // Verificar si la persona ya existe
+
                 try {
                     const personaExistente = await api.get(`/Persona/documento/${formData.documento}`, { silentErrors: true });
                     if (personaExistente && personaExistente.idPersona) {
@@ -138,20 +135,17 @@ const ClubDelegadosForm = () => {
                     console.log('Persona no encontrada, se creará una nueva.');
                 }
 
-                // Crear persona si no existe
                 if (!idPersona) {
                     const personaResponse = await api.post('/Persona', personaPayload);
                     idPersona = personaResponse.idPersona || personaResponse.IdPersona;
                 }
 
-                // Crear delegado
-                // Primero verificamos si ya es delegado para evitar duplicados/errores
                 try {
                     await api.get(`/DelegadoClub/${idPersona}`);
-                    // Si existe, actualizamos
+                    
                     await api.put(`/DelegadoClub/${idPersona}`, getDelegadoPayload(idPersona));
                 } catch (error) {
-                    // Si no existe (404), creamos
+                    
                     await api.post('/DelegadoClub', getDelegadoPayload(idPersona));
                 }
             }
@@ -165,7 +159,7 @@ const ClubDelegadosForm = () => {
             });
         } catch (error) {
             console.error('Error guardando:', error);
-            // Si el error es de lectura después de guardar, redirigir de todas formas
+            
             if (error.message && error.message.includes('Email')) {
                 setModalConfig({
                     isOpen: true,

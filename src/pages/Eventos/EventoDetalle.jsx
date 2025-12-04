@@ -14,7 +14,6 @@ const EventoDetalle = () => {
     const [inscripciones, setInscripciones] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // Mappings for Enums (Int -> String Label)
     const tipoEventoMap = {
         1: 'Carrera Oficial',
         2: 'Campeonato',
@@ -37,7 +36,7 @@ const EventoDetalle = () => {
         11: '22 Kilómetros',
         12: '25 Kilómetros',
         13: '32 Kilómetros',
-        // String keys fallback
+        
         'DoscientosMetros': '200 Metros',
         'TrecientosCincuentaMetros': '350 Metros',
         'QuatroCientosMetros': '400 Metros',
@@ -62,19 +61,16 @@ const EventoDetalle = () => {
             const eventoData = await api.get(`/Evento/${id}`);
             setEvento(eventoData);
 
-            // Cargar inscripciones del evento
             const inscripcionesData = await api.get(`/Inscripcion/evento/${id}`);
 
-            // Cargar datos básicos de atletas
             const atletasData = await api.get('/Atleta');
 
-            // Enriquecer inscripciones con datos de atletas y personas
             const inscripcionesConDetalles = await Promise.all(inscripcionesData.map(async (inscripcion) => {
                 const atleta = atletasData.find(a => a.idPersona === inscripcion.idAtleta);
                 let nombreCompleto = 'Desconocido';
 
                 if (atleta) {
-                    // Intentar obtener nombre de Persona
+                    
                     try {
                         const persona = await api.get(`/Persona/${atleta.idPersona}`);
                         if (persona && persona.nombre && persona.apellido) {
@@ -84,7 +80,7 @@ const EventoDetalle = () => {
                         }
                     } catch (err) {
                         console.error(`Error cargando persona ${atleta.idPersona}`, err);
-                        // Fallback si falla la carga de persona
+                        
                         if (atleta.nombrePersona) {
                             nombreCompleto = atleta.nombrePersona;
                         }
@@ -137,7 +133,7 @@ const EventoDetalle = () => {
 
     return (
         <div className="evento-detalle-container">
-            {/* Header */}
+            {}
             <div className="evento-header">
                 <div className="evento-header-left">
                     <Button variant="ghost" onClick={() => navigate('/dashboard/eventos')} className="back-button">
@@ -162,7 +158,7 @@ const EventoDetalle = () => {
             </div>
 
             <div className="evento-grid">
-                {/* Columna Izquierda: Detalles */}
+                {}
                 <div className="evento-details-column">
                     <Card className="detail-card">
                         <h3><Info size={20} /> Información General</h3>
@@ -226,7 +222,7 @@ const EventoDetalle = () => {
                     </Card>
                 </div>
 
-                {/* Columna Derecha: Inscritos */}
+                {}
                 <div className="evento-inscritos-column">
                     <Card className="inscritos-section">
                         <h3 className="section-title" style={{ textAlign: 'center', marginBottom: '1.5rem' }}>Atletas Inscritos ({inscripciones.length})</h3>

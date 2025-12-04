@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import { UserCheck, Plus, Search, Edit, Trash2, Phone, Mail, MapPin } from 'lucide-react';
 import Button from '../../components/common/Button';
-import './ClubAtletas.css'; // Reusing styles for consistency
+import './ClubAtletas.css'; 
 
 const ClubTutores = () => {
     const navigate = useNavigate();
@@ -54,7 +54,7 @@ const ClubTutores = () => {
     }
 
     return (
-        <div className="club-atletas"> {/* Reusing class for layout */}
+        <div className="club-atletas"> {}
             <div className="page-header">
                 <div>
                     <h1 className="text-gradient">Mis Tutores</h1>
@@ -82,7 +82,7 @@ const ClubTutores = () => {
                 </div>
             </div>
 
-            <div className="atletas-grid"> {/* Reusing grid class */}
+            <div className="atletas-grid"> {}
                 {filteredTutores.length === 0 ? (
                     <div className="empty-state glass-panel">
                         <UserCheck size={48} color="var(--text-secondary)" />

@@ -103,7 +103,6 @@
     transition: all 0.2s;
 }
 
-/* Botón de confirmar/aceptar más visible */
 .modal-actions button:first-child {
     background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     color: white;

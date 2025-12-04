@@ -7,22 +7,20 @@ const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
-// Función para validar si un token JWT es válido y no ha expirado
 const isTokenValid = (token) => {
     try {
         const decoded = jwtDecode(token);
-        const currentTime = Date.now() / 1000; // Convertir a segundos
+        const currentTime = Date.now() / 1000; 
 
-        // Verificar si el token tiene exp (expiration) y si no ha expirado
         if (decoded.exp && decoded.exp < currentTime) {
             console.log('Token expirado');
-            return false; // Token expirado
+            return false; 
         }
 
-        return true; // Token válido
+        return true; 
     } catch (error) {
         console.error('Error validando token:', error);
-        return false; // Token inválido
+        return false; 
     }
 };
 
@@ -31,19 +29,18 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Verificar sesión existente y validar token
+        
         const storedUser = localStorage.getItem('user');
 
         if (storedUser) {
             try {
                 const parsedUser = JSON.parse(storedUser);
 
-                // Validar que el token existe y es válido
                 if (parsedUser.token && isTokenValid(parsedUser.token)) {
                     setUser(parsedUser);
                     console.log('Sesión válida restaurada');
                 } else {
-                    // Token expirado o inválido, limpiar
+                    
                     console.log('Token expirado o inválido, limpiando sesión');
                     localStorage.removeItem('user');
                 }
@@ -58,34 +55,30 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (username, password) => {
         try {
-            // Attempt real authentication against the backend
+            
             const response = await api.post('/auth/login', { username, password });
-            // Backend returns token and user info
+            
             const { token, idPersona, username: responseUsername, estaActivo, nombreCompleto, email, rol, idClub } = response;
 
-            // Decode token to get role
             const decoded = jwtDecode(token);
             const jwtRoleClaim = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decoded['role'];
 
-            // Priorizar el rol del JWT, pero si no existe, usar el rol de la respuesta
             const roleClaim = jwtRoleClaim || rol;
 
-            // Mapear el rol del backend al formato esperado por el frontend
-            let mappedRole = 'FEDERACION'; // Default
+            let mappedRole = 'FEDERACION'; 
 
             if (roleClaim === 'Club') {
                 mappedRole = 'CLUB';
             } else if (roleClaim === 'Federacion' || roleClaim === 'Admin') {
                 mappedRole = 'FEDERACION';
             } else if (roleClaim === 'Usuario' && idClub) {
-                // Si el rol es 'Usuario' pero tiene idClub, es un usuario de club
+                
                 mappedRole = 'CLUB';
             } else if (roleClaim === 'Usuario') {
-                // Usuario sin club asociado, tratarlo como federación
+                
                 mappedRole = 'FEDERACION';
             }
 
-            // Build a minimal user object to store in context and localStorage
             const loggedUser = {
                 username: responseUsername,
                 token,
@@ -93,12 +86,11 @@ export const AuthProvider = ({ children }) => {
                 nombreCompleto: nombreCompleto,
                 email: email,
                 role: mappedRole,
-                idClub: idClub // Guardar el idClub si existe
+                idClub: idClub 
             };
             setUser(loggedUser);
             localStorage.setItem('user', JSON.stringify(loggedUser));
-            // Set default Authorization header for future API calls
-            // (api.js already reads token from stored user)
+
             return true;
         } catch (error) {
             console.error('Error during login:', error);
@@ -110,7 +102,7 @@ export const AuthProvider = ({ children }) => {
         console.log('Cerrando sesión...');
         setUser(null);
         localStorage.removeItem('user');
-        // Nota: Si en el futuro se agregan más datos de sesión, limpiarlos aquí
+        
     };
 
     const value = {

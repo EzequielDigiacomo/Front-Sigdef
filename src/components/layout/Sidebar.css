@@ -1,4 +1,4 @@
-/* Sidebar is hidden by default on desktop (replaced by Top Navbar) */
+
 .sidebar {
     display: none;
     width: 260px;
@@ -34,7 +34,7 @@
 
 .collapse-toggle {
     display: none;
-    /* No collapse on mobile sidebar */
+    
 }
 
 .sidebar-nav {
@@ -72,7 +72,6 @@
     display: none;
 }
 
-/* Show Sidebar ONLY on Mobile */
 @media (max-width: 768px) {
     .sidebar {
         display: flex;

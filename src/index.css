@@ -1,15 +1,14 @@
 :root {
-  /* Shared Values */
+  
   --primary: #3b82f6;
-  /* Blue 500 */
+  
   --primary-hover: #2563eb;
-  /* Blue 600 */
+  
   --danger: #ef4444;
-  /* Red 500 */
+  
   --success: #10b981;
-  /* Emerald 500 */
+  
   --warning: #f59e0b;
-  /* Amber 500 */
 
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
@@ -24,47 +23,39 @@
   --transition: all 0.2s ease-in-out;
 }
 
-/* Dark Theme (Default) */
 [data-theme="dark"] {
   --bg-primary: #0f172a;
-  /* Slate 900 */
+  
   --bg-secondary: #1e293b;
-  /* Slate 800 */
+  
   --bg-card: rgba(30, 41, 59, 0.7);
-  /* Glass effect base */
 
   --text-primary: #f8fafc;
-  /* Slate 50 */
+  
   --text-secondary: #94a3b8;
-  /* Slate 400 */
+  
   --text-accent: #38bdf8;
-  /* Sky 400 */
 
   --secondary: #64748b;
-  /* Slate 500 */
 
   --border-color: rgba(148, 163, 184, 0.1);
   --glass-border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Light Theme */
 [data-theme="light"] {
   --bg-primary: #f8fafc;
-  /* Slate 50 */
+  
   --bg-secondary: #ffffff;
-  /* White */
+  
   --bg-card: rgba(255, 255, 255, 0.8);
-  /* Glass effect base */
 
   --text-primary: #0f172a;
-  /* Slate 900 */
+  
   --text-secondary: #64748b;
-  /* Slate 500 */
+  
   --text-accent: #0284c7;
-  /* Sky 600 */
 
   --secondary: #cbd5e1;
-  /* Slate 300 */
 
   --border-color: rgba(15, 23, 42, 0.06);
   --glass-border: 1px solid rgba(15, 23, 42, 0.06);
@@ -98,7 +89,6 @@ button {
   font-family: inherit;
 }
 
-/* Utilities */
 .container {
   width: 100%;
   padding: 0 1rem;
@@ -125,7 +115,6 @@ button {
   -webkit-text-fill-color: transparent;
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;

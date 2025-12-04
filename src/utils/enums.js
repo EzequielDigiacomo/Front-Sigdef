@@ -1,4 +1,4 @@
-// Mapeos basados en los Enums del Backend C#
+
 
 export const CATEGORIA_MAP = {
     0: 'Preinfantil',
@@ -45,19 +45,17 @@ export const ROL_TIPO_MAP = {
     5: 'Secretario'
 };
 
-// Helpers para obtener etiquetas
 export const getCategoriaLabel = (value) => CATEGORIA_MAP[value] ?? 'Desconocido';
 export const getEstadoPagoLabel = (value) => ESTADO_PAGO_MAP[value] ?? 'Desconocido';
 export const getParentescoLabel = (value) => PARENTESCO_MAP[value] ?? 'Desconocido';
 export const getRolTipoLabel = (value) => ROL_TIPO_MAP[value] ?? 'Desconocido';
 
-// Helpers para colores (Badges)
 export const getEstadoPagoColor = (value) => {
     switch (value) {
-        case 1: return 'success'; // Pagado
-        case 2: return 'danger';  // Vencido
-        case 3: return 'warning'; // Parcial
-        case 0: return 'secondary'; // Pendiente
+        case 1: return 'success'; 
+        case 2: return 'danger';  
+        case 3: return 'warning'; 
+        case 0: return 'secondary'; 
         default: return 'secondary';
     }
 };

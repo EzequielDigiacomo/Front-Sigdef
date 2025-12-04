@@ -22,40 +22,34 @@ const EventosDisponibles = () => {
         try {
             setLoading(true);
 
-            // Obtener todos los eventos
             const todosEventos = await api.get('/Evento');
 
-            // Obtener todos los clubes para mostrar el organizador
             const clubes = await api.get('/Club');
 
-            // Obtener inscripciones para calcular cupos
             const inscripciones = await api.get('/Inscripcion');
 
-            // Filtrar eventos que NO sean del club actual
-            // Quitamos el filtro de estado por ahora para depuración
             console.log('Todos los eventos:', todosEventos);
             console.log('Mi Club ID:', user.clubId);
 
             const eventosDisponibles = todosEventos
                 .filter(e => {
-                    // Comparación laxa para asegurar que coincida string/number
+                    
                     const esOtroClub = e.idClub != user.clubId;
-                    // Opcional: Filtrar solo eventos futuros
+                    
                     const esFuturo = new Date(e.fechaFin) >= new Date();
                     return esOtroClub && esFuturo;
                 })
                 .map(evento => {
-                    // Buscar el club organizador
+                    
                     const clubOrganizador = clubes.find(c => c.id === evento.idClub);
 
-                    // Contar inscritos
                     const inscritosTotal = inscripciones.filter(i => i.idEvento === evento.idEvento).length;
 
                     return {
                         ...evento,
                         organizador: clubOrganizador ? clubOrganizador.nombre : 'Federación Argentina',
                         inscritosTotal,
-                        cupoMaximo: evento.cupoMaximo || 100 // Valor por defecto si no está en la DB
+                        cupoMaximo: evento.cupoMaximo || 100 
                     };
                 });
 
@@ -68,7 +62,7 @@ const EventosDisponibles = () => {
     };
 
     const handleInscribir = (eventoId) => {
-        // Navegar a la página de inscripción con el evento preseleccionado
+        
         navigate(`/club/inscripciones/nuevo?eventoId=${eventoId}`);
     };
 

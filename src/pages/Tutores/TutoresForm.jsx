@@ -52,7 +52,7 @@ const TutoresForm = () => {
 
         try {
             if (id) {
-                // Actualizar Persona
+                
                 await api.put(`/Persona/${id}`, {
                     Nombre: formData.nombre,
                     Apellido: formData.apellido,
@@ -63,7 +63,7 @@ const TutoresForm = () => {
                     Direccion: formData.direccion
                 });
             } else {
-                // Crear Persona
+                
                 const personaResponse = await api.post('/Persona', {
                     Nombre: formData.nombre,
                     Apellido: formData.apellido,
@@ -76,7 +76,6 @@ const TutoresForm = () => {
 
                 const idPersona = personaResponse.IdPersona || personaResponse.idPersona;
 
-                // Crear Tutor
                 await api.post('/Tutor', {
                     IdPersona: idPersona
                 });

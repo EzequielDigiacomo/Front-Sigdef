@@ -21,7 +21,6 @@
     font-size: 1rem;
 }
 
-/* Eventos List */
 .eventos-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -119,7 +118,6 @@
     flex: 1;
 }
 
-/* Empty State */
 .empty-state {
     grid-column: 1 / -1;
     display: flex;
@@ -142,7 +140,6 @@
     margin: 0;
 }
 
-/* Loading */
 .loading-container {
     display: flex;
     flex-direction: column;
@@ -167,7 +164,6 @@
     }
 }
 
-/* Responsive */
 @media (max-width: 768px) {
     .page-header {
         flex-direction: column;

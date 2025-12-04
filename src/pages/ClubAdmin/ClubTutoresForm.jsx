@@ -36,7 +36,7 @@ const ClubTutoresForm = () => {
     const fetchAtletas = async () => {
         try {
             const todosAtletas = await api.get('/Atleta');
-            // Filtrar solo atletas del club actual
+            
             const atletasDelClub = todosAtletas.filter(a => {
                 const atletaClubId = a.idClub || a.clubId;
                 return atletaClubId === user.clubId;
@@ -83,7 +83,7 @@ const ClubTutoresForm = () => {
         setLoading(true);
 
         try {
-            // Preparar payload de Persona
+            
             const fechaNacimientoISO = formData.fechaNacimiento
                 ? new Date(formData.fechaNacimiento).toISOString()
                 : new Date().toISOString();
@@ -99,23 +99,22 @@ const ClubTutoresForm = () => {
             };
 
             const tutorPayload = {
-                idPersona: 0, // Se asignará después
+                idPersona: 0, 
                 tipoTutor: PARENTESCO_MAP[formData.tipoTutor] || 'Padre'
             };
 
             let idPersona = null;
 
             if (id) {
-                // MODO EDICIÓN - Solo para tutores existentes
+                
                 await api.put(`/Persona/${id}`, personaPayload);
                 await api.put(`/Tutor/${id}`, { ...tutorPayload, idPersona: parseInt(id) });
                 idPersona = parseInt(id);
 
             } else {
-                // MODO CREACIÓN - Flujo mejorado
+                
                 let personaExistente = null;
 
-                // 1. Buscar persona por documento (CON silentErrors: true)
                 try {
                     console.log(`🔍 Buscando persona con DNI ${formData.documento}...`);
                     personaExistente = await api.get(`/Persona/documento/${formData.documento}`, {
@@ -126,12 +125,10 @@ const ClubTutoresForm = () => {
                         idPersona = personaExistente.idPersona;
                         console.log('✅ Persona encontrada con ID:', idPersona);
 
-                        // Verificar si ya tiene rol de tutor (SIN silentErrors para ver errores reales)
                         try {
                             const tutorExistente = await api.get(`/Tutor/${idPersona}`);
                             console.log('⚠️ Persona ya es tutor, actualizando...');
 
-                            // Actualizar persona y tutor
                             await api.put(`/Persona/${idPersona}`, personaPayload);
                             await api.put(`/Tutor/${idPersona}`, {
                                 ...tutorPayload,
@@ -139,12 +136,11 @@ const ClubTutoresForm = () => {
                             });
 
                         } catch (tutorError) {
-                            // Si NO es tutor, verificar si tiene otro rol
+                            
                             if (personaExistente.tipoPersona && personaExistente.tipoPersona !== 'Persona Base') {
                                 throw new Error(`Esta persona ya tiene el rol de: ${personaExistente.tipoPersona}. No se puede asignar como tutor.`);
                             }
 
-                            // Si es "Persona Base", crear el tutor
                             console.log('➕ Persona existe pero no es tutor, creando tutor...');
                             await api.put(`/Persona/${idPersona}`, personaPayload);
                             await api.post('/Tutor', {
@@ -154,12 +150,11 @@ const ClubTutoresForm = () => {
                         }
                     }
                 } catch (searchError) {
-                    // ERROR ESPERADO - Persona no encontrada, no es un problema
+                    
                     console.log('ℹ️ Persona no encontrada, se creará nueva');
-                    // No relanzamos el error, continuamos con el flujo normal
+                    
                 }
 
-                // 2. Si no se encontró persona, crear nueva
                 if (!idPersona) {
                     console.log('➕ Creando nueva persona...');
                     const nuevaPersona = await api.post('/Persona', personaPayload);
@@ -173,13 +168,10 @@ const ClubTutoresForm = () => {
                 }
             }
 
-            // 3. Vincular con Atleta si se seleccionó uno
             if (selectedAtletaId) {
                 try {
                     console.log(`🔗 Vinculando Tutor ${id || 'nuevo'} con Atleta ${selectedAtletaId}...`);
 
-                    // Si es nuevo, necesitamos el ID de la persona del tutor que acabamos de crear/encontrar
-                    // En el flujo actual, idPersona ya debería tener el valor correcto
                     let tutorIdParaVinculo = id ? parseInt(id) : idPersona;
 
                     if (tutorIdParaVinculo) {
@@ -192,7 +184,7 @@ const ClubTutoresForm = () => {
                     }
                 } catch (linkError) {
                     console.error('Error al vincular atleta:', linkError);
-                    // No fallamos todo el proceso si solo falla el vínculo, pero avisamos
+                    
                     alert('El tutor se guardó, pero hubo un error al vincularlo con el atleta (posiblemente ya estén vinculados).');
                 }
             }
@@ -202,7 +194,6 @@ const ClubTutoresForm = () => {
         } catch (error) {
             console.error('Error guardando:', error);
 
-            // Manejo específico de errores
             if (error.message.includes('ya tiene otro rol asignado') ||
                 error.message.includes('ya tiene el rol de')) {
                 alert(`Error: ${error.message}\n\nUna persona no puede tener múltiples roles en el sistema.`);
@@ -343,7 +334,7 @@ const ClubTutoresForm = () => {
                                         if (!busquedaAtleta) return true;
                                         const search = busquedaAtleta.toLowerCase();
                                         const nombre = (a.nombrePersona || '').toLowerCase();
-                                        // Asumimos que podemos tener acceso al DNI si viene en el objeto, si no, filtramos por nombre
+                                        
                                         return nombre.includes(search);
                                     })
                                     .map(atleta => (

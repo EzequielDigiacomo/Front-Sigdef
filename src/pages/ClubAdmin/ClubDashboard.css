@@ -78,7 +78,6 @@
     color: var(--text-primary);
 }
 
-/* Activity List */
 .activity-list {
     display: flex;
     flex-direction: column;
@@ -126,7 +125,6 @@
     margin: 0;
 }
 
-/* Events List */
 .events-list {
     display: flex;
     flex-direction: column;
@@ -183,7 +181,6 @@
     margin: 0;
 }
 
-/* Loading */
 .loading-container {
     display: flex;
     flex-direction: column;
@@ -208,7 +205,6 @@
     }
 }
 
-/* Responsive */
 @media (max-width: 768px) {
     .stats-grid {
         grid-template-columns: 1fr;

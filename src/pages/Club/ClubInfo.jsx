@@ -1,4 +1,4 @@
-// ClubInfo.jsx
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
@@ -21,10 +21,8 @@ const ClubInfo = () => {
             setLoading(true);
             const clubId = user.idClub || user.clubId;
 
-            // 1. Obtener información del club
             const club = await api.get(`/Club/${clubId}`);
 
-            // 2. Obtener entrenadores del club
             let entrenadoresDelClub = [];
             try {
                 const todosEntrenadores = await api.get('/Entrenador');
@@ -33,7 +31,6 @@ const ClubInfo = () => {
                     return eClubId == clubId;
                 });
 
-                // Enriquecer con datos de persona
                 const entrenadoresConPersona = await Promise.all(
                     entrenadoresDelClub.map(async (entrenador) => {
                         try {
@@ -49,7 +46,6 @@ const ClubInfo = () => {
                 console.error('Error al cargar entrenadores:', error);
             }
 
-            // 3. Obtener delegados del club
             try {
                 const todosDelegados = await api.get('/DelegadoClub');
                 const delegadosDelClub = todosDelegados.filter(d => {
@@ -57,8 +53,6 @@ const ClubInfo = () => {
                     return dClubId == clubId;
                 });
 
-                // Enriquecer con datos de persona (si el endpoint no los trae ya)
-                // Nota: El endpoint DelegadoClub suele traer nombrePersona, pero por consistencia:
                 const delegadosConPersona = await Promise.all(
                     delegadosDelClub.map(async (delegado) => {
                         try {
@@ -81,7 +75,7 @@ const ClubInfo = () => {
             });
         } catch (error) {
             console.error('Error al cargar información del club:', error);
-            // Fallback con datos de usuario
+            
             setClubData({
                 id: user.clubId,
                 nombre: user.clubNombre || user.nombre,
@@ -112,7 +106,7 @@ const ClubInfo = () => {
             </div>
 
             <div className="club-info-grid">
-                {/* Información Principal */}
+                {}
                 <div className="info-section glass-panel">
                     <h2>Datos Principales</h2>
                     <div className="info-list">
@@ -158,7 +152,7 @@ const ClubInfo = () => {
                     </div>
                 </div>
 
-                {/* Entrenadores del Club */}
+                {}
                 <div className="info-section glass-panel">
                     <h2>Entrenadores</h2>
                     <div className="entrenadores-list">
@@ -195,10 +189,10 @@ const ClubInfo = () => {
                     </div>
                 </div>
 
-                {/* Delegados del Club */}
+                {}
                 <div className="info-section glass-panel">
                     <h2>Delegados</h2>
-                    <div className="entrenadores-list"> {/* Reutilizamos clase de lista */}
+                    <div className="entrenadores-list"> {}
                         {delegados.length > 0 ? (
                             delegados.map((delegado) => (
                                 <div key={delegado.idPersona} className="entrenador-item">

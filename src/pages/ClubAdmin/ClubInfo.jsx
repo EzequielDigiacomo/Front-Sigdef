@@ -18,23 +18,18 @@ const ClubInfo = () => {
         try {
             setLoading(true);
 
-            // 1. Obtener información del club
             const club = await api.get(`/Club/${user.clubId}`);
 
-            // 2. Obtener atletas del club
             const atletas = await api.get('/Atleta');
             const atletasDelClub = atletas.filter(a => a.idClub === user.clubId);
 
-            // 3. Obtener entrenadores del club
             let entrenadoresDelClub = [];
             try {
-                // Obtener todos los entrenadores
+                
                 const todosEntrenadores = await api.get('/Entrenador');
 
-                // Filtrar por club
                 entrenadoresDelClub = todosEntrenadores.filter(e => e.idClub === user.clubId);
 
-                // Para cada entrenador, obtener los datos de la persona
                 const entrenadoresConPersona = await Promise.all(
                     entrenadoresDelClub.map(async (entrenador) => {
                         try {
@@ -67,7 +62,7 @@ const ClubInfo = () => {
             });
         } catch (error) {
             console.error('Error al cargar información del club:', error);
-            // Si falla, usar datos del usuario
+            
             setClubData({
                 id: user.clubId,
                 nombre: user.clubNombre || user.nombre,
@@ -101,7 +96,7 @@ const ClubInfo = () => {
             </div>
 
             <div className="club-info-grid">
-                {/* Información Principal */}
+                {}
                 <div className="info-section glass-panel">
                     <h2>Datos Principales</h2>
                     <div className="info-list">
@@ -147,7 +142,7 @@ const ClubInfo = () => {
                     </div>
                 </div>
 
-                {/* Entrenadores del Club */}
+                {}
                 <div className="info-section glass-panel">
                     <h2>Entrenadores</h2>
                     <div className="entrenadores-list">
@@ -198,7 +193,7 @@ const ClubInfo = () => {
                     </div>
                 </div>
 
-                {/* Estadísticas */}
+                {}
                 <div className="info-section glass-panel">
                     <h2>Estadísticas</h2>
                     <div className="stats-list">
@@ -224,7 +219,7 @@ const ClubInfo = () => {
                     </div>
                 </div>
 
-                {/* Logros */}
+                {}
                 {clubData.logros && clubData.logros.length > 0 && (
                     <div className="info-section glass-panel logros-section">
                         <h2>Logros y Reconocimientos</h2>

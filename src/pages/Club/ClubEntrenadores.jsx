@@ -1,4 +1,4 @@
-// ClubEntrenadores.jsx
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -24,7 +24,6 @@ const ClubEntrenadores = () => {
             setLoading(true);
             const data = await api.get('/Entrenador');
 
-            // Filtrar solo entrenadores del club actual
             const clubId = user.idClub || user.clubId;
             const entrenadoresDelClub = data.filter(e => {
                 const entrenadorClubId = e.idClub || e.clubId;
@@ -93,7 +92,7 @@ const ClubEntrenadores = () => {
                         <thead>
                             <tr>
                                 <th>Nombre</th>
-                                {/* <th>Licencia</th> Eliminado */}
+                                {}
                                 <th>Selección</th>
                                 <th>Becas</th>
                                 <th>Apto Médico</th>
@@ -113,7 +112,7 @@ const ClubEntrenadores = () => {
                                         <td>
                                             <strong>{entrenador.nombrePersona || 'Sin nombre'}</strong>
                                         </td>
-                                        {/* <td>{entrenador.licencia || '-'}</td> Eliminado */}
+                                        {}
                                         <td>
                                             {entrenador.perteneceSeleccion ? (
                                                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--success)' }}>

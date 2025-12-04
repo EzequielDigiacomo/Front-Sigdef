@@ -23,7 +23,7 @@ const Login = () => {
         try {
             const success = await login(username, password);
             if (success) {
-                // Redirigir a la raíz, RootRedirect se encargará de redirigir según el rol
+                
                 console.log('Login exitoso, redirigiendo...');
                 navigate('/', { replace: true });
             } else {

@@ -59,12 +59,10 @@ const ClubAtletasForm = () => {
         }
     };
 
-    // Load athlete when editing
     useEffect(() => {
         if (id) loadAtleta();
     }, [id]);
 
-    // Determine if athlete is minor
     useEffect(() => {
         if (formData.fechaNacimiento) {
             const edad = calcularEdad(formData.fechaNacimiento);
@@ -101,7 +99,6 @@ const ClubAtletasForm = () => {
                 perteneceSeleccion: data.perteneceSeleccion || false,
             });
 
-            // Load tutor if exists
             if (data.idPersona) {
                 try {
                     const tutorResponse = await api.get(`/AtletaTutor/atleta/${data.idPersona}`);
@@ -179,12 +176,11 @@ const ClubAtletasForm = () => {
         let idTutor;
 
         if (!tutorData.existe) {
-            // --- CASO 1: Tutor NO existe en el sistema ---
+            
             console.log('➕ Creando Persona para el Tutor...');
 
-            // Fecha de nacimiento válida para tutor (mínimo 18 años)
             const fechaNacimientoTutor = new Date();
-            fechaNacimientoTutor.setFullYear(fechaNacimientoTutor.getFullYear() - 30); // Tutor de 30 años
+            fechaNacimientoTutor.setFullYear(fechaNacimientoTutor.getFullYear() - 30); 
 
             const tutorPersonaPayload = {
                 nombre: tutorData.nombre,
@@ -208,11 +204,10 @@ const ClubAtletasForm = () => {
             await api.post('/Tutor', tutorPayload);
             idTutor = idPersonaTutor;
         } else {
-            // --- CASO 2: Tutor YA existe (Persona encontrada) ---
+            
             console.log('✅ Usando Tutor existente ID:', tutorData.idPersona);
             idTutor = tutorData.idPersona;
 
-            // Asegurarnos de que esté registrado en la tabla Tutor
             try {
                 await api.get(`/Tutor/${idTutor}`);
             } catch (e) {
@@ -225,7 +220,6 @@ const ClubAtletasForm = () => {
             }
         }
 
-        // Crear relación AtletaTutor
         console.log('🔗 Vinculando Atleta y Tutor...');
         try {
             await api.post('/AtletaTutor', {
@@ -236,7 +230,7 @@ const ClubAtletasForm = () => {
             console.log('✅ Vinculación exitosa');
         } catch (error) {
             console.error('Error vinculando tutor (posiblemente ya existe la relación):', error);
-            // No bloqueamos el flujo si falla la vinculación (ej. ya existe)
+            
         }
     };
 
@@ -247,7 +241,6 @@ const ClubAtletasForm = () => {
         try {
             let idPersona;
 
-            // 1. Preparar datos de contacto (usando los del tutor si es menor y no tiene propios)
             const emailInput = formData.email || (esMenor && tutorData.email ? tutorData.email : null);
             const telefonoInput = formData.telefono || (esMenor && tutorData.telefono ? tutorData.telefono : null);
 
@@ -255,7 +248,6 @@ const ClubAtletasForm = () => {
             const telefonoFinal = telefonoInput === "" ? null : telefonoInput;
             const direccionFinal = formData.direccion === "" ? null : formData.direccion;
 
-            // Fecha ISO para el backend
             const fechaNacimientoISO = formData.fechaNacimiento ? new Date(formData.fechaNacimiento).toISOString() : new Date().toISOString();
 
             const personaPayload = {
@@ -268,7 +260,6 @@ const ClubAtletasForm = () => {
                 direccion: direccionFinal || ""
             };
 
-            // Helper para payload de Atleta
             const getAtletaPayload = (idPersona) => ({
                 idPersona: idPersona,
                 idClub: user.clubId,
@@ -283,16 +274,15 @@ const ClubAtletasForm = () => {
             });
 
             if (id) {
-                // MODO EDICIÓN
+                
                 await api.put(`/Persona/${id}`, personaPayload);
                 await api.put(`/Atleta/${id}`, getAtletaPayload(parseInt(id)));
                 idPersona = parseInt(id);
 
-                // Manejar tutor en edición
                 if (esMenor && tutorData.documento) {
                     await handleTutorManagement(idPersona);
                 } else {
-                    // Si no es menor, eliminar relación tutor si existe
+                    
                     try {
                         await api.delete(`/AtletaTutor/atleta/${idPersona}`);
                     } catch (error) {
@@ -300,9 +290,7 @@ const ClubAtletasForm = () => {
                     }
                 }
             } else {
-                // MODO CREACIÓN
 
-                // A) Verificar si la Persona ya existe por DNI
                 try {
                     console.log(`🔍 Buscando persona con DNI ${formData.documento}...`);
                     const personaExistente = await api.get(`/Persona/documento/${formData.documento}`, { silentErrors: true });
@@ -311,7 +299,6 @@ const ClubAtletasForm = () => {
                         idPersona = personaExistente.idPersona;
                         console.log('⚠️ Persona encontrada, reutilizando ID:', idPersona);
 
-                        // Actualizamos los datos de la persona existente
                         console.log('🔄 Actualizando datos de persona existente...');
                         await api.put(`/Persona/${idPersona}`, personaPayload);
                     }
@@ -319,7 +306,6 @@ const ClubAtletasForm = () => {
                     console.log('ℹ️ Persona no encontrada, se creará una nueva.');
                 }
 
-                // B) Si no existe, crearla
                 if (!idPersona) {
                     console.log('➕ Creando nueva Persona:', personaPayload);
                     const personaResponse = await api.post('/Persona', personaPayload);
@@ -327,20 +313,18 @@ const ClubAtletasForm = () => {
                     idPersona = personaResponse.idPersona || personaResponse.IdPersona;
                 }
 
-                // C) Crear el Atleta (si no existe ya)
                 try {
-                    // Verificamos si ya es atleta para no duplicar
+                    
                     await api.get(`/Atleta/${idPersona}`);
                     console.log('⚠️ Esta persona ya es atleta.');
-                    // Si ya es atleta, actualizamos sus datos de atleta
+                    
                     await api.put(`/Atleta/${idPersona}`, getAtletaPayload(idPersona));
                 } catch (error) {
-                    // Si da 404 es que no es atleta, lo creamos
+                    
                     console.log('➕ Creando registro de Atleta...');
                     await api.post('/Atleta', getAtletaPayload(idPersona));
                 }
 
-                // D) Manejar Tutor (Solo para menores)
                 if (esMenor && tutorData.documento) {
                     await handleTutorManagement(idPersona);
                 }

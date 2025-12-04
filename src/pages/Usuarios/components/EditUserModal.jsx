@@ -34,7 +34,7 @@ const EditUserModal = ({ isOpen, onClose, user, onUserUpdated }) => {
         setError('');
 
         try {
-            // Payload estricto según requerimiento del usuario
+            
             const payload = {
                 username: formData.username,
                 estaActivo: formData.estaActivo
