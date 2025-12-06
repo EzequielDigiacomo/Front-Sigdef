@@ -6,37 +6,38 @@ import MainLayoutClub from './components/layout/MainLayoutClub';
 import Login from './pages/Login';
 
 import Dashboard from './pages/Dashboard';
-import AtletasList from './pages/Atletas/AtletasList';
-import AtletasForm from './pages/Atletas/AtletasForm';
-import ClubesList from './pages/Clubes/ClubesList';
-import ClubesForm from './pages/Clubes/ClubesForm';
-import ClubDetalles from './pages/Clubes/ClubDetalles';
-import EventosList from './pages/Eventos/EventosList';
-import EventosForm from './pages/Eventos/EventosForm';
-import EventoDetalle from './pages/Eventos/EventoDetalle';
-import TutoresList from './pages/Tutores/TutoresList';
-import TutoresForm from './pages/Tutores/TutoresForm';
-import InscripcionesList from './pages/Inscripciones/InscripcionesList';
-import InscripcionesForm from './pages/Inscripciones/InscripcionesForm';
-import EntrenadoresSeleccionList from './pages/EntrenadorSeleccion/EntrenadorSeleccionList';
-import EntrenadoresSeleccionForm from './pages/EntrenadorSeleccion/EntrenadorSeleccionForm';
-import SeleccionCategoriaDetalle from './pages/EntrenadorSeleccion/SeleccionCategoriaDetalle';
-import EntrenadoresList from './pages/Entrenadores/EntrenadoresList';
-import UserManagement from './pages/Usuarios/UserManagement';
+import AtletasList from './pages/FederacionAdmin/Atletas/AtletasList';
+import AtletasForm from './pages/FederacionAdmin/Atletas/AtletasForm';
+import ClubesList from './pages/FederacionAdmin/Clubes/ClubesList';
+import ClubesForm from './pages/FederacionAdmin/Clubes/ClubesForm';
+import ClubDetalles from './pages/FederacionAdmin/Clubes/ClubDetalles';
+import EventosList from './pages/FederacionAdmin/Eventos/EventosList';
+import EventosForm from './pages/FederacionAdmin/Eventos/EventosForm';
+import EventoDetalle from './pages/FederacionAdmin/Eventos/EventoDetalle';
+import TutoresList from './pages/FederacionAdmin/Tutores/TutoresList';
+import TutoresForm from './pages/FederacionAdmin/Tutores/TutoresForm';
+import InscripcionesList from './pages/FederacionAdmin/Inscripciones/InscripcionesList';
+import InscripcionesForm from './pages/FederacionAdmin/Inscripciones/InscripcionesForm';
+import EntrenadoresSeleccionList from './pages/FederacionAdmin/EntrenadorSeleccion/EntrenadorSeleccionList';
+import EntrenadoresSeleccionForm from './pages/FederacionAdmin/EntrenadorSeleccion/EntrenadorSeleccionForm';
+import SeleccionCategoriaDetalle from './pages/FederacionAdmin/EntrenadorSeleccion/SeleccionCategoriaDetalle';
+import EntrenadoresList from './pages/FederacionAdmin/Entrenadores/EntrenadoresList';
+import UserManagement from './pages/FederacionAdmin/Usuarios/UserManagement';
 
-import ClubDashboard from './pages/Club/ClubDashboard';
-import ClubInfo from './pages/Club/ClubInfo';
-import ClubAtletas from './pages/Club/ClubAtletas';
-import ClubAtletasForm from './pages/Club/ClubAtletasForm';
-import ClubTutores from './pages/Club/ClubTutores';
-import ClubTutoresForm from './pages/Club/ClubTutoresForm';
-import ClubEventos from './pages/Club/ClubEventos';
-import ClubEventosForm from './pages/Club/ClubEventosForm';
-import EventosDisponibles from './pages/Club/EventosDisponibles';
-import ClubEntrenadores from './pages/Club/ClubEntrenadores';
-import ClubEntrenadoresForm from './pages/Club/ClubEntrenadoresForm';
-import ClubDelegados from './pages/Club/ClubDelegados';
-import ClubDelegadosForm from './pages/Club/ClubDelegadosForm';
+import ClubDashboard from './pages/ClubAdmin/Dashboard/ClubDashboard';
+import ClubInfo from './pages/ClubAdmin/Info/ClubInfo';
+import ClubAtletas from './pages/ClubAdmin/Atletas/ClubAtletas';
+import ClubAtletasForm from './pages/ClubAdmin/Atletas/ClubAtletasForm';
+import ClubTutores from './pages/ClubAdmin/Tutores/ClubTutores';
+import ClubTutoresForm from './pages/ClubAdmin/Tutores/ClubTutoresForm';
+import ClubEventos from './pages/ClubAdmin/Eventos/ClubEventos';
+import ClubEventosForm from './pages/ClubAdmin/Eventos/ClubEventosForm';
+import ClubEventoDetalle from './pages/ClubAdmin/Eventos/ClubEventoDetalle';
+import EventosDisponibles from './pages/ClubAdmin/Eventos/EventosDisponibles';
+import ClubEntrenadores from './pages/ClubAdmin/Entrenadores/ClubEntrenadores';
+import ClubEntrenadoresForm from './pages/ClubAdmin/Entrenadores/ClubEntrenadoresForm';
+import ClubDelegados from './pages/ClubAdmin/Delegados/ClubDelegados';
+import ClubDelegadosForm from './pages/ClubAdmin/Delegados/ClubDelegadosForm';
 
 import { ThemeProvider } from './context/ThemeContext';
 
@@ -162,6 +163,7 @@ function App() {
               <Route path="eventos" element={<ClubEventos />} />
               <Route path="eventos/nuevo" element={<ClubEventosForm />} />
               <Route path="eventos/editar/:id" element={<ClubEventosForm />} />
+              <Route path="eventos/:id" element={<ClubEventoDetalle />} />
               <Route path="eventos-disponibles" element={<EventosDisponibles />} />
               <Route path="entrenadores" element={<ClubEntrenadores />} />
               <Route path="entrenadores/nuevo" element={<ClubEntrenadoresForm />} />

@@ -10,26 +10,28 @@ export const useAuth = () => useContext(AuthContext);
 const isTokenValid = (token) => {
     try {
         const decoded = jwtDecode(token);
-        const currentTime = Date.now() / 1000; 
+        const currentTime = Date.now() / 1000;
 
         if (decoded.exp && decoded.exp < currentTime) {
             console.log('Token expirado');
-            return false; 
+            return false;
         }
 
-        return true; 
+        return true;
     } catch (error) {
         console.error('Error validando token:', error);
-        return false; 
+        return false;
     }
 };
+// En tu AuthContext, busca dónde se setea el usuario
+
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        
+
         const storedUser = localStorage.getItem('user');
 
         if (storedUser) {
@@ -40,7 +42,7 @@ export const AuthProvider = ({ children }) => {
                     setUser(parsedUser);
                     console.log('Sesión válida restaurada');
                 } else {
-                    
+
                     console.log('Token expirado o inválido, limpiando sesión');
                     localStorage.removeItem('user');
                 }
@@ -55,9 +57,9 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (username, password) => {
         try {
-            
+
             const response = await api.post('/auth/login', { username, password });
-            
+
             const { token, idPersona, username: responseUsername, estaActivo, nombreCompleto, email, rol, idClub } = response;
 
             const decoded = jwtDecode(token);
@@ -65,17 +67,17 @@ export const AuthProvider = ({ children }) => {
 
             const roleClaim = jwtRoleClaim || rol;
 
-            let mappedRole = 'FEDERACION'; 
+            let mappedRole = 'FEDERACION';
 
             if (roleClaim === 'Club') {
                 mappedRole = 'CLUB';
             } else if (roleClaim === 'Federacion' || roleClaim === 'Admin') {
                 mappedRole = 'FEDERACION';
             } else if (roleClaim === 'Usuario' && idClub) {
-                
+
                 mappedRole = 'CLUB';
             } else if (roleClaim === 'Usuario') {
-                
+
                 mappedRole = 'FEDERACION';
             }
 
@@ -86,7 +88,7 @@ export const AuthProvider = ({ children }) => {
                 nombreCompleto: nombreCompleto,
                 email: email,
                 role: mappedRole,
-                idClub: idClub 
+                idClub: idClub
             };
             setUser(loggedUser);
             localStorage.setItem('user', JSON.stringify(loggedUser));
@@ -102,7 +104,7 @@ export const AuthProvider = ({ children }) => {
         console.log('Cerrando sesión...');
         setUser(null);
         localStorage.removeItem('user');
-        
+
     };
 
     const value = {
