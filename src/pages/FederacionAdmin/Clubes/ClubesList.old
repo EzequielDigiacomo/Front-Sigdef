@@ -17,16 +17,23 @@ const ClubesList = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
+        console.log('🔍 useEffect ejecutado');
         loadData();
     }, []);
 
     const loadData = async () => {
         try {
+            console.log('🔄 Cargando datos...');
             const [clubesData, atletasData, entrenadoresData] = await Promise.all([
                 api.get('/Club'),
                 api.get('/Atleta'),
                 api.get('/Entrenador')
             ]);
+            console.log('✅ Datos cargados:', {
+                clubes: clubesData.length,
+                atletas: atletasData.length,
+                entrenadores: entrenadoresData.length
+            });
             setClubes(clubesData);
             setAtletas(atletasData);
             setEntrenadores(entrenadoresData);
@@ -56,14 +63,14 @@ const ClubesList = () => {
 
     const handleCardClick = (club) => {
         console.log('🎯 CLICK en card del club:', club.nombre);
-        // Usar navegación relativa para mantenerse dentro del dashboard
-        navigate(`detalles/${club.idClub}`);
+        console.log('🔄 Navegando a:', `/clubes/detalles/${club.idClub}`);
+        navigate(`/clubes/detalles/${club.idClub}`);
     };
 
     const handleEditClick = (e, clubId) => {
         e.stopPropagation();
         console.log('✏️ Click en editar club:', clubId);
-        navigate(`editar/${clubId}`);
+        navigate(`/clubes/editar/${clubId}`);
     };
 
     const handleDeleteClick = (e, clubId) => {
@@ -79,18 +86,20 @@ const ClubesList = () => {
         club.direccion?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    console.log('📊 Clubes a renderizar:', filteredClubes.length);
+
     return (
         <div className="page-container">
             <div className="page-header">
                 <h2 className="page-title">Gestión de Clubes</h2>
-                <Button onClick={() => navigate('nuevo')}>
+                <Button onClick={() => navigate('/clubes/nuevo')}>
                     <Plus size={20} /> Nuevo Club
                 </Button>
             </div>
 
             <Card>
                 <div className="filters-bar">
-                    <FormField icon={Search} placeholder="Buscar club por nombre, siglas o dirección..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                    <FormField icon={Search} placeholder="Buscar club por nombre, siglas o direcci�n..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                 </div>
 
                 {loading ? (
@@ -105,6 +114,7 @@ const ClubesList = () => {
                     <div className="clubes-grid">
                         {filteredClubes.map((club) => {
                             const stats = getClubStats(club.idClub);
+                            console.log(`🏷️ Renderizando club: ${club.nombre} (ID: ${club.idClub})`);
 
                             return (
                                 <div

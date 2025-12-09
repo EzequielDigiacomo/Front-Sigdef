@@ -11,11 +11,15 @@
     z-index: 1100;
     backdrop-filter: blur(4px);
     animation: fadeIn 0.2s ease-out;
+    padding: 1rem;
+    /* AÑADIDO: Espacio en los bordes */
 }
 
 .confirmation-modal-content {
-    width: 90%;
+    width: 100%;
+    /* CAMBIADO: de 90% a 100% */
     max-width: 400px;
+    /* Esto controlará el ancho máximo */
     padding: 2rem;
     border-radius: 16px;
     position: relative;
@@ -27,6 +31,9 @@
     border: 1px solid var(--border-color);
     background-color: var(--bg-secondary);
     backdrop-filter: none;
+    margin: 0 auto;
+    /* AÑADIDO: Centrado horizontal */
+
 }
 
 .modal-close-btn {
@@ -50,6 +57,16 @@
 .modal-body {
     margin-bottom: 2rem;
     width: 100%;
+    box-sizing: border-box;
+    /* Asegura que padding no afecte el ancho */
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    width: 100%;
+    justify-content: center;
+    box-sizing: border-box;
 }
 
 .icon-container {

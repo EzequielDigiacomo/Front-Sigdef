@@ -133,12 +133,17 @@ function App() {
               <Route path="inscripciones" element={<InscripcionesList />} />
               <Route path="inscripciones/new" element={<InscripcionesForm />} />
 
-              { }
-              <Route path="entrenadores" element={<EntrenadoresList />} />
-              <Route path="entrenadores-seleccion" element={<EntrenadoresSeleccionList />} />
+              {/* ENTRENADORES */}
+              <Route path="entrenadores" element={<EntrenadoresList viewMode="club" />} />
+
+              {/* Entrenadores Selección (Grilla Plana) */}
+              <Route path="entrenadores-seleccion" element={<EntrenadoresList viewMode="seleccion" />} />
+
+              {/* Selecciones (Dashboard Cards) */}
+              <Route path="selecciones" element={<EntrenadoresSeleccionList />} />
+              <Route path="selecciones/categoria/:categoryId" element={<SeleccionCategoriaDetalle />} />
               <Route path="entrenadores-seleccion/nuevo" element={<EntrenadoresSeleccionForm />} />
               <Route path="entrenadores-seleccion/editar/:id" element={<EntrenadoresSeleccionForm />} />
-              <Route path="entrenadores-seleccion/categoria/:categoryId" element={<SeleccionCategoriaDetalle />} />
 
               { }
               <Route path="pagos" element={<div>Página de Pagos (En construcción)</div>} />

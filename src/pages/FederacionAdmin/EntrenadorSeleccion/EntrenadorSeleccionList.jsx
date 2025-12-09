@@ -71,7 +71,7 @@ const EntrenadorSeleccionList = () => {
                         <Card
                             key={stat.id}
                             className="category-card cursor-pointer hover:shadow-lg transition-all"
-                            onClick={() => navigate(`/dashboard/entrenadores-seleccion/categoria/${stat.id}`)}
+                            onClick={() => navigate(`/dashboard/selecciones/categoria/${stat.id}`)}
                             style={{ padding: '0.75rem' }}
                         >
                             <div className="flex justify-between items-center mb-2">

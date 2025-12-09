@@ -4,7 +4,7 @@ import { api } from '../../../services/api';
 import DataTable from '../../../components/common/DataTable';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
-import { Users, ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { Users, ArrowLeft, Plus, Trash2, Edit, CheckCircle, AlertTriangle } from 'lucide-react';
 import { getCategoriaLabel } from '../../../utils/enums';
 import AddAtletaSeleccionModal from './components/AddAtletaSeleccionModal';
 
@@ -23,14 +23,28 @@ const SeleccionCategoriaDetalle = () => {
     const fetchAthletes = async () => {
         setLoading(true);
         try {
-            // Fetch all athletes and filter
-            // Ideally backend supports filtering by category and selection
-            const allAthletes = await api.get('/Atleta');
-            const filtered = (allAthletes || []).filter(a =>
-                a.perteneceSeleccion &&
-                a.categoria === parseInt(categoryId)
-            );
-            setAthletes(filtered);
+            const [allAthletes, allPersonas] = await Promise.all([
+                api.get('/Atleta'),
+                api.get('/Persona')
+            ]);
+
+            const filteredAndEnriched = (allAthletes || [])
+                .filter(a => a.perteneceSeleccion && a.categoria === parseInt(categoryId))
+                .map(athlete => {
+                    const persona = (allPersonas || []).find(p => p.idPersona === athlete.idPersona);
+                    return {
+                        ...athlete,
+                        // Priorizar datos de persona si existen, o fallback a lo que tenga atleta
+                        documento: persona?.documento || persona?.Documento || '-',
+                        email: persona?.email || persona?.Email || athlete.email || '-',
+                        nombrePersona: persona ? (persona.nombre + ' ' + persona.apellido) : athlete.nombrePersona,
+                        // Asegurar que nombres de campos coincidan con columnas
+                        telefono: persona?.telefono || persona?.Telefono || '-',
+                        direccion: persona?.direccion || persona?.Direccion || '-'
+                    };
+                });
+
+            setAthletes(filteredAndEnriched);
         } catch (error) {
             console.error('Error fetching athletes:', error);
         } finally {
@@ -65,22 +79,85 @@ const SeleccionCategoriaDetalle = () => {
     };
 
     const columns = [
-        { label: 'Nombre', key: 'nombrePersona' },
+        {
+            label: 'Nombre y Apellido',
+            key: 'nombrePersona',
+            render: (value, row) => <span className="font-medium text-primary">{row.nombrePersona}</span>
+        },
         { label: 'Documento', key: 'documento' },
-        { label: 'Club', key: 'nombreClub' },
-        { label: 'Email', key: 'email' },
+        { label: 'Club', key: 'nombreClub', render: (val) => val || 'Sin Club' },
+        { label: 'Email', key: 'email', render: (val) => val || '-' },
+        {
+            label: 'Beca ENARD',
+            key: 'becadoEnard',
+            render: (val) => val ? (
+                <span className="badge badge-success">SÍ</span>
+            ) : (
+                <span className="badge badge-secondary">NO</span>
+            )
+        },
+        {
+            label: 'Beca SND',
+            key: 'becadoSdn',
+            render: (val) => val ? (
+                <span className="badge badge-success">SÍ</span>
+            ) : (
+                <span className="badge badge-secondary">NO</span>
+            )
+        },
+        {
+            label: 'Monto',
+            key: 'montoBeca',
+            render: (val) => val ? `$${val.toLocaleString()}` : '$0'
+        },
+        {
+            label: 'Apto Médico',
+            key: 'presentoAptoMedico',
+            render: (val) => val ? (
+                <span className="badge badge-success">SÍ</span>
+            ) : (
+                <span className="badge badge-danger">NO</span>
+            )
+        },
+        {
+            label: 'Documentación',
+            key: 'documentacion',
+            render: (val, row) => {
+                const completo = row.documento && row.presentoAptoMedico;
+                return completo ? (
+                    <div className="flex items-center gap-1 text-success font-medium">
+                        <CheckCircle size={16} /> <span>Completa</span>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-1 text-warning font-medium">
+                        <AlertTriangle size={16} /> <span>Incompleta</span>
+                    </div>
+                );
+            }
+        },
         {
             label: 'Acciones',
             key: 'actions',
             render: (value, row) => (
-                <Button
-                    variant="ghost"
-                    className="text-danger"
-                    onClick={() => handleRemoveAthlete(row)}
-                    title="Quitar de la selección"
-                >
-                    <Trash2 size={18} />
-                </Button>
+                <div className="flex gap-2">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/atletas/editar/${row.idPersona}`); }}
+                        title="Editar Atleta"
+                    >
+                        <Edit size={18} className="text-primary" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-danger action-btn"
+                        onClick={(e) => { e.stopPropagation(); handleRemoveAthlete(row); }}
+                        title="Quitar de la selección"
+                    >
+                        <Trash2 size={18} />
+                    </Button>
+                </div>
             )
         }
     ];
@@ -89,7 +166,7 @@ const SeleccionCategoriaDetalle = () => {
         <div className="page-container fade-in">
             <div className="page-header">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" onClick={() => navigate('/entrenadores-seleccion')}>
+                    <Button variant="ghost" onClick={() => navigate('/dashboard/selecciones')}>
                         <ArrowLeft size={24} />
                     </Button>
                     <div>

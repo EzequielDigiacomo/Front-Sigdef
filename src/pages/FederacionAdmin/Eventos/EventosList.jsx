@@ -4,7 +4,8 @@ import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import FormField from '../../../components/forms/FormField';
-import { Plus, Edit, Trash2, Search } from 'lucide-react';
+import Modal from '../../../components/common/Modal'; // Importar Modal
+import { Plus, Edit, Trash2, Search, AlertTriangle } from 'lucide-react';
 import '../Atletas/Atletas.css';
 import './Evento.css';
 
@@ -12,6 +13,12 @@ const EventosList = () => {
     const [eventos, setEventos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Estados para el Modal de Eliminación
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [eventoToDelete, setEventoToDelete] = useState(null);
+    const [deleting, setDeleting] = useState(false);
+
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -20,11 +27,21 @@ const EventosList = () => {
 
     const loadEventos = async () => {
         try {
-            const data = await api.get('/Evento');
+            const dataResumen = await api.get('/Evento');
+
+            // Enriquecer con detalles para tener fechas de inscripción
+            const dataDetallada = await Promise.all(dataResumen.map(async (ev) => {
+                try {
+                    return await api.get(`/Evento/${ev.idEvento}`);
+                } catch (err) {
+                    console.error(`Error cargando detalle evento ${ev.idEvento}`, err);
+                    return ev;
+                }
+            }));
 
             // Ordenar: Futuros/Actuales primero, Pasados al final
             const now = new Date();
-            const sortedData = data.sort((a, b) => {
+            const sortedData = dataDetallada.sort((a, b) => {
                 const endA = new Date(a.fechaFin);
                 const endB = new Date(b.fechaFin);
                 const isPastA = endA < now;
@@ -43,16 +60,61 @@ const EventosList = () => {
         }
     };
 
-    const handleDelete = async (id, e) => {
-        e.stopPropagation(); // Evitar navegar al detalle
-        if (window.confirm('¿Estás seguro de que deseas eliminar este evento?')) {
+    const handleOpenDeleteModal = (evento, e) => {
+        e.stopPropagation();
+        setEventoToDelete(evento);
+        setShowDeleteModal(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!eventoToDelete) return;
+
+        setDeleting(true);
+        try {
+            // Intento 1: Borrado normal
+            await api.delete(`/Evento/${eventoToDelete.idEvento}`);
+
+            // Éxito inmediato
+            setEventos(prev => prev.filter(ev => ev.idEvento !== eventoToDelete.idEvento));
+            setShowDeleteModal(false);
+            setEventoToDelete(null);
+        } catch (error) {
+            console.warn('Borrado normal falló, intentando limpieza de dependencias...', error);
+
+            // Si falla, asumimos que es por dependencias (FK). Intentamos limpiar.
             try {
-                await api.delete(`/Evento/${id}`);
-                setEventos(prev => prev.filter(ev => ev.idEvento !== id));
-            } catch (error) {
-                console.error('Error eliminando evento:', error);
-                alert('Error al eliminar el evento');
+                // 1. Obtener inscripciones ESPECÍFICAS de este evento (Endpoint optimizado)
+                let inscripcionesDelEvento = [];
+                try {
+                    inscripcionesDelEvento = await api.get(`/Inscripcion/evento/${eventoToDelete.idEvento}`);
+                } catch (err) {
+                    // Si falla (ej: 404 porque no hay), asumimos array vacío
+                    console.log('No se encontraron inscripciones o error al buscarlas:', err);
+                    inscripcionesDelEvento = [];
+                }
+
+                if (inscripcionesDelEvento && inscripcionesDelEvento.length > 0) {
+                    console.log(`Eliminando ${inscripcionesDelEvento.length} inscripciones vinculadas...`);
+                    // 2. Borrar inscripciones en paralelo
+                    await Promise.all(inscripcionesDelEvento.map((i) =>
+                        api.delete(`/Inscripcion/${i.idInscripcion}`)
+                    ));
+                }
+
+                // 3. Intento 2: Borrar evento nuevamente
+                await api.delete(`/Evento/${eventoToDelete.idEvento}`);
+
+                // Éxito tras limpieza
+                setEventos(prev => prev.filter(ev => ev.idEvento !== eventoToDelete.idEvento));
+                setShowDeleteModal(false);
+                setEventoToDelete(null);
+
+            } catch (cleanupError) {
+                console.error('Error fatal al limpiar y eliminar evento:', cleanupError);
+                alert('No se pudo eliminar el evento ni sus dependencias. Contacte a soporte.');
             }
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -65,6 +127,11 @@ const EventosList = () => {
     const eventosFiltrados = eventos.filter(evento =>
         evento.nombre?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    // Helpers para el modal
+    const isInscripcionAbierta = eventoToDelete && eventoToDelete.fechaFinInscripciones
+        ? new Date(eventoToDelete.fechaFinInscripciones) >= new Date()
+        : false;
 
     return (
         <div className="page-container">
@@ -85,8 +152,8 @@ const EventosList = () => {
                         <thead>
                             <tr>
                                 <th>Nombre</th>
-                                <th>Fecha Inicio</th>
-                                <th>Fecha Fin</th>
+                                <th>Fechas del Evento</th>
+                                <th>Período Inscripción</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -109,8 +176,18 @@ const EventosList = () => {
                                             <strong>{evento.nombre}</strong>
                                             {isPast && <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>(Finalizado)</span>}
                                         </td>
-                                        <td>{new Date(evento.fechaInicio).toLocaleDateString()}</td>
-                                        <td>{new Date(evento.fechaFin).toLocaleDateString()}</td>
+                                        <td>
+                                            {new Date(evento.fechaInicio).toLocaleDateString()} - {new Date(evento.fechaFin).toLocaleDateString()}
+                                        </td>
+                                        <td>
+                                            {evento.fechaInicioInscripciones && evento.fechaFinInscripciones ? (
+                                                <>
+                                                    {new Date(evento.fechaInicioInscripciones).toLocaleDateString()} al {new Date(evento.fechaFinInscripciones).toLocaleDateString()}
+                                                </>
+                                            ) : (
+                                                <span className="text-muted">-</span>
+                                            )}
+                                        </td>
                                         <td>
                                             <div className="actions-cell">
                                                 <Button
@@ -127,7 +204,7 @@ const EventosList = () => {
                                                     variant="ghost"
                                                     size="sm"
                                                     className="text-danger"
-                                                    onClick={(e) => handleDelete(evento.idEvento, e)}
+                                                    onClick={(e) => handleOpenDeleteModal(evento, e)}
                                                 >
                                                     <Trash2 size={18} />
                                                 </Button>
@@ -140,6 +217,59 @@ const EventosList = () => {
                     </table>
                 </div>
             </Card>
+
+            {/* Modal de Confirmación de Eliminación */}
+            <Modal
+                isOpen={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+                title="Confirmar Eliminación"
+                footer={
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', width: '100%' }}>
+                        <Button variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={deleting}>
+                            Cancelar
+                        </Button>
+                        <Button variant="danger" onClick={handleConfirmDelete} isLoading={deleting}>
+                            {isInscripcionAbierta ? 'Sí, eliminar de todas formas' : 'Eliminar Evento'}
+                        </Button>
+                    </div>
+                }
+            >
+                <div style={{ textAlign: 'center' }}>
+                    <div style={{
+                        color: isInscripcionAbierta ? 'var(--warning)' : 'var(--danger)',
+                        marginBottom: '1rem',
+                        display: 'flex',
+                        justifyContent: 'center'
+                    }}>
+                        <AlertTriangle size={48} />
+                    </div>
+
+                    <h4 style={{ marginBottom: '1rem' }}>
+                        ¿Está seguro que desea eliminar el evento "{eventoToDelete?.nombre}"?
+                    </h4>
+
+                    {isInscripcionAbierta && (
+                        <div style={{
+                            backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                            border: '1px solid var(--warning)',
+                            borderRadius: '8px',
+                            padding: '1rem',
+                            color: 'var(--warning)',
+                            marginBottom: '1rem'
+                        }}>
+                            <strong>⚠️ ¡Atención!</strong>
+                            <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                                Las inscripciones para este evento están actualmente <strong>ABIERTAS</strong>.
+                                Eliminarlo podría causar inconsistencias si ya hay atletas inscritos.
+                            </p>
+                        </div>
+                    )}
+
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                        Esta acción no se puede deshacer. Se eliminarán permanentemente todos los datos asociados.
+                    </p>
+                </div>
+            </Modal>
         </div>
     );
 };

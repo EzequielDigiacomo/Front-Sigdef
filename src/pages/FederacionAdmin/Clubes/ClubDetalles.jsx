@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
-import { ArrowLeft, Users, Target } from 'lucide-react';
+import { ArrowLeft, Users, Target, Calendar, ClipboardList } from 'lucide-react';
 import { getCategoriaLabel } from '../../../utils/enums';
 
 const ClubDetalles = () => {
@@ -12,6 +12,8 @@ const ClubDetalles = () => {
     const [club, setClub] = useState(null);
     const [atletas, setAtletas] = useState([]);
     const [entrenadores, setEntrenadores] = useState([]);
+    const [eventos, setEventos] = useState([]);
+    const [inscripciones, setInscripciones] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -20,15 +22,19 @@ const ClubDetalles = () => {
 
     const loadClubDetalles = async () => {
         try {
-            const [clubData, atletasData, entrenadoresData] = await Promise.all([
+            const [clubData, atletasData, entrenadoresData, eventosData, inscripcionesData] = await Promise.all([
                 api.get(`/Club/${id}`),
                 api.get('/Atleta'),
-                api.get('/Entrenador')
+                api.get('/Entrenador'),
+                api.get('/Evento'),
+                api.get('/Inscripcion')
             ]);
 
             setClub(clubData);
             setAtletas(atletasData);
             setEntrenadores(entrenadoresData);
+            setEventos(eventosData);
+            setInscripciones(inscripcionesData);
         } catch (error) {
             console.error('Error cargando detalles del club:', error);
         } finally {
@@ -37,12 +43,24 @@ const ClubDetalles = () => {
     };
 
     const getClubStats = () => {
-        if (!club) return { atletasClub: [], entrenadoresClub: [] };
+        if (!club) return { atletasClub: [], entrenadoresClub: [], eventosCreados: [], eventosAsistidos: [] };
 
         const atletasClub = atletas.filter(a => a.idClub === club.idClub);
         const entrenadoresClub = entrenadores.filter(e => e.idClub === club.idClub);
 
-        return { atletasClub, entrenadoresClub };
+        // Eventos creados por el club (asumiendo idClub o clubId propiedad en evento)
+        // Se intenta matchear por idClub
+        const eventosCreados = eventos.filter(e => e.idClub === club.idClub);
+
+        // Eventos a los cuales ha asistido (inscripciones del club)
+        // Filtramos inscripciones de este club
+        const inscripcionesClub = inscripciones.filter(i => i.idClub === club.idClub);
+        // Obtenemos los IDs de eventos únicos
+        const eventosAsistidosIds = [...new Set(inscripcionesClub.map(i => i.idEvento))];
+        // Filtramos la lista completa de eventos
+        const eventosAsistidos = eventos.filter(e => eventosAsistidosIds.includes(e.idEvento));
+
+        return { atletasClub, entrenadoresClub, eventosCreados, eventosAsistidos };
     };
 
     if (loading) {
@@ -61,13 +79,13 @@ const ClubDetalles = () => {
         );
     }
 
-    const { atletasClub, entrenadoresClub } = getClubStats();
+    const { atletasClub, entrenadoresClub, eventosCreados, eventosAsistidos } = getClubStats();
 
     return (
         <div className="page-container">
             <div className="page-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Button variant="ghost" onClick={() => navigate('/clubes')}>
+                    <Button variant="ghost" onClick={() => navigate('/dashboard/clubes')}>
                         <ArrowLeft size={20} />
                     </Button>
                     <h2 className="page-title">Detalles - {club.nombre}</h2>
@@ -75,7 +93,7 @@ const ClubDetalles = () => {
             </div>
 
             <div style={{ display: 'grid', gap: '2rem' }}>
-                {}
+                {/* Info General */}
                 <Card>
                     <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Información del Club</h3>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
@@ -94,7 +112,7 @@ const ClubDetalles = () => {
                     </div>
                 </Card>
 
-                {}
+                {/* KPI Cards */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                     <Card style={{ textAlign: 'center', padding: '1.5rem' }}>
                         <Target size={32} style={{ margin: '0 auto 0.5rem', color: 'var(--primary)' }} />
@@ -106,9 +124,97 @@ const ClubDetalles = () => {
                         <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{atletasClub.length}</div>
                         <div style={{ color: 'var(--text-secondary)' }}>Atletas</div>
                     </Card>
+                    <Card style={{ textAlign: 'center', padding: '1.5rem' }}>
+                        <Calendar size={32} style={{ margin: '0 auto 0.5rem', color: 'var(--warning)' }} />
+                        <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{eventosAsistidos.length}</div>
+                        <div style={{ color: 'var(--text-secondary)' }}>Eventos Asistidos</div>
+                    </Card>
                 </div>
 
-                {}
+                {/* Eventos Creados */}
+                <Card>
+                    <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Calendar size={20} />
+                        Eventos Creados ({eventosCreados.length})
+                    </h3>
+                    {eventosCreados.length > 0 ? (
+                        <div className="table-responsive">
+                            <table className="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Fecha Inicio</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {eventosCreados.map((ev) => (
+                                        <tr key={ev.idEvento}>
+                                            <td>{ev.nombre}</td>
+                                            <td>{new Date(ev.fechaInicio).toLocaleDateString()}</td>
+                                            <td>
+                                                {new Date(ev.fechaFin) < new Date() ? 'Finalizado' : 'Próximo'}
+                                            </td>
+                                            <td>
+                                                <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/eventos/${ev.idEvento}`)}>Ver</Button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
+                            No tiene eventos creados
+                        </div>
+                    )}
+                </Card>
+
+                {/* Eventos Asistidos */}
+                <Card>
+                    <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <ClipboardList size={20} />
+                        Eventos Asistidos ({eventosAsistidos.length})
+                    </h3>
+                    {eventosAsistidos.length > 0 ? (
+                        <div className="table-responsive">
+                            <table className="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Fecha Inicio</th>
+                                        <th>Atletas Inscritos</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {eventosAsistidos.map((ev) => {
+                                        // Contar cuántos inscritos de este club hay en este evento
+                                        const countInscritos = inscripciones.filter(i => i.idEvento === ev.idEvento && i.idClub === club.idClub).length;
+                                        return (
+                                            <tr key={ev.idEvento}>
+                                                <td>{ev.nombre}</td>
+                                                <td>{new Date(ev.fechaInicio).toLocaleDateString()}</td>
+                                                <td>{countInscritos}</td>
+                                                <td>
+                                                    <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/eventos/${ev.idEvento}`)}>Ver</Button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
+                            No ha asistido a ningún evento
+                        </div>
+                    )}
+                </Card>
+
+
+                {/* Entrenadores */}
                 <Card>
                     <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <Target size={20} />
@@ -163,7 +269,7 @@ const ClubDetalles = () => {
                     )}
                 </Card>
 
-                {}
+                {/* Atletas */}
                 <Card>
                     <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <Users size={20} />

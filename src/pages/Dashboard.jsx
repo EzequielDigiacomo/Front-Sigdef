@@ -43,128 +43,93 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                let atletas = [];
-                let clubes = [];
-                let eventos = [];
-                let inscripciones = [];
-
-                try {
-                    atletas = await api.get('/Atleta');
-                } catch (error) {
-                    console.error('Error cargando atletas:', error);
-                }
-
-                try {
-                    clubes = await api.get('/Club');
-                } catch (error) {
-                    console.error('Error cargando clubes:', error);
-                }
-
-                try {
-                    eventos = await api.get('/Evento');
-                } catch (error) {
-                    console.error('Error cargando eventos:', error);
-                }
-
-                try {
-                    inscripciones = await api.get('/Inscripcion');
-                } catch (error) {
-                    console.error('Error cargando inscripciones:', error);
-                }
-
-                const totalAtletas = atletas.length;
-                const totalClubes = clubes.length;
-                const atletasConDeuda = atletas.filter(a => a.estadoPago === 2).length;
-
-                const eventosProcesados = eventos.map(evento => {
-                    const inscripcionesEvento = inscripciones.filter(i => i.idEvento === evento.idEvento);
-                    const atletasInscritos = inscripcionesEvento.map(i => i.idAtleta);
-
-                    const clubesInscritos = new Set();
-                    inscripcionesEvento.forEach(inscripcion => {
-                        const atleta = atletas.find(a => a.idPersona === inscripcion.idAtleta);
-                        if (atleta && atleta.idClub) {
-                            clubesInscritos.add(atleta.idClub);
-                        }
-                    });
-
-                    const hoy = new Date();
-                    const fechaFin = new Date(evento.fechaFin);
-                    let estadoTexto = 'Pendiente';
-                    let estadoColor = 'warning';
-
-                    const fechaFinNorm = new Date(fechaFin.getFullYear(), fechaFin.getMonth(), fechaFin.getDate());
-                    const hoyNorm = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
-
-                    if (fechaFinNorm < hoyNorm) {
-                        estadoTexto = 'Finalizado';
-                        estadoColor = 'secondary'; 
-                    } else if (evento.estado === 1) {
-                        estadoTexto = 'Confirmado';
-                        estadoColor = 'success';
-                    }
-
-                    return {
-                        ...evento,
-                        totalAtletas: atletasInscritos.length,
-                        totalClubes: clubesInscritos.size,
-                        estadoTexto,
-                        estadoColor
-                    };
-                });
-
-                eventosProcesados.sort((a, b) => {
-                    const fechaA = new Date(a.fechaInicio);
-                    const fechaB = new Date(b.fechaInicio);
-                    const hoy = new Date();
-
-                    const aEsFuturo = new Date(a.fechaFin) >= hoy;
-                    const bEsFuturo = new Date(b.fechaFin) >= hoy;
-
-                    if (aEsFuturo && !bEsFuturo) return -1;
-                    if (!aEsFuturo && bEsFuturo) return 1;
-
-                    if (aEsFuturo) return fechaA - fechaB;
-
-                    return fechaB - fechaA;
-                });
-
-                setStats([
-                    {
-                        label: 'Total Atletas',
-                        value: totalAtletas,
-                        icon: Users,
-                        color: 'var(--primary)',
-                        route: '/dashboard/atletas'
-                    },
-                    {
-                        label: 'Clubes Registrados',
-                        value: totalClubes,
-                        icon: Shield,
-                        color: 'var(--success)',
-                        route: '/dashboard/clubes'
-                    },
-                    {
-                        label: 'Atletas con Deuda',
-                        value: atletasConDeuda,
-                        icon: DollarSign,
-                        color: 'var(--danger)',
-                        route: '/dashboard/atletas?filter=deuda'
-                    },
-                    {
-                        label: 'Próximos Eventos',
-                        value: eventosProcesados.filter(e => new Date(e.fechaFin) >= new Date()).length,
-                        icon: Calendar,
-                        color: 'var(--warning)',
-                        route: '/dashboard/eventos'
-                    },
+                // 1. Lanzar peticiones BASE en paralelo
+                const [atletasData, clubesData, eventosResumen, inscripcionesData] = await Promise.all([
+                    api.get('/Atleta').catch(err => { console.error('Error atletas', err); return []; }),
+                    api.get('/Club').catch(err => { console.error('Error clubes', err); return []; }),
+                    api.get('/Evento').catch(err => { console.error('Error eventos', err); return []; }),
+                    api.get('/Inscripcion').catch(err => { console.error('Error inscripciones', err); return []; })
                 ]);
 
-                setProximosEventos(eventosProcesados.slice(0, 10));
+                // Función auxiliar para procesar eventos (reutilizable)
+                const procesarEventos = (listaEventos) => {
+                    return listaEventos.map(evento => {
+                        const inscripcionesEvento = inscripcionesData.filter(i => i.idEvento === evento.idEvento);
+                        const atletasInscritos = inscripcionesEvento.map(i => i.idAtleta);
+                        const clubesInscritos = new Set();
+                        inscripcionesEvento.forEach(inscripcion => {
+                            const atleta = atletasData.find(a => a.idPersona === inscripcion.idAtleta);
+                            if (atleta && atleta.idClub) clubesInscritos.add(atleta.idClub);
+                        });
+
+                        const hoy = new Date();
+                        const fechaFin = new Date(evento.fechaFin);
+                        let estadoTexto = 'Pendiente';
+                        let estadoColor = 'warning';
+                        const fechaFinNorm = new Date(fechaFin.getFullYear(), fechaFin.getMonth(), fechaFin.getDate());
+                        const hoyNorm = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+
+                        if (fechaFinNorm < hoyNorm) {
+                            estadoTexto = 'Finalizado';
+                            estadoColor = 'secondary';
+                        } else if (evento.estado === 1) {
+                            estadoTexto = 'Confirmado';
+                            estadoColor = 'success';
+                        }
+
+                        return {
+                            ...evento,
+                            totalAtletas: atletasInscritos.length,
+                            totalClubes: clubesInscritos.size,
+                            estadoTexto,
+                            estadoColor
+                        };
+                    }).sort((a, b) => {
+                        // Lógica de ordenamiento
+                        const now = new Date();
+                        const endA = new Date(a.fechaFin);
+                        const endB = new Date(b.fechaFin);
+                        const isPastA = endA < now;
+                        const isPastB = endB < now;
+                        if (isPastA && !isPastB) return 1;
+                        if (!isPastA && isPastB) return -1;
+                        return endA - endB;
+                    });
+                };
+
+                // 2. MOSTRAR DATOS BÁSICOS INMEDIATAMENTE
+                const eventosBasicos = procesarEventos(eventosResumen);
+
+                const totalAtletas = atletasData.length;
+                const totalClubes = clubesData.length;
+                const atletasConDeuda = atletasData.filter(a => a.estadoPago === 2).length;
+
+                setStats([
+                    { label: 'Total Atletas', value: totalAtletas, icon: Users, color: 'var(--primary)', route: '/dashboard/atletas' },
+                    { label: 'Clubes Registrados', value: totalClubes, icon: Shield, color: 'var(--success)', route: '/dashboard/clubes' },
+                    { label: 'Atletas con Deuda', value: atletasConDeuda, icon: DollarSign, color: 'var(--danger)', route: '/dashboard/atletas?filter=deuda' },
+                    { label: 'Próximos Eventos', value: eventosBasicos.filter(e => new Date(e.fechaFin) >= new Date()).length, icon: Calendar, color: 'var(--warning)', route: '/dashboard/eventos' },
+                ]);
+
+                setProximosEventos(eventosBasicos.slice(0, 10));
+                setLoading(false); // ¡Ya mostramos la grilla!
+
+                // 3. CARGA DE DETALLES EN SEGUNDO PLANO (Lazy Hydration)
+                // No bloquea la UI. Cuando termine, actualiza solo la tabla.
+                const eventosDetallados = await Promise.all(eventosResumen.map(async (ev) => {
+                    try {
+                        return await api.get(`/Evento/${ev.idEvento}`);
+                    } catch (err) {
+                        return ev;
+                    }
+                }));
+
+                // 4. Actualizar con datos ricos (fechas inscripción)
+                const eventosCompletos = procesarEventos(eventosDetallados);
+                setProximosEventos(eventosCompletos.slice(0, 10));
 
             } catch (error) {
                 console.error("Error general en dashboard:", error);
-            } finally {
                 setLoading(false);
             }
         };
@@ -209,8 +174,8 @@ const Dashboard = () => {
                             <thead>
                                 <tr>
                                     <th>Evento</th>
-                                    <th>Fecha Inicio</th>
-                                    <th>Fecha Fin</th>
+                                    <th>Fechas del Evento</th>
+                                    <th>Período Inscripción</th>
                                     <th>Atletas</th>
                                     <th>Clubes</th>
                                     <th>Estado</th>
@@ -229,8 +194,18 @@ const Dashboard = () => {
                                             className={`clickable-row row-status-${evento.estadoColor}`}
                                         >
                                             <td>{evento.nombre}</td>
-                                            <td>{new Date(evento.fechaInicio).toLocaleDateString()}</td>
-                                            <td>{new Date(evento.fechaFin).toLocaleDateString()}</td>
+                                            <td>
+                                                {new Date(evento.fechaInicio).toLocaleDateString()} - {new Date(evento.fechaFin).toLocaleDateString()}
+                                            </td>
+                                            <td>
+                                                {evento.fechaInicioInscripciones && evento.fechaFinInscripciones ? (
+                                                    <>
+                                                        {new Date(evento.fechaInicioInscripciones).toLocaleDateString()} al {new Date(evento.fechaFinInscripciones).toLocaleDateString()}
+                                                    </>
+                                                ) : (
+                                                    <span className="text-muted">-</span>
+                                                )}
+                                            </td>
                                             <td>
                                                 <span className={`badge badge-${evento.totalAtletas > 0 ? 'primary' : 'secondary'}`}>
                                                     {evento.totalAtletas || 0}
