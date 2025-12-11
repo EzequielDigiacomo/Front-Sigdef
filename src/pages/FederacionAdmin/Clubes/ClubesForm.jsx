@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
@@ -9,6 +9,7 @@ import '../Atletas/Atletas.css';
 const ClubesForm = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const [loading, setLoading] = useState(false);
 
     const [formData, setFormData] = useState({
@@ -24,6 +25,14 @@ const ClubesForm = () => {
         }
     }, [id]);
 
+    const handleNavigateBack = () => {
+        if (location.state?.returnPath) {
+            navigate(location.state.returnPath);
+        } else {
+            navigate('/dashboard/clubes');
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -33,7 +42,7 @@ const ClubesForm = () => {
             } else {
                 await api.post('/Club', formData);
             }
-            navigate('/clubes');
+            handleNavigateBack();
         } catch (error) {
             console.error('Error guardando club:', error);
         } finally {
@@ -49,7 +58,7 @@ const ClubesForm = () => {
         <div className="page-container">
             <div className="page-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Button variant="ghost" onClick={() => navigate('/clubes')}>
+                    <Button variant="ghost" onClick={handleNavigateBack}>
                         <ArrowLeft size={20} />
                     </Button>
                     <h2 className="page-title">{id ? 'Editar Club' : 'Nuevo Club'}</h2>
@@ -78,7 +87,7 @@ const ClubesForm = () => {
                     </div>
 
                     <div className="form-actions">
-                        <Button type="button" variant="secondary" onClick={() => navigate('/clubes')}>Cancelar</Button>
+                        <Button type="button" variant="secondary" onClick={handleNavigateBack}>Cancelar</Button>
                         <Button type="submit" variant="primary" isLoading={loading}>
                             <Save size={18} /> Guardar Club
                         </Button>

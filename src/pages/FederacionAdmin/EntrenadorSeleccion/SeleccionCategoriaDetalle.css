@@ -1,0 +1,31 @@
+/* Fix column alignment for selection detail table */
+.data-table th:nth-child(9),
+/* Documentación column header */
+.data-table td:nth-child(9) {
+    /* Documentación column cells */
+    width: 120px;
+    min-width: 120px;
+    text-align: center;
+}
+
+.data-table th:nth-child(10),
+/* Acciones column header */
+.data-table td:nth-child(10) {
+    /* Acciones column cells */
+    width: 120px;
+    min-width: 120px;
+    text-align: center;
+}
+
+/* Ensure flex items don't wrap */
+.data-table td .flex {
+    flex-wrap: nowrap;
+}
+
+/* Badge danger style */
+.badge-danger {
+    background-color: #ef4444;
+    color: #ffffff;
+    border: none;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+}

@@ -1,6 +1,5 @@
-
 :root {
-    
+
     --bg-primary: #ffffff;
     --bg-secondary: #f8f9fa;
     --text-primary: #212529;
@@ -9,22 +8,22 @@
     --primary-color: #007bff;
     --hover-color: #e9ecef;
     --input-bg: #f1f3f5;
-    
+
 }
 
 .dark {
-    
+
     --bg-primary: #0f172a;
-    
+
     --bg-secondary: #1e293b;
-    
+
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --border-color: rgba(148, 163, 184, 0.1);
     --primary-color: #3b82f6;
     --hover-color: #334155;
     --input-bg: rgba(0, 0, 0, 0.3);
-    
+
 }
 
 * {
@@ -79,7 +78,7 @@ body {
 
 #root {
     max-width: 100%;
-    
+
     margin: 0 auto;
     padding: 2rem;
     text-align: center;
@@ -130,6 +129,7 @@ body {
     margin-bottom: 1.5rem;
     width: 100%;
 }
+
 .filters-bar .form-group {
     width: 100%;
     margin-bottom: 0;
@@ -139,7 +139,7 @@ body {
     position: relative;
     width: 100%;
     display: block;
-    
+
 }
 
 .search-icon {
@@ -154,17 +154,17 @@ body {
 
 .search-input {
     width: 100% !important;
-    
+
     padding: 0.875rem 1rem 0.875rem 2.75rem;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     background: var(--input-bg) !important;
-    
+
     color: var(--text-primary);
     font-size: 0.95rem;
     transition: all 0.2s ease;
     box-sizing: border-box;
-    
+
 }
 
 .search-input:focus {
@@ -172,7 +172,7 @@ body {
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     background: var(--bg-primary) !important;
-    
+
 }
 
 .search-input::placeholder {
@@ -225,4 +225,37 @@ body {
     .club-card-actions {
         align-self: flex-end;
     }
+}
+
+/* Column alignment for Atletas table */
+.data-table th:nth-child(9),
+/* Estado Pago column header */
+.data-table td:nth-child(9) {
+    /* Estado Pago column cells */
+    width: 100px;
+    min-width: 100px;
+    text-align: center;
+}
+
+.data-table th:nth-child(10),
+/* Documentación column header */
+.data-table td:nth-child(10) {
+    /* Documentación column cells */
+    width: 120px;
+    min-width: 120px;
+    text-align: center;
+}
+
+.data-table th:nth-child(11),
+/* Acciones column header */
+.data-table td:nth-child(11) {
+    /* Acciones column cells */
+    width: 120px;
+    min-width: 120px;
+    text-align: center;
+}
+
+/* Ensure flex items don't wrap */
+.data-table td .flex {
+    flex-wrap: nowrap;
 }

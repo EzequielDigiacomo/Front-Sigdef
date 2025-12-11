@@ -5,7 +5,9 @@ import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import FormField from '../../../components/forms/FormField';
 import Pagination from '../../../components/common/Pagination';
-import { Plus, Edit, Trash2, Search, FileText } from 'lucide-react';
+import DocumentUploadModal from '../../../components/common/DocumentUploadModal';
+import DocumentViewerModal from '../../../components/common/DocumentViewerModal';
+import { Plus, Edit, Trash2, Search, FileText, Eye } from 'lucide-react';
 import { getCategoriaLabel, getEstadoPagoLabel, getEstadoPagoColor } from '../../../utils/enums';
 import './Atletas.css';
 import Modal from '../../../components/common/Modal';
@@ -18,6 +20,16 @@ const AtletasList = () => {
     const [loading, setLoading] = useState(true);
     const [selectedAtleta, setSelectedAtleta] = useState(null);
     const [showModal, setShowModal] = useState(false);
+
+    // Upload Modal State
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [selectedAthleteForUpload, setSelectedAthleteForUpload] = useState(null);
+
+    // Viewer Modal State
+    const [showViewerModal, setShowViewerModal] = useState(false);
+    const [selectedAthleteForViewer, setSelectedAthleteForViewer] = useState(null);
+    const [existingDocuments, setExistingDocuments] = useState([]);
+
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(6);
@@ -91,6 +103,16 @@ const AtletasList = () => {
             console.error('Error cargando atletas:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadDocuments = async (personId) => {
+        try {
+            const docs = await api.get(`/Documentacion/persona/${personId}`);
+            setExistingDocuments(docs || []);
+        } catch (error) {
+            console.error('Error cargando documentos:', error);
+            setExistingDocuments([]);
         }
     };
 
@@ -180,7 +202,7 @@ const AtletasList = () => {
                     <Button variant="secondary" onClick={exportToExcel}>
                         <FileText size={20} /> Exportar Excel
                     </Button>
-                    <Button onClick={() => navigate('/atletas/nuevo')}>
+                    <Button onClick={() => navigate('/dashboard/atletas/nuevo')}>
                         <Plus size={20} /> Nuevo Atleta
                     </Button>
                 </div>
@@ -253,15 +275,43 @@ const AtletasList = () => {
                                                 <span className="badge badge-secondary">No</span>
                                             )}
                                         </td>
-                                        <td>
-                                            <span className={`badge badge-${getEstadoPagoColor(atleta.estadoPago)}`}> {getEstadoPagoLabel(atleta.estadoPago)} </span>
+                                        <td className="text-center">
+                                            -
                                         </td>
-                                        <td style={{ textAlign: 'center' }}>
-                                            <FileText size={18} style={{ color: 'var(--text-muted)', opacity: 0.3 }} />
+                                        <td>
+                                            <div className="flex items-center justify-center gap-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="p-1 h-auto"
+                                                    title="Subir documentos"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedAthleteForUpload(atleta);
+                                                        loadDocuments(atleta.idPersona);
+                                                        setShowUploadModal(true);
+                                                    }}
+                                                >
+                                                    <Plus size={18} className="text-primary" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="p-1 h-auto"
+                                                    title="Ver documentos"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedAthleteForViewer(atleta);
+                                                        setShowViewerModal(true);
+                                                    }}
+                                                >
+                                                    <Eye size={18} className="text-primary" />
+                                                </Button>
+                                            </div>
                                         </td>
                                         <td>
                                             <div className="actions-cell" onClick={(e) => e.stopPropagation()}>
-                                                <Button variant="ghost" size="sm" onClick={() => navigate(`/atletas/editar/${atleta.idPersona}`)}>
+                                                <Button variant="ghost" size="sm" onClick={() => navigate(`/dashboard/atletas/editar/${atleta.idPersona}`)}>
                                                     <Edit size={18} />
                                                 </Button>
                                                 <Button variant="ghost" size="sm" className="text-danger">
@@ -275,7 +325,7 @@ const AtletasList = () => {
                         </tbody>
                     </table>
                 </div>
-                    <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
+                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
             </Card>
 
             <Modal
@@ -293,7 +343,7 @@ const AtletasList = () => {
                                 variant="primary"
                                 onClick={() => {
                                     handleCloseModal();
-                                    navigate(`/atletas/editar/${selectedAtleta.idPersona}`);
+                                    navigate(`/dashboard/atletas/editar/${selectedAtleta.idPersona}`);
                                 }}
                             >
                                 <Edit size={18} /> Editar Atleta
@@ -365,6 +415,37 @@ const AtletasList = () => {
                     </div>
                 )}
             </Modal>
+
+            {/* Document Upload Modal */}
+            {showUploadModal && selectedAthleteForUpload && (
+                <DocumentUploadModal
+                    isOpen={showUploadModal}
+                    onClose={() => {
+                        setShowUploadModal(false);
+                        setSelectedAthleteForUpload(null);
+                    }}
+                    onSuccess={() => {
+                        // Reload athletes to update status if necessary (though simplified status logic might not change immediately without deeper check)
+                        loadAtletas();
+                    }}
+                    personName={selectedAthleteForUpload.nombrePersona}
+                    personId={selectedAthleteForUpload.idPersona}
+                    existingDocuments={existingDocuments}
+                />
+            )}
+
+            {/* Document Viewer Modal */}
+            {showViewerModal && selectedAthleteForViewer && (
+                <DocumentViewerModal
+                    isOpen={showViewerModal}
+                    onClose={() => {
+                        setShowViewerModal(false);
+                        setSelectedAthleteForViewer(null);
+                    }}
+                    personName={selectedAthleteForViewer.nombrePersona}
+                    personId={selectedAthleteForViewer.idPersona}
+                />
+            )}
         </div>
     );
 };

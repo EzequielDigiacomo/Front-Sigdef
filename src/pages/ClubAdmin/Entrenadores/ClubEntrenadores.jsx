@@ -6,7 +6,9 @@ import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import FormField from '../../../components/forms/FormField';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
-import { Plus, Edit, Trash2, Search, Award, CheckCircle, XCircle } from 'lucide-react';
+import DocumentUploadModal from '../../../components/common/DocumentUploadModal';
+import DocumentViewerModal from '../../../components/common/DocumentViewerModal';
+import { Plus, Edit, Trash2, Search, Award, CheckCircle, XCircle, Eye } from 'lucide-react';
 import DataTable from '../../../components/common/DataTable';
 import '../Entrenadores/ClubEntrenadores.css';
 
@@ -19,6 +21,12 @@ const ClubEntrenadores = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [entrenadorToDelete, setEntrenadorToDelete] = useState(null);
     const [errorModal, setErrorModal] = useState({ isOpen: false, title: '', message: '' });
+
+    // Document Modals State
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [showViewerModal, setShowViewerModal] = useState(false);
+    const [selectedEntrenadorForDocs, setSelectedEntrenadorForDocs] = useState(null);
+    const [existingDocuments, setExistingDocuments] = useState([]);
 
     // DEBUG: Verificar estructura del usuario
     useEffect(() => {
@@ -187,6 +195,16 @@ const ClubEntrenadores = () => {
         }
     };
 
+    const loadDocuments = async (personId) => {
+        try {
+            const docs = await api.get(`/Documentacion/persona/${personId}`);
+            setExistingDocuments(docs || []);
+        } catch (error) {
+            console.error('Error cargando documentos:', error);
+            setExistingDocuments([]);
+        }
+    };
+
     const filteredEntrenadores = entrenadores.filter(entrenador =>
         entrenador.nombrePersona?.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -255,7 +273,42 @@ const ClubEntrenadores = () => {
                             </span>
                         )
                     },
-                    { key: 'especialidad', label: 'Especialidad' }
+                    { key: 'especialidad', label: 'Especialidad' },
+                    {
+                        key: 'documentacion',
+                        label: 'Documentación',
+                        render: (value, entrenador) => (
+                            <div className="flex items-center justify-center gap-2">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="p-1 h-auto"
+                                    title="Subir documentos"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedEntrenadorForDocs(entrenador);
+                                        loadDocuments(entrenador.idPersona);
+                                        setShowUploadModal(true);
+                                    }}
+                                >
+                                    <Plus size={18} className="text-primary" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="p-1 h-auto"
+                                    title="Ver documentos"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedEntrenadorForDocs(entrenador);
+                                        setShowViewerModal(true);
+                                    }}
+                                >
+                                    <Eye size={18} className="text-primary" />
+                                </Button>
+                            </div>
+                        )
+                    }
                 ]}
                 data={filteredEntrenadores}
                 loading={loading}
@@ -302,6 +355,37 @@ const ClubEntrenadores = () => {
                 showCancel={false}
                 type="danger"
             />
+
+            {/* Document Upload Modal */}
+            {showUploadModal && selectedEntrenadorForDocs && (
+                <DocumentUploadModal
+                    isOpen={showUploadModal}
+                    onClose={() => {
+                        setShowUploadModal(false);
+                        setSelectedEntrenadorForDocs(null);
+                    }}
+                    onSuccess={() => {
+                        const clubId = user?.IdClub || user?.idClub || user?.club?.id;
+                        if (clubId) fetchEntrenadores(clubId);
+                    }}
+                    personName={selectedEntrenadorForDocs.nombrePersona}
+                    personId={selectedEntrenadorForDocs.idPersona}
+                    existingDocuments={existingDocuments}
+                />
+            )}
+
+            {/* Document Viewer Modal */}
+            {showViewerModal && selectedEntrenadorForDocs && (
+                <DocumentViewerModal
+                    isOpen={showViewerModal}
+                    onClose={() => {
+                        setShowViewerModal(false);
+                        setSelectedEntrenadorForDocs(null);
+                    }}
+                    personName={selectedEntrenadorForDocs.nombrePersona}
+                    personId={selectedEntrenadorForDocs.idPersona}
+                />
+            )}
         </div>
     );
 };

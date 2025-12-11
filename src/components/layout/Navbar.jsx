@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { NavLink } from 'react-router-dom';
-import { LogOut, User, Menu, LayoutDashboard, Shield, Users, Award, Calendar, ClipboardList, UserCheck, DollarSign, Trophy, Lock } from 'lucide-react';
+import { LogOut, User, Menu, LayoutDashboard, Shield, Users, Award, Calendar, ClipboardList, UserCheck, DollarSign, Trophy, Lock, Briefcase } from 'lucide-react';
 import Button from '../common/Button';
 import ThemeToggle from '../common/ThemeToggle';
 import './Navbar.css';
@@ -18,6 +18,7 @@ const Navbar = ({ toggleSidebar }) => {
         { icon: Trophy, label: 'Selecciones', path: '/dashboard/selecciones' },
         { icon: Calendar, label: 'Eventos', path: '/dashboard/eventos' },
         { icon: ClipboardList, label: 'Inscripciones', path: '/dashboard/inscripciones' },
+        { icon: Briefcase, label: 'Delegados Club', path: '/dashboard/delegados' },
         { icon: UserCheck, label: 'Tutores', path: '/dashboard/tutores' },
         { icon: DollarSign, label: 'Pagos', path: '/dashboard/pagos' },
         { icon: Trophy, label: 'Federación', path: '/dashboard/federacion' },
@@ -37,16 +38,30 @@ const Navbar = ({ toggleSidebar }) => {
             </div>
 
             <div className="navbar-center desktop-only">
-                {navItems.map((item) => (
-                    <NavLink
-                        key={item.path}
-                        to={item.path}
-                        className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                        title={item.label}
-                    >
-                        <span className="nav-label">{item.label}</span>
-                    </NavLink>
-                ))}
+                <div className="nav-row">
+                    {navItems.slice(0, 8).map((item) => (
+                        <NavLink
+                            key={item.path}
+                            to={item.path}
+                            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                            title={item.label}
+                        >
+                            <span className="nav-label">{item.label}</span>
+                        </NavLink>
+                    ))}
+                </div>
+                <div className="nav-row">
+                    {navItems.slice(8).map((item) => (
+                        <NavLink
+                            key={item.path}
+                            to={item.path}
+                            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                            title={item.label}
+                        >
+                            <span className="nav-label">{item.label}</span>
+                        </NavLink>
+                    ))}
+                </div>
             </div>
 
             <div className="navbar-right">

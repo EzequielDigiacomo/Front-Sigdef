@@ -36,7 +36,7 @@ const EventoDetalle = () => {
         11: '22 Kilómetros',
         12: '25 Kilómetros',
         13: '32 Kilómetros',
-        
+
         'DoscientosMetros': '200 Metros',
         'TrecientosCincuentaMetros': '350 Metros',
         'QuatroCientosMetros': '400 Metros',
@@ -70,7 +70,7 @@ const EventoDetalle = () => {
                 let nombreCompleto = 'Desconocido';
 
                 if (atleta) {
-                    
+
                     try {
                         const persona = await api.get(`/Persona/${atleta.idPersona}`);
                         if (persona && persona.nombre && persona.apellido) {
@@ -80,7 +80,7 @@ const EventoDetalle = () => {
                         }
                     } catch (err) {
                         console.error(`Error cargando persona ${atleta.idPersona}`, err);
-                        
+
                         if (atleta.nombrePersona) {
                             nombreCompleto = atleta.nombrePersona;
                         }
@@ -133,7 +133,7 @@ const EventoDetalle = () => {
 
     return (
         <div className="evento-detalle-container">
-            {}
+            { }
             <div className="evento-header">
                 <div className="evento-header-left">
                     <Button variant="ghost" onClick={() => navigate('/dashboard/eventos')} className="back-button">
@@ -148,6 +148,9 @@ const EventoDetalle = () => {
                     </div>
                 </div>
                 <div className="evento-actions">
+                    <Button variant="secondary" onClick={() => navigate(`/dashboard/eventos/${id}/distancias`)}>
+                        <Calendar size={18} /> Cronograma
+                    </Button>
                     <Button variant="primary" onClick={() => navigate(`/dashboard/eventos/editar/${id}`)}>
                         <Edit size={18} /> Editar
                     </Button>
@@ -158,7 +161,7 @@ const EventoDetalle = () => {
             </div>
 
             <div className="evento-grid">
-                {}
+                { }
                 <div className="evento-details-column">
                     <Card className="detail-card">
                         <h3><Info size={20} /> Información General</h3>
@@ -205,24 +208,10 @@ const EventoDetalle = () => {
                         </div>
                     </Card>
 
-                    <Card className="detail-card">
-                        <h3>Distancias</h3>
-                        {evento.distancias && evento.distancias.length > 0 ? (
-                            <ul className="distancias-list">
-                                {evento.distancias.map((d, index) => (
-                                    <li key={index} className="distancia-item">
-                                        <strong>{distanciaRegataMap[d.distancia] || d.distancia}</strong>
-                                        {d.descripcion && <span className="distancia-desc"> - {d.descripcion}</span>}
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p>No hay distancias configuradas.</p>
-                        )}
-                    </Card>
+
                 </div>
 
-                {}
+                { }
                 <div className="evento-inscritos-column">
                     <Card className="inscritos-section">
                         <h3 className="section-title" style={{ textAlign: 'center', marginBottom: '1.5rem' }}>Atletas Inscritos ({inscripciones.length})</h3>

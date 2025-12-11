@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../../services/api';
 import DataTable from '../../../components/common/DataTable';
 import Card from '../../../components/common/Card';
-import { Award, Search, Filter, Edit, Trash2, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Award, Search, Filter, Edit, Trash2, CheckCircle, AlertTriangle, Plus, Eye } from 'lucide-react';
 import FormField from '../../../components/forms/FormField';
 import FormSelect from '../../../components/forms/FormSelect';
 import Pagination from '../../../components/common/Pagination';
+import DocumentUploadModal from '../../../components/common/DocumentUploadModal';
+import DocumentViewerModal from '../../../components/common/DocumentViewerModal';
 import { getCategoriaLabel } from '../../../utils/enums';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../../components/common/Button';
@@ -22,6 +24,12 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
     const [clubes, setClubes] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(8);
+
+    // Document Modals State
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [showViewerModal, setShowViewerModal] = useState(false);
+    const [selectedEntrenadorForDocs, setSelectedEntrenadorForDocs] = useState(null);
+    const [existingDocuments, setExistingDocuments] = useState([]);
 
     useEffect(() => {
         fetchData();
@@ -109,6 +117,16 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
         }
     };
 
+    const loadDocuments = async (personId) => {
+        try {
+            const docs = await api.get(`/Documentacion/persona/${personId}`);
+            setExistingDocuments(docs || []);
+        } catch (error) {
+            console.error('Error cargando documentos:', error);
+            setExistingDocuments([]);
+        }
+    };
+
     const columns = [
         {
             label: 'Nombre y Apellido',
@@ -149,23 +167,77 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
             {
                 label: 'Documentación',
                 key: 'documentacion',
-                render: (val, row) => {
-                    const completo = row.documento && row.presentoAptoMedico;
-                    return completo ? (
-                        <div className="flex items-center gap-1 text-success font-medium">
-                            <CheckCircle size={16} /> <span>Completa</span>
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-1 text-warning font-medium">
-                            <AlertTriangle size={16} /> <span>Incompleta</span>
-                        </div>
-                    );
-                }
+                render: (val, row) => (
+                    <div className="flex items-center justify-center gap-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-1 h-auto"
+                            title="Subir documentos"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedEntrenadorForDocs(row);
+                                loadDocuments(row.idPersona);
+                                setShowUploadModal(true);
+                            }}
+                        >
+                            <Plus size={18} className="text-primary" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-1 h-auto"
+                            title="Ver documentos"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedEntrenadorForDocs(row);
+                                setShowViewerModal(true);
+                            }}
+                        >
+                            <Eye size={18} className="text-primary" />
+                        </Button>
+                    </div>
+                )
             }
         ] : [
             // Columnas específicas de modo Club
             { label: 'Licencia', key: 'licencia' },
-            { label: 'Teléfono', key: 'telefono' }
+            { label: 'Teléfono', key: 'telefono' },
+            {
+                label: 'Documentación',
+                key: 'documentacion',
+                render: (val, row) => (
+                    <div className="flex items-center justify-center gap-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-1 h-auto"
+                            title="Subir documentos"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedEntrenadorForDocs(row);
+                                loadDocuments(row.idPersona);
+                                setShowUploadModal(true);
+                            }}
+                        >
+                            <Plus size={18} className="text-primary" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-1 h-auto"
+                            title="Ver documentos"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedEntrenadorForDocs(row);
+                                setShowViewerModal(true);
+                            }}
+                        >
+                            <Eye size={18} className="text-primary" />
+                        </Button>
+                    </div>
+                )
+            }
         ]),
         {
             label: 'Acciones',
@@ -239,6 +311,36 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
                     onPageChange={handlePageChange}
                 />
             </Card>
+
+            {/* Document Upload Modal */}
+            {showUploadModal && selectedEntrenadorForDocs && (
+                <DocumentUploadModal
+                    isOpen={showUploadModal}
+                    onClose={() => {
+                        setShowUploadModal(false);
+                        setSelectedEntrenadorForDocs(null);
+                    }}
+                    onSuccess={() => {
+                        fetchData();
+                    }}
+                    personName={selectedEntrenadorForDocs.nombrePersona || `${selectedEntrenadorForDocs.nombre || ''} ${selectedEntrenadorForDocs.apellido || ''}`}
+                    personId={selectedEntrenadorForDocs.idPersona}
+                    existingDocuments={existingDocuments}
+                />
+            )}
+
+            {/* Document Viewer Modal */}
+            {showViewerModal && selectedEntrenadorForDocs && (
+                <DocumentViewerModal
+                    isOpen={showViewerModal}
+                    onClose={() => {
+                        setShowViewerModal(false);
+                        setSelectedEntrenadorForDocs(null);
+                    }}
+                    personName={selectedEntrenadorForDocs.nombrePersona || `${selectedEntrenadorForDocs.nombre || ''} ${selectedEntrenadorForDocs.apellido || ''}`}
+                    personId={selectedEntrenadorForDocs.idPersona}
+                />
+            )}
         </div>
     );
 };

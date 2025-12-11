@@ -14,6 +14,8 @@ import ClubDetalles from './pages/FederacionAdmin/Clubes/ClubDetalles';
 import EventosList from './pages/FederacionAdmin/Eventos/EventosList';
 import EventosForm from './pages/FederacionAdmin/Eventos/EventosForm';
 import EventoDetalle from './pages/FederacionAdmin/Eventos/EventoDetalle';
+import DistanciasList from './pages/FederacionAdmin/Eventos/DistanciasList';
+import DistanciasForm from './pages/FederacionAdmin/Eventos/DistanciasForm';
 import TutoresList from './pages/FederacionAdmin/Tutores/TutoresList';
 import TutoresForm from './pages/FederacionAdmin/Tutores/TutoresForm';
 import InscripcionesList from './pages/FederacionAdmin/Inscripciones/InscripcionesList';
@@ -123,6 +125,9 @@ function App() {
               <Route path="eventos/nuevo" element={<EventosForm />} />
               <Route path="eventos/editar/:id" element={<EventosForm />} />
               <Route path="eventos/:id" element={<EventoDetalle />} />
+              <Route path="eventos/:eventoId/distancias" element={<DistanciasList />} />
+              <Route path="eventos/:eventoId/distancias/nueva" element={<DistanciasForm />} />
+              <Route path="eventos/:eventoId/distancias/editar/:id" element={<DistanciasForm />} />
 
               { }
               <Route path="tutores" element={<TutoresList />} />
@@ -135,6 +140,8 @@ function App() {
 
               {/* ENTRENADORES */}
               <Route path="entrenadores" element={<EntrenadoresList viewMode="club" />} />
+              <Route path="entrenadores/nuevo" element={<ClubEntrenadoresForm />} />
+              <Route path="entrenadores/editar/:id" element={<ClubEntrenadoresForm />} />
 
               {/* Entrenadores Selección (Grilla Plana) */}
               <Route path="entrenadores-seleccion" element={<EntrenadoresList viewMode="seleccion" />} />

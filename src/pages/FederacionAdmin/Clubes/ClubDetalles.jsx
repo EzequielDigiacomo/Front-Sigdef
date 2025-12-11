@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
-import { ArrowLeft, Users, Target, Calendar, ClipboardList } from 'lucide-react';
+import { ArrowLeft, Users, Target, Calendar, ClipboardList, Edit, Plus } from 'lucide-react';
 import { getCategoriaLabel } from '../../../utils/enums';
 
 const ClubDetalles = () => {
@@ -95,7 +95,16 @@ const ClubDetalles = () => {
             <div style={{ display: 'grid', gap: '2rem' }}>
                 {/* Info General */}
                 <Card>
-                    <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Información del Club</h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <h3 style={{ color: 'var(--text-primary)', margin: 0 }}>Información del Club</h3>
+                        <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => navigate(`/dashboard/clubes/editar/${club.idClub}`)}
+                        >
+                            <Edit size={16} className="mr-2" /> Editar
+                        </Button>
+                    </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
                         <div>
                             <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Siglas</label>
@@ -105,7 +114,7 @@ const ClubDetalles = () => {
                             <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Teléfono</label>
                             <div style={{ fontSize: '1rem', fontWeight: '500' }}>{club.telefono || '-'}</div>
                         </div>
-                        <div style={{ gridColumn: '1 / -1' }}>
+                        <div>
                             <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Dirección</label>
                             <div style={{ fontSize: '1rem', fontWeight: '500' }}>{club.direccion || '-'}</div>
                         </div>
@@ -133,10 +142,19 @@ const ClubDetalles = () => {
 
                 {/* Eventos Creados */}
                 <Card>
-                    <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Calendar size={20} />
-                        Eventos Creados ({eventosCreados.length})
-                    </h3>
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 style={{ color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                            <Calendar size={20} />
+                            Eventos Creados ({eventosCreados.length})
+                        </h3>
+                        <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => navigate('/dashboard/eventos/nuevo', { state: { clubId: club.idClub, returnPath: `/dashboard/clubes/detalles/${club.idClub}` } })}
+                        >
+                            <Plus size={16} className="mr-2" /> Agregar Evento
+                        </Button>
+                    </div>
                     {eventosCreados.length > 0 ? (
                         <div className="table-responsive">
                             <table className="data-table">
@@ -216,10 +234,19 @@ const ClubDetalles = () => {
 
                 {/* Entrenadores */}
                 <Card>
-                    <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Target size={20} />
-                        Entrenadores ({entrenadoresClub.length})
-                    </h3>
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 style={{ color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                            <Target size={20} />
+                            Entrenadores ({entrenadoresClub.length})
+                        </h3>
+                        <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => navigate('/dashboard/entrenadores/nuevo', { state: { clubId: club.idClub, returnPath: `/dashboard/clubes/detalles/${club.idClub}` } })}
+                        >
+                            <Plus size={16} className="mr-2" /> Agregar Entrenador
+                        </Button>
+                    </div>
                     {entrenadoresClub.length > 0 ? (
                         <div className="table-responsive">
                             <table className="data-table">
@@ -271,10 +298,19 @@ const ClubDetalles = () => {
 
                 {/* Atletas */}
                 <Card>
-                    <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Users size={20} />
-                        Atletas ({atletasClub.length})
-                    </h3>
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 style={{ color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                            <Users size={20} />
+                            Atletas ({atletasClub.length})
+                        </h3>
+                        <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => navigate('/dashboard/atletas/nuevo', { state: { clubId: club.idClub, returnPath: `/dashboard/clubes/detalles/${club.idClub}` } })}
+                        >
+                            <Plus size={16} className="mr-2" /> Agregar Atleta
+                        </Button>
+                    </div>
                     {atletasClub.length > 0 ? (
                         <div className="table-responsive">
                             <table className="data-table">

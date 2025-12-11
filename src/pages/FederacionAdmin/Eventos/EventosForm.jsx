@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
@@ -9,6 +9,7 @@ import '../Atletas/Atletas.css';
 const EventosForm = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const [loading, setLoading] = useState(false);
 
     const tipoEventoMap = {
@@ -63,6 +64,31 @@ const EventosForm = () => {
         { value: 'TreintaDosKilometros', label: '32 Kilómetros' },
     ];
 
+    const tipoBoteOptions = [
+        { value: 0, label: 'K1' },
+        { value: 1, label: 'K2' },
+        { value: 2, label: 'K4' },
+        { value: 3, label: 'C1' },
+        { value: 4, label: 'C2' },
+        { value: 5, label: 'C4' }
+    ];
+
+    const categoriaOptions = [
+        { value: 0, label: 'Infantil' },
+        { value: 1, label: 'Cadete' },
+        { value: 2, label: 'Junior' },
+        { value: 3, label: 'Sub23' },
+        { value: 4, label: 'Senior' },
+        { value: 5, label: 'Master' },
+        { value: 6, label: 'Veterano' }
+    ];
+
+    const sexoOptions = [
+        { value: 0, label: 'Masculino' },
+        { value: 1, label: 'Femenino' },
+        { value: 2, label: 'Mixto' }
+    ];
+
     const [formData, setFormData] = useState({
         nombre: '',
         descripcion: '',
@@ -74,30 +100,39 @@ const EventosForm = () => {
         ubicacion: '',
         ciudad: '',
         provincia: '',
-        distancias: [], 
+        distancias: [],
         precioBase: 0,
         cupoMaximo: 100,
         tieneCronometraje: true,
         requiereCertificadoMedico: false,
-        observaciones: ''
+        observaciones: '',
+        idClub: null // Added idClub
     });
 
-    const [newDistancia, setNewDistancia] = useState({ distancia: 'DoscientosMetros', descripcion: '' });
+    const [newDistancia, setNewDistancia] = useState({ distancia: 'DoscientosMetros', tipoBote: '', categoria: '', sexo: '' });
 
     useEffect(() => {
         if (id) {
             loadEvento();
+        } else if (location.state?.clubId) {
+            setFormData(prev => ({ ...prev, idClub: location.state.clubId }));
         }
-    }, [id]);
+    }, [id, location.state]);
 
     const loadEvento = async () => {
         try {
             const data = await api.get(`/Evento/${id}`);
 
             const tipoEventoStr = getKeyByValue(tipoEventoMap, data.tipoEvento) || 'CarreraOficial';
-            const distanciasStr = (data.distancias || []).map(d => ({
+            // Backend devuelve 'distancias' (EventoResponseDto.Distancias)
+            const distanciasRaw = data.distancias || [];
+            const distanciasStr = distanciasRaw.map(d => ({
                 ...d,
-                distancia: getKeyByValue(distanciaRegataMap, d.distancia) || 'DoscientosMetros'
+                // Map backend properties to form state
+                distancia: getKeyByValue(distanciaRegataMap, d.distanciaRegata) || 'DoscientosMetros',
+                categoria: d.categoriaEdad, // Backend EventoDistanciaDto.CategoriaEdad -> form categoria
+                sexo: d.sexoCompetencia,    // Backend EventoDistanciaDto.SexoCompetencia -> form sexo
+                // tipoBote matches
             }));
 
             setFormData({
@@ -123,11 +158,15 @@ const EventosForm = () => {
     };
 
     const handleAddDistancia = () => {
+        if (newDistancia.categoria === '' || newDistancia.sexo === '' || newDistancia.tipoBote === '') {
+            alert('Por favor complete todos los campos de la distancia');
+            return;
+        }
         setFormData(prev => ({
             ...prev,
             distancias: [...prev.distancias, newDistancia]
         }));
-        setNewDistancia({ distancia: 'DoscientosMetros', descripcion: '' });
+        setNewDistancia({ distancia: 'DoscientosMetros', tipoBote: '', categoria: '', sexo: '' });
     };
 
     const handleRemoveDistancia = (index) => {
@@ -146,13 +185,17 @@ const EventosForm = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            
+
             const payload = {
                 ...formData,
-                tipoEvento: tipoEventoMap[formData.tipoEvento],
+                tipoEvento: tipoEventoMap[formData.tipoEvento], // Maps string to int
+                // Map form distancias to backend DTO structure
                 distancias: formData.distancias.map(d => ({
-                    ...d,
-                    distancia: distanciaRegataMap[d.distancia]
+                    distanciaRegata: distanciaRegataMap[d.distancia],
+                    categoriaEdad: parseInt(d.categoria),
+                    sexoCompetencia: parseInt(d.sexo),
+                    tipoBote: parseInt(d.tipoBote),
+                    descripcion: d.descripcion || ''
                 })),
                 fechaInicio: new Date(formData.fechaInicio).toISOString(),
                 fechaFin: new Date(formData.fechaFin).toISOString(),
@@ -160,12 +203,20 @@ const EventosForm = () => {
                 fechaFinInscripciones: formData.fechaFinInscripciones ? new Date(formData.fechaFinInscripciones).toISOString() : null,
             };
 
+            // Remove helper property only used in form
+            delete payload.eventoDistancias;
+
+
             if (id) {
                 await api.put(`/Evento/${id}`, payload);
             } else {
                 await api.post('/Evento', payload);
             }
-            navigate('/dashboard/eventos');
+            if (location.state?.returnPath) {
+                navigate(location.state.returnPath);
+            } else {
+                navigate('/dashboard/eventos');
+            }
         } catch (error) {
             console.error('Error guardando evento:', error);
             alert('Error al guardar el evento. Verifique los datos.');
@@ -174,11 +225,19 @@ const EventosForm = () => {
         }
     };
 
+    const handleCancel = () => {
+        if (location.state?.returnPath) {
+            navigate(location.state.returnPath);
+        } else {
+            navigate('/dashboard/eventos');
+        }
+    };
+
     return (
         <div className="page-container">
             <div className="page-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Button variant="ghost" onClick={() => navigate('/dashboard/eventos')}>
+                    <Button variant="ghost" onClick={handleCancel}>
                         <ArrowLeft size={20} />
                     </Button>
                     <h2 className="page-title">{id ? 'Editar Evento' : 'Nuevo Evento'}</h2>
@@ -188,7 +247,7 @@ const EventosForm = () => {
             <Card>
                 <form onSubmit={handleSubmit}>
                     <div className="form-grid">
-                        {}
+                        { }
                         <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                             <label>Nombre del Evento *</label>
                             <input name="nombre" value={formData.nombre} onChange={handleChange} className="form-input" required maxLength={100} />
@@ -208,7 +267,7 @@ const EventosForm = () => {
                             </select>
                         </div>
 
-                        {}
+                        { }
                         <div className="form-group">
                             <label>Fecha Inicio *</label>
                             <input type="date" name="fechaInicio" value={formData.fechaInicio} onChange={handleChange} className="form-input" required />
@@ -227,7 +286,7 @@ const EventosForm = () => {
                             <input type="date" name="fechaFinInscripciones" value={formData.fechaFinInscripciones} onChange={handleChange} className="form-input" />
                         </div>
 
-                        {}
+                        { }
                         <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                             <label>Ubicación</label>
                             <input name="ubicacion" value={formData.ubicacion} onChange={handleChange} className="form-input" maxLength={200} />
@@ -241,7 +300,7 @@ const EventosForm = () => {
                             <input name="provincia" value={formData.provincia} onChange={handleChange} className="form-input" maxLength={100} />
                         </div>
 
-                        {}
+                        { }
                         <div className="form-group">
                             <label>Precio Base</label>
                             <input type="number" name="precioBase" value={formData.precioBase} onChange={handleChange} className="form-input" min="0" max="100000" />
@@ -266,7 +325,7 @@ const EventosForm = () => {
                         </div>
                     </div>
 
-                    {}
+                    { }
                     <div style={{ marginTop: '2rem' }}>
                         <h3>Distancias</h3>
                         <div className="form-grid" style={{ alignItems: 'end' }}>
@@ -283,13 +342,43 @@ const EventosForm = () => {
                                 </select>
                             </div>
                             <div className="form-group">
-                                <label>Descripción (Opcional)</label>
-                                <input
-                                    value={newDistancia.descripcion}
-                                    onChange={(e) => setNewDistancia({ ...newDistancia, descripcion: e.target.value })}
+                                <label>Bote</label>
+                                <select
+                                    value={newDistancia.tipoBote}
+                                    onChange={(e) => setNewDistancia({ ...newDistancia, tipoBote: e.target.value === '' ? '' : parseInt(e.target.value) })}
                                     className="form-input"
-                                    placeholder="Ej: Categoría Master"
-                                />
+                                >
+                                    <option value="">Seleccione Bote</option>
+                                    {tipoBoteOptions.map(opt => (
+                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Categoría</label>
+                                <select
+                                    value={newDistancia.categoria}
+                                    onChange={(e) => setNewDistancia({ ...newDistancia, categoria: e.target.value === '' ? '' : parseInt(e.target.value) })}
+                                    className="form-input"
+                                >
+                                    <option value="">Seleccione Categoría</option>
+                                    {categoriaOptions.map(opt => (
+                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Sexo</label>
+                                <select
+                                    value={newDistancia.sexo}
+                                    onChange={(e) => setNewDistancia({ ...newDistancia, sexo: e.target.value === '' ? '' : parseInt(e.target.value) })}
+                                    className="form-input"
+                                >
+                                    <option value="">Seleccione Sexo</option>
+                                    {sexoOptions.map(opt => (
+                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div className="form-group">
                                 <Button type="button" onClick={handleAddDistancia} variant="secondary">
@@ -303,7 +392,9 @@ const EventosForm = () => {
                                 <thead>
                                     <tr>
                                         <th>Distancia</th>
-                                        <th>Descripción</th>
+                                        <th>Bote</th>
+                                        <th>Categoría</th>
+                                        <th>Sexo</th>
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
@@ -311,7 +402,9 @@ const EventosForm = () => {
                                     {formData.distancias.map((dist, index) => (
                                         <tr key={index}>
                                             <td>{getDistanciaLabel(dist.distancia)}</td>
-                                            <td>{dist.descripcion || '-'}</td>
+                                            <td>{tipoBoteOptions.find(b => b.value === dist.tipoBote)?.label || '-'}</td>
+                                            <td>{categoriaOptions.find(c => c.value === dist.categoria)?.label || '-'}</td>
+                                            <td>{sexoOptions.find(s => s.value === dist.sexo)?.label || '-'}</td>
                                             <td>
                                                 <Button type="button" variant="ghost" size="sm" className="text-danger" onClick={() => handleRemoveDistancia(index)}>
                                                     <Trash2 size={18} />
@@ -330,7 +423,7 @@ const EventosForm = () => {
                     </div>
 
                     <div className="form-actions" style={{ marginTop: '2rem' }}>
-                        <Button type="button" variant="secondary" onClick={() => navigate('/dashboard/eventos')}>Cancelar</Button>
+                        <Button type="button" variant="secondary" onClick={handleCancel}>Cancelar</Button>
                         <Button type="submit" variant="primary" isLoading={loading}>
                             <Save size={18} /> Guardar Evento
                         </Button>

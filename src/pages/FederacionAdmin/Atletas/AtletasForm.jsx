@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
@@ -11,6 +11,7 @@ import './Atletas.css';
 const AtletasForm = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const [loading, setLoading] = useState(false);
     const [clubes, setClubes] = useState([]);
     const [esMenor, setEsMenor] = useState(false);
@@ -46,8 +47,12 @@ const AtletasForm = () => {
 
     useEffect(() => {
         loadClubes();
-        if (id) loadAtleta();
-    }, [id]);
+        if (id) {
+            loadAtleta();
+        } else if (location.state?.clubId) {
+            setFormData(prev => ({ ...prev, idClub: location.state.clubId }));
+        }
+    }, [id, location.state]);
 
     useEffect(() => {
         if (formData.fechaNacimiento) {
@@ -294,7 +299,11 @@ const AtletasForm = () => {
             }
 
             alert('Atleta guardado exitosamente!');
-            navigate('/atletas');
+            if (location.state?.returnPath) {
+                navigate(location.state.returnPath);
+            } else {
+                navigate('/atletas');
+            }
         } catch (error) {
             console.error('Error guardando:', error);
             alert('Error al guardar. Revisa la consola para más detalles.');
@@ -303,11 +312,19 @@ const AtletasForm = () => {
         }
     };
 
+    const handleCancel = () => {
+        if (location.state?.returnPath) {
+            navigate(location.state.returnPath);
+        } else {
+            navigate('/atletas');
+        }
+    };
+
     return (
         <div className="page-container">
             <div className="page-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Button variant="ghost" onClick={() => navigate('/atletas')}>
+                    <Button variant="ghost" onClick={handleCancel}>
                         <ArrowLeft size={20} />
                     </Button>
                     <h2 className="page-title">{id ? 'Editar Atleta' : 'Nuevo Atleta'}</h2>
@@ -461,7 +478,7 @@ const AtletasForm = () => {
                     </div>
 
                     <div className="form-actions">
-                        <Button type="button" variant="secondary" onClick={() => navigate('/atletas')}>Cancelar</Button>
+                        <Button type="button" variant="secondary" onClick={handleCancel}>Cancelar</Button>
                         <Button type="submit" variant="primary" isLoading={loading}>
                             <Save size={18} /> Guardar Atleta
                         </Button>

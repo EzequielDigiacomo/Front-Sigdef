@@ -31,7 +31,7 @@ const handleResponse = async (response, options = {}) => {
         console.log('✅ Respuesta JSON exitosa:', data);
         return data;
     } catch (error) {
-        
+
         console.log('✅ Respuesta de texto - Operación exitosa:', responseText);
         return {
             message: responseText,
@@ -126,6 +126,30 @@ export const api = {
         } catch (error) {
             if (!silentErrors) {
                 console.error(`💥 Error DELETE ${endpoint}:`, error);
+            }
+            throw error;
+        }
+    },
+
+    upload: async (endpoint, formData, options = {}) => {
+        const { silentErrors = false } = options;
+        const token = JSON.parse(localStorage.getItem('user'))?.token;
+        // Do NOT set Content-Type header for FormData, browser does it automatically with boundary
+        const headers = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        console.log(`🚀 UPLOAD ${API_URL}${endpoint}`);
+
+        try {
+            const response = await fetch(`${API_URL}${endpoint}`, {
+                method: 'POST',
+                headers,
+                body: formData
+            });
+            return await handleResponse(response, { silentErrors });
+        } catch (error) {
+            if (!silentErrors) {
+                console.error(`💥 Error UPLOAD ${endpoint}:`, error);
             }
             throw error;
         }

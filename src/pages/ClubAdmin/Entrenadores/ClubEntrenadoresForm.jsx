@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
@@ -13,10 +13,11 @@ const ClubEntrenadoresForm = () => {
     const { id } = useParams();
     const { user } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [loading, setLoading] = useState(false);
 
     const [formData, setFormData] = useState({
-
+        // ... (data initialized here)
         nombre: '',
         apellido: '',
         documento: '',
@@ -42,10 +43,20 @@ const ClubEntrenadoresForm = () => {
         shouldNavigate: false
     });
 
+    const handleNavigateBack = () => {
+        if (location.state?.returnPath) {
+            navigate(location.state.returnPath);
+        } else if (user.role === 'FEDERACION') {
+            navigate('/dashboard/entrenadores');
+        } else {
+            navigate('/club/entrenadores');
+        }
+    };
+
     const handleModalClose = () => {
         setModalConfig(prev => ({ ...prev, isOpen: false }));
         if (modalConfig.shouldNavigate) {
-            navigate('/club/entrenadores');
+            handleNavigateBack();
         }
     };
 
@@ -98,6 +109,14 @@ const ClubEntrenadoresForm = () => {
         e.preventDefault();
         setLoading(true);
 
+        const targetClubId = location.state?.clubId || user.clubId;
+        // Verify we have a club ID if creating new
+        if (!id && !targetClubId) {
+            alert('Error: No se ha especificado un Club para este entrenador.');
+            setLoading(false);
+            return;
+        }
+
         try {
             let idPersona = null;
 
@@ -112,13 +131,13 @@ const ClubEntrenadoresForm = () => {
             };
 
             if (id) {
-
+                // Update
                 await api.put(`/Persona/${id}`, personaPayload);
                 idPersona = parseInt(id);
 
                 const entrenadorPayload = {
                     idPersona: idPersona,
-                    idClub: user.clubId,
+                    idClub: targetClubId, // Use determined clubId
                     licencia: formData.licencia,
                     perteneceSeleccion: formData.perteneceSeleccion,
                     categoriaSeleccion: formData.categoriaSeleccion || "",
@@ -128,9 +147,14 @@ const ClubEntrenadoresForm = () => {
                     presentoAptoMedico: formData.presentoAptoMedico
                 };
 
+                // Note: Updating Club ID might not be desired on edit unless explicitly intended. 
+                // But for now we treat it as "current context determines club".
+                // Ideally backend ignores idClub on update if not meant to change, or we fetch the existing one.
+                // However, logic here re-sends it.
+
                 await api.put(`/Entrenador/${id}`, entrenadorPayload);
             } else {
-
+                // Create
                 try {
                     const personaExistente = await api.get(`/Persona/documento/${formData.documento}`, { silentErrors: true });
                     if (personaExistente && personaExistente.idPersona) {
@@ -148,7 +172,7 @@ const ClubEntrenadoresForm = () => {
 
                 const entrenadorPayload = {
                     idPersona: idPersona,
-                    idClub: user.clubId,
+                    idClub: targetClubId,
                     licencia: formData.licencia,
                     perteneceSeleccion: formData.perteneceSeleccion,
                     categoriaSeleccion: formData.categoriaSeleccion || "",
@@ -197,7 +221,7 @@ const ClubEntrenadoresForm = () => {
         <div className="page-container">
             <div className="page-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Button variant="ghost" onClick={() => navigate('/club/entrenadores')}>
+                    <Button variant="ghost" onClick={handleNavigateBack}>
                         <ArrowLeft size={20} />
                     </Button>
                     <h2 className="page-title">{id ? 'Editar Entrenador' : 'Nuevo Entrenador'}</h2>

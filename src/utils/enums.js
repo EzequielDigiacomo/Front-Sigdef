@@ -131,3 +131,15 @@ export const getEstadoPagoColor = (value) => {
         default: return 'secondary';
     }
 };
+
+export const TIPO_DOCUMENTO_MAP = {
+    0: 'DNI (Frente)',
+    1: 'DNI (Dorso)',
+    2: 'Pasaporte',
+    3: 'Apto Médico',
+    4: 'Foto Perfil',
+    5: 'Autorización Menor',
+    99: 'Otro'
+};
+
+export const getTipoDocumentoLabel = (value) => TIPO_DOCUMENTO_MAP[value] ?? 'Documento';

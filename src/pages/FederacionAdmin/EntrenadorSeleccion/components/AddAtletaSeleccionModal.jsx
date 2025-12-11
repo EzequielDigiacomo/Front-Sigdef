@@ -91,7 +91,7 @@ const AddAtletaSeleccionModal = ({ isOpen, onClose, onSuccess, categoryId }) => 
                 montoBeca: 0
             };
 
-            await api.put('/Atleta', updatedAthlete);
+            await api.put(`/Atleta/${selectedAthlete.idPersona}`, updatedAthlete);
             onSuccess();
         } catch (error) {
             console.error('Error adding athlete to selection:', error);

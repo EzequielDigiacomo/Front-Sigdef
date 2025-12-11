@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 import './Modal.css';
 
-const Modal = ({ isOpen, onClose, title, children, footer }) => {
+const Modal = ({ isOpen, onClose, title, children, footer, size = 'medium', variant = 'default' }) => {
     useEffect(() => {
         const handleEscape = (e) => {
             if (e.key === 'Escape') {
@@ -24,16 +24,16 @@ const Modal = ({ isOpen, onClose, title, children, footer }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-container" onClick={e => e.stopPropagation()}>
-                <div className="modal-header">
-                    <h3 className="modal-title">{title}</h3>
+        <div className={`modal-overlay modal-overlay-${variant}`} onClick={onClose}>
+            <div className={`modal-container modal-${size} modal-variant-${variant}`} onClick={e => e.stopPropagation()}>
+                <div className={`modal-header modal-header-${variant}`}>
+                    <h3 className={`modal-title modal-title-${variant}`}>{title}</h3>
                 </div>
-                <div className="modal-content">
+                <div className={`modal-content modal-content-${variant}`}>
                     {children}
                 </div>
                 {footer && (
-                    <div className="modal-footer">
+                    <div className={`modal-footer modal-footer-${variant}`}>
                         {footer}
                     </div>
                 )}

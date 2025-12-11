@@ -4,9 +4,13 @@ import { api } from '../../../services/api';
 import DataTable from '../../../components/common/DataTable';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
-import { Users, ArrowLeft, Plus, Trash2, Edit, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Users, ArrowLeft, Plus, Trash2, Edit, Eye } from 'lucide-react';
 import { getCategoriaLabel } from '../../../utils/enums';
 import AddAtletaSeleccionModal from './components/AddAtletaSeleccionModal';
+
+import DocumentUploadModal from '../../../components/common/DocumentUploadModal';
+import DocumentViewerModal from '../../../components/common/DocumentViewerModal';
+import './SeleccionCategoriaDetalle.css';
 
 const SeleccionCategoriaDetalle = () => {
     const { categoryId } = useParams();
@@ -14,6 +18,15 @@ const SeleccionCategoriaDetalle = () => {
     const [athletes, setAthletes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
+
+    // New state for Upload Modal
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [selectedAthleteForUpload, setSelectedAthleteForUpload] = useState(null);
+
+    // New state for Document Viewer Modal
+    const [showViewerModal, setShowViewerModal] = useState(false);
+    const [selectedAthleteForViewer, setSelectedAthleteForViewer] = useState(null);
+
     const categoryLabel = getCategoriaLabel(parseInt(categoryId));
 
     useEffect(() => {
@@ -32,8 +45,12 @@ const SeleccionCategoriaDetalle = () => {
                 .filter(a => a.perteneceSeleccion && a.categoria === parseInt(categoryId))
                 .map(athlete => {
                     const persona = (allPersonas || []).find(p => p.idPersona === athlete.idPersona);
+                    // Ensure we have a valid ID
+                    const idReal = athlete.idPersona || athlete.IdPersona || (persona ? (persona.idPersona || persona.IdPersona) : null);
+
                     return {
                         ...athlete,
+                        idPersona: idReal, // Normalize to camelCase
                         // Priorizar datos de persona si existen, o fallback a lo que tenga atleta
                         documento: persona?.documento || persona?.Documento || '-',
                         email: persona?.email || persona?.Email || athlete.email || '-',
@@ -61,13 +78,8 @@ const SeleccionCategoriaDetalle = () => {
                 const updatedAthlete = {
                     ...athlete,
                     perteneceSeleccion: false,
-                    categoria: 0 // Reset category or keep it? Usually reset if bound to selection category
+                    categoria: 0
                 };
-
-                // We need to map back to DTO expected by backend if needed
-                // But usually PUT accepts the entity. 
-                // Let's assume PUT /Atleta works.
-                // If not, we might need a specific endpoint.
 
                 await api.put('/Atleta', updatedAthlete);
                 fetchAthletes();
@@ -123,14 +135,34 @@ const SeleccionCategoriaDetalle = () => {
             label: 'Documentación',
             key: 'documentacion',
             render: (val, row) => {
-                const completo = row.documento && row.presentoAptoMedico;
-                return completo ? (
-                    <div className="flex items-center gap-1 text-success font-medium">
-                        <CheckCircle size={16} /> <span>Completa</span>
-                    </div>
-                ) : (
-                    <div className="flex items-center gap-1 text-warning font-medium">
-                        <AlertTriangle size={16} /> <span>Incompleta</span>
+                return (
+                    <div className="flex items-center justify-center gap-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-1 h-auto"
+                            title="Subir documentos"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedAthleteForUpload(row);
+                                setShowUploadModal(true);
+                            }}
+                        >
+                            <Plus size={18} className="text-primary" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-1 h-auto"
+                            title="Ver documentos"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedAthleteForViewer(row);
+                                setShowViewerModal(true);
+                            }}
+                        >
+                            <Eye size={18} className="text-primary" />
+                        </Button>
                     </div>
                 );
             }
@@ -138,27 +170,38 @@ const SeleccionCategoriaDetalle = () => {
         {
             label: 'Acciones',
             key: 'actions',
-            render: (value, row) => (
-                <div className="flex gap-2">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/atletas/editar/${row.idPersona}`); }}
-                        title="Editar Atleta"
-                    >
-                        <Edit size={18} className="text-primary" />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-danger action-btn"
-                        onClick={(e) => { e.stopPropagation(); handleRemoveAthlete(row); }}
-                        title="Quitar de la selección"
-                    >
-                        <Trash2 size={18} />
-                    </Button>
-                </div>
-            )
+            render: (value, row) => {
+                return (
+                    <div className="flex gap-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (row.idPersona) {
+                                    /* alert('DEBUG: Navegando a editar ID ' + row.idPersona); // Uncomment for extreme debug */
+                                    navigate(`/dashboard/atletas/editar/${row.idPersona}`);
+                                } else {
+                                    alert('Error: No se encontró el ID del atleta');
+                                    console.error('Fila sin ID:', row);
+                                }
+                            }}
+                            title="Editar Atleta"
+                        >
+                            <Edit size={18} className="text-primary" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-danger action-btn"
+                            onClick={(e) => { e.stopPropagation(); handleRemoveAthlete(row); }}
+                            title="Quitar de la selección"
+                        >
+                            <Trash2 size={18} />
+                        </Button>
+                    </div>
+                );
+            }
         }
     ];
 
@@ -201,6 +244,34 @@ const SeleccionCategoriaDetalle = () => {
                         fetchAthletes();
                     }}
                     categoryId={parseInt(categoryId)}
+                />
+            )}
+
+            {showUploadModal && selectedAthleteForUpload && (
+                <DocumentUploadModal
+                    isOpen={showUploadModal}
+                    onClose={() => {
+                        setShowUploadModal(false);
+                        setSelectedAthleteForUpload(null);
+                    }}
+                    onSuccess={() => {
+                        // Optional: Refresh list or just show notification
+                        fetchAthletes();
+                    }}
+                    personName={selectedAthleteForUpload.nombrePersona}
+                    personId={selectedAthleteForUpload.idPersona || selectedAthleteForUpload.IdPersona}
+                />
+            )}
+
+            {showViewerModal && selectedAthleteForViewer && (
+                <DocumentViewerModal
+                    isOpen={showViewerModal}
+                    onClose={() => {
+                        setShowViewerModal(false);
+                        setSelectedAthleteForViewer(null);
+                    }}
+                    personName={selectedAthleteForViewer.nombrePersona}
+                    personId={selectedAthleteForViewer.idPersona || selectedAthleteForViewer.IdPersona}
                 />
             )}
         </div>

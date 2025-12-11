@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Users, Trophy, Calendar, Shield, DollarSign, UserCheck, ClipboardList, Award, ChevronLeft, ChevronRight, Lock } from 'lucide-react';
+import { LayoutDashboard, Users, Trophy, Calendar, Shield, DollarSign, UserCheck, ClipboardList, Award, ChevronLeft, ChevronRight, Lock, Briefcase } from 'lucide-react';
 import './Sidebar.css';
 
 const Sidebar = ({ isOpen, closeMobile, isCollapsed, toggleSidebar }) => {
@@ -15,6 +15,7 @@ const Sidebar = ({ isOpen, closeMobile, isCollapsed, toggleSidebar }) => {
         { icon: Award, label: 'Entrenadores Selección', path: '/entrenadores-seleccion' },
         { icon: Calendar, label: 'Eventos', path: '/eventos' },
         { icon: ClipboardList, label: 'Inscripciones', path: '/inscripciones' },
+        { icon: Briefcase, label: 'Delegados Club', path: '/delegados' },
         { icon: UserCheck, label: 'Tutores', path: '/tutores' },
         { icon: DollarSign, label: 'Pagos', path: '/pagos' },
         { icon: Trophy, label: 'Federación', path: '/federacion' },
