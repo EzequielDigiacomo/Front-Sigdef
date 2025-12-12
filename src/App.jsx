@@ -8,6 +8,8 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import AtletasList from './pages/FederacionAdmin/Atletas/AtletasList';
 import AtletasForm from './pages/FederacionAdmin/Atletas/AtletasForm';
+import DelegadosList from './pages/FederacionAdmin/Delegados/DelegadosList';
+import DelegadosForm from './pages/FederacionAdmin/Delegados/DelegadosForm';
 import ClubesList from './pages/FederacionAdmin/Clubes/ClubesList';
 import ClubesForm from './pages/FederacionAdmin/Clubes/ClubesForm';
 import ClubDetalles from './pages/FederacionAdmin/Clubes/ClubDetalles';
@@ -25,6 +27,7 @@ import EntrenadoresSeleccionForm from './pages/FederacionAdmin/EntrenadorSelecci
 import SeleccionCategoriaDetalle from './pages/FederacionAdmin/EntrenadorSeleccion/SeleccionCategoriaDetalle';
 import EntrenadoresList from './pages/FederacionAdmin/Entrenadores/EntrenadoresList';
 import UserManagement from './pages/FederacionAdmin/Usuarios/UserManagement';
+import FederacionDetalles from './pages/FederacionAdmin/Federacion/FederacionDetalles';
 
 import ClubDashboard from './pages/ClubAdmin/Dashboard/ClubDashboard';
 import ClubInfo from './pages/ClubAdmin/Info/ClubInfo';
@@ -114,6 +117,10 @@ function App() {
               <Route path="atletas/nuevo" element={<AtletasForm />} />
               <Route path="atletas/editar/:id" element={<AtletasForm />} />
 
+              <Route path="delegados" element={<DelegadosList />} />
+              <Route path="delegados/nuevo" element={<DelegadosForm />} />
+              <Route path="delegados/editar/:id" element={<DelegadosForm />} />
+
               { }
               <Route path="clubes" element={<ClubesList />} />
               <Route path="clubes/nuevo" element={<ClubesForm />} />
@@ -154,7 +161,7 @@ function App() {
 
               { }
               <Route path="pagos" element={<div>Página de Pagos (En construcción)</div>} />
-              <Route path="federacion" element={<div>Página de Federación (En construcción)</div>} />
+              <Route path="federacion" element={<FederacionDetalles />} />
               <Route path="usuarios" element={<UserManagement />} />
             </Route>
 

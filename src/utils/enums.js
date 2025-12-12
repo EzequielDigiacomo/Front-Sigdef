@@ -111,7 +111,22 @@ export const SEXO_MAP = {
     3: 'Mixto'
 };
 
-export const getCategoriaLabel = (value) => CATEGORIA_MAP[value] ?? 'Desconocido';
+export const getCategoriaLabel = (value) => {
+    // Si el valor ya está en el mapa, devolverlo
+    if (CATEGORIA_MAP[value]) {
+        return CATEGORIA_MAP[value];
+    }
+
+    // Si el valor es un texto (error de datos antiguos), buscar la clave correspondiente
+    if (typeof value === 'string') {
+        const entry = Object.entries(CATEGORIA_MAP).find(([key, label]) => label === value);
+        if (entry) {
+            return entry[1]; // Devolver el label
+        }
+    }
+
+    return 'Desconocido';
+};
 export const getCategoriaEdadLabel = (value) => CATEGORIA_EDAD_MAP[value] ?? 'Desconocido';
 export const getDistanciaLabel = (value) => DISTANCIA_REGATA_MAP[value] ?? 'Desconocido';
 export const getDistanciaShortLabel = (value) => DISTANCIA_REGATA_SHORT_MAP[value] ?? 'Desconocido';

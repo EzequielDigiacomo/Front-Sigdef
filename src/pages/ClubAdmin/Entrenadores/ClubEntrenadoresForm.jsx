@@ -281,7 +281,7 @@ const ClubEntrenadoresForm = () => {
                                 >
                                     <option value="">Seleccione una categoría</option>
                                     {Object.entries(CATEGORIA_MAP).map(([key, label]) => (
-                                        <option key={key} value={label}>{label}</option>
+                                        <option key={key} value={key}>{label}</option>
                                     ))}
                                 </select>
                             </div>

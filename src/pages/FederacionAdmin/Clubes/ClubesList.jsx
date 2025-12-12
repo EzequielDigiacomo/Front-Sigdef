@@ -4,7 +4,7 @@ import { api } from '../../../services/api';
 import Button from '../../../components/common/Button';
 import Card from '../../../components/common/Card';
 import FormField from '../../../components/forms/FormField';
-import { Plus, Edit, Trash2, Search, Users, Target } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Users, Target, Briefcase } from 'lucide-react';
 import { getCategoriaLabel } from '../../../utils/enums';
 import './Clubes.css';
 
@@ -12,6 +12,7 @@ const ClubesList = () => {
     const [clubes, setClubes] = useState([]);
     const [atletas, setAtletas] = useState([]);
     const [entrenadores, setEntrenadores] = useState([]);
+    const [delegados, setDelegados] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const navigate = useNavigate();
@@ -22,14 +23,16 @@ const ClubesList = () => {
 
     const loadData = async () => {
         try {
-            const [clubesData, atletasData, entrenadoresData] = await Promise.all([
+            const [clubesData, atletasData, entrenadoresData, delegadosData] = await Promise.all([
                 api.get('/Club'),
                 api.get('/Atleta'),
-                api.get('/Entrenador')
+                api.get('/Entrenador'),
+                api.get('/DelegadoClub')
             ]);
             setClubes(clubesData);
             setAtletas(atletasData);
             setEntrenadores(entrenadoresData);
+            setDelegados(delegadosData);
         } catch (error) {
             console.error('❌ Error cargando datos:', error);
         } finally {
@@ -40,6 +43,7 @@ const ClubesList = () => {
     const getClubStats = (idClub) => {
         const atletasClub = atletas.filter(a => a.idClub === idClub);
         const entrenadoresClub = entrenadores.filter(e => e.idClub === idClub);
+        const delegadoClub = delegados.find(d => d.idClub === idClub);
         const totalAtletas = atletasClub.length;
         const totalEntrenadores = entrenadoresClub.length;
 
@@ -51,7 +55,7 @@ const ClubesList = () => {
             return acc;
         }, {});
 
-        return { totalAtletas, totalEntrenadores, categorias, atletasClub, entrenadoresClub };
+        return { totalAtletas, totalEntrenadores, categorias, atletasClub, entrenadoresClub, delegadoClub };
     };
 
     const handleCardClick = (club) => {
@@ -166,6 +170,16 @@ const ClubesList = () => {
                                             </div>
                                             <span className="club-stat-value entrenadores">
                                                 {stats.totalEntrenadores}
+                                            </span>
+                                        </div>
+
+                                        <div className="club-stat-item">
+                                            <div className="club-stat-label">
+                                                <Briefcase size={16} />
+                                                <span>Delegado</span>
+                                            </div>
+                                            <span className={`club-stat-value ${stats.delegadoClub ? 'atletas' : 'entrenadores'}`}>
+                                                {stats.delegadoClub ? '✓' : '✗'}
                                             </span>
                                         </div>
 

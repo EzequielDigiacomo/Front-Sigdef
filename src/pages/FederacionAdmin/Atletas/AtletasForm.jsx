@@ -15,6 +15,7 @@ const AtletasForm = () => {
     const [loading, setLoading] = useState(false);
     const [clubes, setClubes] = useState([]);
     const [esMenor, setEsMenor] = useState(false);
+    const [tutorLater, setTutorLater] = useState(false);
 
     const [formData, setFormData] = useState({
         nombre: '',
@@ -157,8 +158,8 @@ const AtletasForm = () => {
         try {
             let idPersona;
 
-            const emailInput = formData.email || (esMenor && tutorData.email ? tutorData.email : null);
-            const telefonoInput = formData.telefono || (esMenor && tutorData.telefono ? tutorData.telefono : null);
+            const emailInput = formData.email || (esMenor && !tutorLater && tutorData.email ? tutorData.email : null);
+            const telefonoInput = formData.telefono || (esMenor && !tutorLater && tutorData.telefono ? tutorData.telefono : null);
 
             const emailFinal = emailInput === "" ? null : emailInput;
             const telefonoFinal = telefonoInput === "" ? null : telefonoInput;
@@ -171,9 +172,9 @@ const AtletasForm = () => {
                 Apellido: formData.apellido,
                 Documento: formData.documento,
                 FechaNacimiento: fechaNacimientoISO,
-                Email: emailFinal || "",
-                Telefono: telefonoFinal || "",
-                Direccion: direccionFinal || ""
+                Email: emailFinal,
+                Telefono: telefonoFinal,
+                Direccion: direccionFinal
             };
 
             const getAtletaPayload = (idPersona) => ({
@@ -230,7 +231,7 @@ const AtletasForm = () => {
                     await api.post('/Atleta', getAtletaPayload(idPersona));
                 }
 
-                if (esMenor && tutorData.documento) {
+                if (esMenor && !tutorLater && tutorData.documento) {
                     console.log('🔍 Procesando tutor...');
                     let idTutor;
 
@@ -353,81 +354,99 @@ const AtletasForm = () => {
                             <input type="date" name="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} className="form-input" required />
                         </div>
                         <div className="form-group">
-                            <label>Email {esMenor && '(opcional - se usará el del tutor si está vacío)'}</label>
+                            <label>Email {esMenor ? (tutorLater ? '(opcional)' : '(opcional - se usará el del tutor si está vacío)') : ''}</label>
                             <input type="email" name="email" value={formData.email} onChange={handleChange} className="form-input" />
                         </div>
                         <div className="form-group">
-                            <label>Teléfono {esMenor && '(opcional - se usará el del tutor si está vacío)'}</label>
+                            <label>Teléfono {esMenor ? (tutorLater ? '(opcional)' : '(opcional - se usará el del tutor si está vacío)') : ''}</label>
                             <input name="telefono" value={formData.telefono} onChange={handleChange} className="form-input" />
+                        </div>
+                        <div className="form-group">
+                            <label>Dirección</label>
+                            <input name="direccion" value={formData.direccion} onChange={handleChange} className="form-input" />
                         </div>
 
                         {esMenor && !id && (
                             <>
-                                <h3 className="form-section-title">Datos del Tutor (Menor de 18 años)</h3>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                    <h3 className="form-section-title" style={{ marginBottom: 0 }}>Datos del Tutor (Menor de 18 años)</h3>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={tutorLater}
+                                            onChange={(e) => setTutorLater(e.target.checked)}
+                                        />
+                                        Crear tutor más tarde
+                                    </label>
+                                </div>
 
-                                <div className="form-group">
-                                    <label>Documento del Tutor *</label>
-                                    <input
-                                        name="documento"
-                                        value={tutorData.documento}
-                                        onChange={handleTutorChange}
-                                        className="form-input"
-                                        placeholder="Buscar por documento..."
-                                        required
-                                    />
-                                    {tutorData.existe && <small style={{ color: 'var(--success)' }}>✓ Tutor encontrado en el sistema</small>}
-                                </div>
-                                <div className="form-group">
-                                    <label>Nombre del Tutor *</label>
-                                    <input
-                                        name="nombre"
-                                        value={tutorData.nombre}
-                                        onChange={handleTutorChange}
-                                        className="form-input"
-                                        disabled={tutorData.existe}
-                                        required
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Apellido del Tutor *</label>
-                                    <input
-                                        name="apellido"
-                                        value={tutorData.apellido}
-                                        onChange={handleTutorChange}
-                                        className="form-input"
-                                        disabled={tutorData.existe}
-                                        required
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Parentesco *</label>
-                                    <select name="parentesco" value={tutorData.parentesco} onChange={handleTutorChange} className="form-input" required>
-                                        {Object.entries(PARENTESCO_MAP).map(([key, label]) => (
-                                            <option key={key} value={key}>{label}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label>Teléfono del Tutor</label>
-                                    <input
-                                        name="telefono"
-                                        value={tutorData.telefono}
-                                        onChange={handleTutorChange}
-                                        className="form-input"
-                                        disabled={tutorData.existe}
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Email del Tutor</label>
-                                    <input
-                                        type="email"
-                                        name="email"
-                                        value={tutorData.email}
-                                        onChange={handleTutorChange}
-                                        className="form-input"
-                                        disabled={tutorData.existe}
-                                    />
-                                </div>
+                                {!tutorLater && (
+                                    <>
+                                        <div className="form-group">
+                                            <label>Documento del Tutor *</label>
+                                            <input
+                                                name="documento"
+                                                value={tutorData.documento}
+                                                onChange={handleTutorChange}
+                                                className="form-input"
+                                                placeholder="Buscar por documento..."
+                                                required={!tutorLater}
+                                            />
+                                            {tutorData.existe && <small style={{ color: 'var(--success)' }}>✓ Tutor encontrado en el sistema</small>}
+                                        </div>
+                                        <div className="form-group">
+                                            <label>Nombre del Tutor *</label>
+                                            <input
+                                                name="nombre"
+                                                value={tutorData.nombre}
+                                                onChange={handleTutorChange}
+                                                className="form-input"
+                                                disabled={tutorData.existe}
+                                                required={!tutorLater}
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>Apellido del Tutor *</label>
+                                            <input
+                                                name="apellido"
+                                                value={tutorData.apellido}
+                                                onChange={handleTutorChange}
+                                                className="form-input"
+                                                disabled={tutorData.existe}
+                                                required={!tutorLater}
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>Parentesco *</label>
+                                            <select name="parentesco" value={tutorData.parentesco} onChange={handleTutorChange} className="form-input" required={!tutorLater}>
+                                                {Object.entries(PARENTESCO_MAP).map(([key, label]) => (
+                                                    <option key={key} value={key}>{label}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="form-group">
+                                            <label>Teléfono del Tutor</label>
+                                            <input
+                                                name="telefono"
+                                                value={tutorData.telefono}
+                                                onChange={handleTutorChange}
+                                                className="form-input"
+                                                disabled={tutorData.existe}
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>Email del Tutor</label>
+                                            <input
+                                                type="email"
+                                                name="email"
+                                                value={tutorData.email}
+                                                onChange={handleTutorChange}
+                                                className="form-input"
+                                                disabled={tutorData.existe}
+                                            />
+                                        </div>
+                                    </>
+                                )}
                             </>
                         )}
 

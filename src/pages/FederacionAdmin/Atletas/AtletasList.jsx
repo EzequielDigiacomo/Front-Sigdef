@@ -311,7 +311,7 @@ const AtletasList = () => {
                                         </td>
                                         <td>
                                             <div className="actions-cell" onClick={(e) => e.stopPropagation()}>
-                                                <Button variant="ghost" size="sm" onClick={() => navigate(`/dashboard/atletas/editar/${atleta.idPersona}`)}>
+                                                <Button variant="ghost" size="sm" onClick={() => navigate(`/dashboard/atletas/editar/${atleta.idPersona}`, { state: { returnPath: '/dashboard/atletas' } })}>
                                                     <Edit size={18} />
                                                 </Button>
                                                 <Button variant="ghost" size="sm" className="text-danger">
@@ -343,7 +343,9 @@ const AtletasList = () => {
                                 variant="primary"
                                 onClick={() => {
                                     handleCloseModal();
-                                    navigate(`/dashboard/atletas/editar/${selectedAtleta.idPersona}`);
+                                    navigate(`/dashboard/atletas/editar/${selectedAtleta.idPersona}`, {
+                                        state: { returnPath: '/dashboard/atletas' }
+                                    });
                                 }}
                             >
                                 <Edit size={18} /> Editar Atleta

@@ -59,11 +59,9 @@ const DelegadosList = () => {
                     <Briefcase size={28} />
                     <h2 className="page-title">Gestión de Delegados Club</h2>
                 </div>
-                {/* 
                 <Button onClick={() => navigate('/dashboard/delegados/nuevo')}>
                     <Plus size={20} /> Nuevo Delegado
-                </Button> 
-                */}
+                </Button>
             </div>
 
             <Card>

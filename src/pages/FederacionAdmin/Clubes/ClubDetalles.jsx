@@ -4,6 +4,7 @@ import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import { ArrowLeft, Users, Target, Calendar, ClipboardList, Edit, Plus } from 'lucide-react';
+import Modal from '../../../components/common/Modal';
 import { getCategoriaLabel } from '../../../utils/enums';
 
 const ClubDetalles = () => {
@@ -12,9 +13,16 @@ const ClubDetalles = () => {
     const [club, setClub] = useState(null);
     const [atletas, setAtletas] = useState([]);
     const [entrenadores, setEntrenadores] = useState([]);
+    const [delegados, setDelegados] = useState([]);
     const [eventos, setEventos] = useState([]);
     const [inscripciones, setInscripciones] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // Modal states
+    const [showAddAtletaModal, setShowAddAtletaModal] = useState(false);
+    const [showAtletaDetailsModal, setShowAtletaDetailsModal] = useState(false);
+    const [selectedAtleta, setSelectedAtleta] = useState(null);
+    const [todosAtletas, setTodosAtletas] = useState([]);
 
     useEffect(() => {
         loadClubDetalles();
@@ -22,17 +30,35 @@ const ClubDetalles = () => {
 
     const loadClubDetalles = async () => {
         try {
-            const [clubData, atletasData, entrenadoresData, eventosData, inscripcionesData] = await Promise.all([
+            const [clubData, atletasData, entrenadoresData, delegadosData, eventosData, inscripcionesData] = await Promise.all([
                 api.get(`/Club/${id}`),
                 api.get('/Atleta'),
                 api.get('/Entrenador'),
+                api.get('/DelegadoClub'),
                 api.get('/Evento'),
                 api.get('/Inscripcion')
             ]);
 
+            // Enriquecer atletas con datos de Persona para obtener documento
+            const atletasEnriquecidos = await Promise.all(
+                atletasData.map(async (atleta) => {
+                    try {
+                        const personaData = await api.get(`/Persona/${atleta.idPersona}`);
+                        return {
+                            ...atleta,
+                            documento: personaData.documento || '-'
+                        };
+                    } catch (error) {
+                        console.error('Error obteniendo Persona:', error);
+                        return atleta;
+                    }
+                })
+            );
+
             setClub(clubData);
-            setAtletas(atletasData);
+            setAtletas(atletasEnriquecidos);
             setEntrenadores(entrenadoresData);
+            setDelegados(delegadosData);
             setEventos(eventosData);
             setInscripciones(inscripcionesData);
         } catch (error) {
@@ -43,10 +69,11 @@ const ClubDetalles = () => {
     };
 
     const getClubStats = () => {
-        if (!club) return { atletasClub: [], entrenadoresClub: [], eventosCreados: [], eventosAsistidos: [] };
+        if (!club) return { atletasClub: [], entrenadoresClub: [], delegadoClub: null, eventosCreados: [], eventosAsistidos: [] };
 
         const atletasClub = atletas.filter(a => a.idClub === club.idClub);
         const entrenadoresClub = entrenadores.filter(e => e.idClub === club.idClub);
+        const delegadoClub = delegados.find(d => d.idClub === club.idClub);
 
         // Eventos creados por el club (asumiendo idClub o clubId propiedad en evento)
         // Se intenta matchear por idClub
@@ -60,7 +87,7 @@ const ClubDetalles = () => {
         // Filtramos la lista completa de eventos
         const eventosAsistidos = eventos.filter(e => eventosAsistidosIds.includes(e.idEvento));
 
-        return { atletasClub, entrenadoresClub, eventosCreados, eventosAsistidos };
+        return { atletasClub, entrenadoresClub, delegadoClub, eventosCreados, eventosAsistidos };
     };
 
     if (loading) {
@@ -79,7 +106,7 @@ const ClubDetalles = () => {
         );
     }
 
-    const { atletasClub, entrenadoresClub, eventosCreados, eventosAsistidos } = getClubStats();
+    const { atletasClub, entrenadoresClub, delegadoClub, eventosCreados, eventosAsistidos } = getClubStats();
 
     return (
         <div className="page-container">
@@ -119,6 +146,35 @@ const ClubDetalles = () => {
                             <div style={{ fontSize: '1rem', fontWeight: '500' }}>{club.direccion || '-'}</div>
                         </div>
                     </div>
+                </Card>
+
+                {/* Información del Delegado */}
+                <Card>
+                    <h3 style={{ color: 'var(--text-primary)', marginBottom: '1rem' }}>Delegado del Club</h3>
+                    {delegadoClub ? (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
+                            <div>
+                                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Nombre Completo</label>
+                                <div style={{ fontSize: '1rem', fontWeight: '500' }}>{delegadoClub.nombrePersona || '-'}</div>
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>DNI</label>
+                                <div style={{ fontSize: '1rem', fontWeight: '500' }}>{delegadoClub.documento || '-'}</div>
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Email</label>
+                                <div style={{ fontSize: '1rem', fontWeight: '500' }}>{delegadoClub.email || '-'}</div>
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Teléfono</label>
+                                <div style={{ fontSize: '1rem', fontWeight: '500' }}>{delegadoClub.telefono || '-'}</div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
+                            No hay delegado asignado a este club
+                        </div>
+                    )}
                 </Card>
 
                 {/* KPI Cards */}
@@ -266,7 +322,7 @@ const ClubDetalles = () => {
                                             <td>{entrenador.licencia || '-'}</td>
                                             <td>
                                                 {entrenador.categoriaSeleccion ?
-                                                    getCategoriaLabel(parseInt(entrenador.categoriaSeleccion)) :
+                                                    getCategoriaLabel(entrenador.categoriaSeleccion) :
                                                     '-'
                                                 }
                                             </td>
@@ -306,7 +362,38 @@ const ClubDetalles = () => {
                         <Button
                             variant="primary"
                             size="sm"
-                            onClick={() => navigate('/dashboard/atletas/nuevo', { state: { clubId: club.idClub, returnPath: `/dashboard/clubes/detalles/${club.idClub}` } })}
+                            onClick={async () => {
+                                try {
+                                    const [allAtletas, allClubes] = await Promise.all([
+                                        api.get('/Atleta'),
+                                        api.get('/Club')
+                                    ]);
+
+                                    // Crear mapa de clubes para búsqueda rápida
+                                    const clubsMap = allClubes.reduce((acc, c) => ({ ...acc, [c.idClub]: c.nombre }), {});
+
+                                    // Enriquecer atletas con nombre de club y datos de persona si es necesario
+                                    // Nota: Para la lista de selección, idClub y nombreClub es lo crítico
+                                    const athletesWithClubName = await Promise.all(allAtletas.map(async (a) => {
+                                        let nombrePersona = a.nombrePersona;
+                                        if (!nombrePersona) {
+                                            // Si no viene el nombre, intentar sacarlo de persona o dejar placeholder
+                                            // En este contexto asumimos que viene o el endpoint /Atleta devolvió DTOs completos
+                                            // Si falta info, podríamos buscar Persona, pero sería muy lento para TODOS.
+                                            // Asumimos que el DTO de lista trae info básica.
+                                        }
+                                        return {
+                                            ...a,
+                                            nombreClub: a.idClub ? clubsMap[a.idClub] : null
+                                        };
+                                    }));
+
+                                    setTodosAtletas(athletesWithClubName);
+                                    setShowAddAtletaModal(true);
+                                } catch (error) {
+                                    console.error("Error loading info for modal", error);
+                                }
+                            }}
                         >
                             <Plus size={16} className="mr-2" /> Agregar Atleta
                         </Button>
@@ -325,7 +412,15 @@ const ClubDetalles = () => {
                                 </thead>
                                 <tbody>
                                     {atletasClub.map((atleta) => (
-                                        <tr key={atleta.idPersona}>
+                                        <tr
+                                            key={atleta.idPersona}
+                                            onClick={() => {
+                                                setSelectedAtleta(atleta);
+                                                setShowAtletaDetailsModal(true);
+                                            }}
+                                            style={{ cursor: 'pointer' }}
+                                            className="hover:bg-gray-50"
+                                        >
                                             <td>{atleta.nombrePersona}</td>
                                             <td>{atleta.documento}</td>
                                             <td>{getCategoriaLabel(atleta.categoria)}</td>
@@ -353,6 +448,186 @@ const ClubDetalles = () => {
                     )}
                 </Card>
             </div>
+            {/* Modal Agregar Atleta Existente */}
+            {showAddAtletaModal && (
+                <Modal
+                    isOpen={showAddAtletaModal}
+                    onClose={() => setShowAddAtletaModal(false)}
+                    title="Agregar Atleta al Club"
+                    footer={
+                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                            <Button variant="secondary" onClick={() => setShowAddAtletaModal(false)}>
+                                Cerrar
+                            </Button>
+                        </div>
+                    }
+                >
+                    <div style={{ maxHeight: '500px', display: 'flex', flexDirection: 'column' }}>
+                        <div className="mb-4">
+                            <input
+                                type="text"
+                                placeholder="Buscar por nombre..."
+                                className="form-input"
+                                onChange={(e) => {
+                                    const term = e.target.value.toLowerCase();
+                                    const items = document.querySelectorAll('.athlete-item');
+                                    items.forEach(item => {
+                                        const name = item.getAttribute('data-name').toLowerCase();
+                                        if (name.includes(term)) {
+                                            item.style.display = 'flex';
+                                        } else {
+                                            item.style.display = 'none';
+                                        }
+                                    });
+                                }}
+                            />
+                        </div>
+                        <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {todosAtletas.map(atleta => (
+                                <div
+                                    className="athlete-item"
+                                    key={atleta.idPersona}
+                                    data-name={atleta.nombrePersona || 'Desconocido'}
+                                    style={{
+                                        padding: '0.75rem',
+                                        border: '1px solid var(--border-color)',
+                                        borderRadius: '4px',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        backgroundColor: 'var(--bg-secondary)'
+                                    }}
+                                >
+                                    <div>
+                                        <div style={{ fontWeight: '500' }}>
+                                            {atleta.nombrePersona || `ID: ${atleta.idPersona}`}
+                                        </div>
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                            {atleta.nombreClub ? (
+                                                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <Users size={12} /> {atleta.nombreClub}
+                                                </span>
+                                            ) : (
+                                                <span style={{ color: 'var(--success)' }}>• Sin Club</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {atleta.idClub !== parseInt(id) ? (
+                                        <Button
+                                            size="sm"
+                                            variant="primary"
+                                            onClick={async () => {
+                                                const confirmMsg = atleta.idClub
+                                                    ? `Este atleta pertenece a ${atleta.nombreClub}. ¿Deseas transferirlo a este club?`
+                                                    : `¿Deseas agregar a ${atleta.nombrePersona} a este club?`;
+
+                                                if (window.confirm(confirmMsg)) {
+                                                    try {
+                                                        const fullAtleta = await api.get(`/Atleta/${atleta.idPersona}`);
+                                                        const payload = {
+                                                            IdPersona: fullAtleta.idPersona || fullAtleta.IdPersona,
+                                                            IdClub: parseInt(id),
+                                                            Categoria: fullAtleta.categoria || 0,
+                                                            BecadoEnard: fullAtleta.becadoEnard,
+                                                            BecadoSdn: fullAtleta.becadoSdn,
+                                                            MontoBeca: fullAtleta.montoBeca,
+                                                            PresentoAptoMedico: fullAtleta.presentoAptoMedico,
+                                                            EstadoPago: fullAtleta.estadoPago,
+                                                            PerteneceSeleccion: fullAtleta.perteneceSeleccion,
+                                                            FechaAptoMedico: fullAtleta.fechaAptoMedico
+                                                        };
+
+                                                        await api.put(`/Atleta/${atleta.idPersona}`, payload);
+
+                                                        alert('Atleta agregado exitosamente');
+                                                        setShowAddAtletaModal(false);
+                                                        loadClubDetalles();
+                                                    } catch (error) {
+                                                        console.error('Error moviendo atleta:', error);
+                                                        alert('Error al mover el atleta. Revisa la consola.');
+                                                    }
+                                                }
+                                            }}
+                                        >
+                                            <Plus size={16} /> Agregar
+                                        </Button>
+                                    ) : (
+                                        <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>En este club</span>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {/* Modal Detalles Atleta */}
+            {showAtletaDetailsModal && selectedAtleta && (
+                <Modal
+                    isOpen={showAtletaDetailsModal}
+                    onClose={() => {
+                        setShowAtletaDetailsModal(false);
+                        setSelectedAtleta(null);
+                    }}
+                    title="Detalles del Atleta"
+                    footer={
+                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                            <Button variant="secondary" onClick={() => {
+                                setShowAtletaDetailsModal(false);
+                                setSelectedAtleta(null);
+                            }}>
+                                Cerrar
+                            </Button>
+                            <Button
+                                variant="primary"
+                                onClick={() => {
+                                    setShowAtletaDetailsModal(false);
+                                    navigate(`/dashboard/atletas/editar/${selectedAtleta.idPersona}`, {
+                                        state: { returnPath: `/dashboard/clubes/detalles/${id}` }
+                                    });
+                                }}
+                            >
+                                <Edit size={18} /> Editar Atleta
+                            </Button>
+                        </div>
+                    }
+                >
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', padding: '1rem' }}>
+                        <div style={{ gridColumn: '1 / -1' }}>
+                            <label className="detail-label">Nombre Completo</label>
+                            <div className="detail-value" style={{ fontSize: '1.25rem', color: 'var(--primary)' }}>
+                                {selectedAtleta.nombrePersona}
+                            </div>
+                        </div>
+                        <div>
+                            <label className="detail-label">DNI</label>
+                            <div className="detail-value">{selectedAtleta.documento}</div>
+                        </div>
+                        <div>
+                            <label className="detail-label">Categoría</label>
+                            <div className="detail-value">{getCategoriaLabel(selectedAtleta.categoria)}</div>
+                        </div>
+                        <div>
+                            <label className="detail-label">Selección</label>
+                            <div className="detail-value">
+                                {selectedAtleta.perteneceSeleccion ? (
+                                    <span className="badge badge-success">Sí</span>
+                                ) : (
+                                    <span className="badge badge-secondary">No</span>
+                                )}
+                            </div>
+                        </div>
+                        <div>
+                            <label className="detail-label">Estado Pago</label>
+                            <div className="detail-value">
+                                <span className={`badge badge-${selectedAtleta.estadoPago === 1 ? 'success' : 'warning'}`}>
+                                    {selectedAtleta.estadoPago === 1 ? 'Al día' : 'Pendiente'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </Modal>
+            )}
         </div>
     );
 };

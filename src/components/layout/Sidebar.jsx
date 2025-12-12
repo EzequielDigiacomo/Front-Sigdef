@@ -18,7 +18,7 @@ const Sidebar = ({ isOpen, closeMobile, isCollapsed, toggleSidebar }) => {
         { icon: Briefcase, label: 'Delegados Club', path: '/delegados' },
         { icon: UserCheck, label: 'Tutores', path: '/tutores' },
         { icon: DollarSign, label: 'Pagos', path: '/pagos' },
-        { icon: Trophy, label: 'Federación', path: '/federacion' },
+        { icon: Trophy, label: 'Federación', path: '/dashboard/federacion' },
     ];
 
     if (user?.role === 'FEDERACION') {

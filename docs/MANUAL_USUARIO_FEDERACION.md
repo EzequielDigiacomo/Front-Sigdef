@@ -35,3 +35,17 @@ El panel principal ofrece métricas globales del sistema:
 - **Clubes Activos**.
 - **Eventos del Mes**.
 - **Estado de Pagos/Deudas** (Resumen general).
+
+## 5. Gestión de Tutores
+
+El sistema permite la administración completa de los tutores legales de los atletas menores de edad.
+
+### Funcionalidades:
+- **Listado de Tutores**: Visualiza todos los tutores registrados, sus datos de contacto y los atletas que representan.
+- **Vincular Atletas**: 
+    - Puedes vincular múltiples atletas a un mismo tutor.
+    - **Herencia de Datos**: Al vincular un atleta menor que no tenga datos de contacto (email/teléfono), estos se copiarán automáticamente del tutor.
+- **Agregar Tutor Existente**: Posibilidad de buscar personas ya registradas en el sistema (mayores de edad) y promoverlas a rol de Tutor, seleccionando el parentesco.
+- **Gestión Documental**: Subida y visualización de documentos asociados al tutor (DNI, Poder, etc.).
+- **Eliminación Segura**: El sistema verifica y limpia automáticamente las vinculaciones con atletas antes de eliminar un tutor, evitando errores de consistencia en la base de datos.
+

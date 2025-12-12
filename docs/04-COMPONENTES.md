@@ -298,6 +298,26 @@ import Card from '../../components/common/Card';
 
 ---
 
+### TutoresList
+
+**Ubicación**: `src/pages/FederacionAdmin/Tutores/TutoresList.jsx`
+
+**Descripción**: Gestión integral de Tutores y sus relaciones con atletas.
+
+**Características**:
+- Tabla de tutores con información de contacto y atletas representados
+- Modales de gestión (Docs, Detalles, Vinculación)
+- **Funcionalidad "Vincular Existente"**: Permite seleccionar personas del padrón general para hacerlas tutores.
+- **Herencia de Contacto**: Al vincular menor, copia email/teléfono si faltan.
+- **Borrado en Cascada**: Elmina relaciones `AtletaTutor` antes de eliminar al tutor.
+
+**Modales Internos**:
+- `DocumentUploadModal`: Gestión de archivos.
+- `LinkAthleteModal`: Vinculación de atletas menores.
+- `AddExistingPersonModal`: Búsqueda de personas aptas.
+- `SuccessModal`: Feedback visual de operaciones exitosas.
+
+
 ### EventosList
 
 **Ubicación**: `src/pages/Eventos/EventosList.jsx`

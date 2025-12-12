@@ -6,11 +6,15 @@ import Button from '../../../components/common/Button';
 import FormField from '../../../components/forms/FormField';
 import DocumentUploadModal from '../../../components/common/DocumentUploadModal';
 import DocumentViewerModal from '../../../components/common/DocumentViewerModal';
-import { Plus, Edit, Trash2, Search, UserCheck, Eye } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, UserCheck, Eye, UserPlus } from 'lucide-react';
+import Modal from '../../../components/common/Modal';
 import '../Atletas/Atletas.css';
+import { PARENTESCO_MAP } from '../../../utils/enums';
 
 const TutoresList = () => {
     const [tutores, setTutores] = useState([]);
+    const [atletas, setAtletas] = useState([]);
+    const [atletaTutorRelaciones, setAtletaTutorRelaciones] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const navigate = useNavigate();
@@ -21,14 +25,187 @@ const TutoresList = () => {
     const [selectedTutorForDocs, setSelectedTutorForDocs] = useState(null);
     const [existingDocuments, setExistingDocuments] = useState([]);
 
+    // Link Athlete Modal State
+    const [showLinkAthleteModal, setShowLinkAthleteModal] = useState(false);
+    const [selectedTutorForLink, setSelectedTutorForLink] = useState(null);
+
+    // Tutor Details Modal State
+    const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const [selectedTutorForDetails, setSelectedTutorForDetails] = useState(null);
+
+    // Add Existing Person Modal State
+    const [showAddExistingModal, setShowAddExistingModal] = useState(false);
+    const [personasDisponibles, setPersonasDisponibles] = useState([]);
+    const [searchTermPersonas, setSearchTermPersonas] = useState('');
+
+    const loadPersonasDisponibles = async () => {
+        try {
+            // Traemos Personas y Tutores actuales para filtrar
+            const [personasData, tutoresData] = await Promise.all([
+                api.get('/Persona'),
+                api.get('/Tutor')
+            ]);
+
+            const tutorPersonaIds = new Set(tutoresData.map(t => t.idPersona));
+
+            const disponibles = personasData.filter(p => {
+                // Excluir si ya es tutor
+                if (tutorPersonaIds.has(p.idPersona)) return false;
+
+                // Calcular edad (Filtrar solo mayores de 18)
+                if (!p.fechaNacimiento) return false;
+                const nacimiento = new Date(p.fechaNacimiento);
+                const hoy = new Date();
+                let edad = hoy.getFullYear() - nacimiento.getFullYear();
+                const mes = hoy.getMonth() - nacimiento.getMonth();
+                if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) edad--;
+
+                return edad >= 18;
+            });
+
+            setPersonasDisponibles(disponibles);
+        } catch (err) {
+            console.error('Error cargando personas disponibles:', err);
+        }
+    };
+
+    // Confirm Add Existing Tutor Modal State
+    const [showConfirmAddModal, setShowConfirmAddModal] = useState(false);
+    const [selectedPersonToAdd, setSelectedPersonToAdd] = useState(null);
+    const [selectedTutorType, setSelectedTutorType] = useState('0');
+
+    // Confirm Delete Modal State
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [tutorToDelete, setTutorToDelete] = useState(null);
+
+    // Success Modal State
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [successMessage, setSuccessMessage] = useState('');
+
+    const handleAddExistingTutorClick = (persona) => {
+        setSelectedPersonToAdd(persona);
+        setSelectedTutorType('0');
+        setShowConfirmAddModal(true);
+    };
+
+    const executeAddTutor = async () => {
+        if (!selectedPersonToAdd) return;
+        try {
+            await api.post('/Tutor', {
+                IdPersona: selectedPersonToAdd.idPersona,
+                TipoTutor: PARENTESCO_MAP[selectedTutorType]
+            });
+            setShowConfirmAddModal(false);
+            setShowAddExistingModal(false);
+            loadTutores();
+
+            setSuccessMessage('Tutor vinculado exitosamente.');
+            setShowSuccessModal(true);
+        } catch (err) {
+            console.error(err);
+            alert('Error al agregar tutor: ' + (err.response?.data?.message || err.message));
+        }
+    };
+
+    const handleDeleteClick = (tutor) => {
+        setTutorToDelete(tutor);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!tutorToDelete) return;
+        try {
+            // 1. Buscar y eliminar relaciones Atleta-Tutor existentes
+            const relaciones = atletaTutorRelaciones.filter(r => r.idTutor === tutorToDelete.idPersona);
+
+            if (relaciones.length > 0) {
+                console.log(`Eliminando ${relaciones.length} relaciones de atletas para el tutor...`, relaciones);
+
+                await Promise.all(relaciones.map(async r => {
+                    const idRelacion = r.id || r.idAtletaTutor;
+
+                    try {
+                        if (idRelacion) {
+                            await api.delete(`/AtletaTutor/${idRelacion}`);
+                        } else {
+                            // Sin ID simple, intentar borrado por claves compuestas
+                            await api.delete(`/AtletaTutor/${r.idAtleta}/${r.idTutor}`);
+                        }
+                    } catch (err) {
+                        console.warn('Fallo al borrar relación, intentando estrategia alternativa...', err);
+                        // Si falló con ID simple (ej 404), intentar compuesto como fallback
+                        if (idRelacion && err.response?.status === 404) {
+                            await api.delete(`/AtletaTutor/${r.idAtleta}/${r.idTutor}`);
+                        } else {
+                            // Si falla esto tambien, lo dejamos pasar y que falle el delete del Tutor si es constraint
+                            // O lanzamos error si queremos ser estrictos. 
+                            // Lo dejamos pasar para ver si el backend tiene OnDelete Cascade
+                        }
+                    }
+                }));
+            }
+
+            // 2. Eliminar el Tutor
+            await api.delete(`/Tutor/${tutorToDelete.idPersona}`);
+
+            setShowDeleteModal(false);
+            setTutorToDelete(null);
+            loadTutores();
+            setSuccessMessage('Tutor eliminado exitosamente.');
+            setShowSuccessModal(true);
+        } catch (error) {
+            console.error('Error eliminando tutor:', error);
+            const status = error.response?.status;
+            let msg = error.response?.data?.message || error.response?.data?.title || error.message;
+
+            if (status === 404) {
+                msg = "No se encontró el recurso a eliminar. Verifica que la relación o el tutor existan.";
+            } else if (status === 409 || status === 500) {
+                msg = "Conflicto de dependencia: No se pudo desvincular a los atletas asociados.";
+            }
+
+            alert(`Error al eliminar: ${msg}`);
+        }
+    };
+
+    useEffect(() => {
+        if (showAddExistingModal) {
+            loadPersonasDisponibles();
+        }
+    }, [showAddExistingModal]);
+
     useEffect(() => {
         loadTutores();
     }, []);
 
     const loadTutores = async () => {
         try {
-            const data = await api.get('/Tutor');
-            setTutores(data);
+            const [tutoresData, atletasData, relacionesData] = await Promise.all([
+                api.get('/Tutor'),
+                api.get('/Atleta'),
+                api.get('/AtletaTutor')
+            ]);
+
+            // Enriquecer atletas con datos de Persona para obtener DNI y fecha de nacimiento
+            const atletasEnriquecidos = await Promise.all(
+                atletasData.map(async (atleta) => {
+                    try {
+                        const personaData = await api.get(`/Persona/${atleta.idPersona}`);
+                        return {
+                            ...atleta,
+                            documento: personaData.documento || atleta.documento || '-',
+                            fechaNacimiento: personaData.fechaNacimiento || atleta.fechaNacimiento
+                        };
+                    } catch (error) {
+                        console.error('Error obteniendo Persona:', error);
+                        return atleta;
+                    }
+                })
+            );
+
+            setTutores(tutoresData);
+            setAtletas(atletasEnriquecidos);
+            setAtletaTutorRelaciones(relacionesData);
         } catch (error) {
             console.error('Error cargando tutores:', error);
         } finally {
@@ -36,17 +213,7 @@ const TutoresList = () => {
         }
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm('¿Estás seguro de eliminar este tutor?')) {
-            try {
-                await api.delete(`/Tutor/${id}`);
-                loadTutores();
-            } catch (error) {
-                console.error('Error eliminando tutor:', error);
-                alert('Error al eliminar el tutor');
-            }
-        }
-    };
+
 
     const loadDocuments = async (personId) => {
         try {
@@ -56,6 +223,17 @@ const TutoresList = () => {
             console.error('Error cargando documentos:', error);
             setExistingDocuments([]);
         }
+    };
+
+    const getAtletasRepresentados = (idTutor) => {
+        // Filtrar relaciones para este tutor
+        const relacionesDelTutor = atletaTutorRelaciones.filter(rel => rel.idTutor === idTutor);
+
+        // Obtener los IDs de los atletas
+        const atletasIds = relacionesDelTutor.map(rel => rel.idAtleta);
+
+        // Filtrar y retornar los atletas completos
+        return atletas.filter(atleta => atletasIds.includes(atleta.idPersona));
     };
 
     // Filtrar tutores por término de búsqueda
@@ -79,9 +257,14 @@ const TutoresList = () => {
                     <UserCheck size={28} />
                     <h2 className="page-title">Gestión de Tutores</h2>
                 </div>
-                <Button onClick={() => navigate('/tutores/new')}>
-                    <Plus size={20} /> Nuevo Tutor
-                </Button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <Button variant="secondary" onClick={() => setShowAddExistingModal(true)}>
+                        <UserPlus size={20} /> Vincular Existente
+                    </Button>
+                    <Button onClick={() => navigate('/dashboard/tutores/new')}>
+                        <Plus size={20} /> Nuevo Tutor
+                    </Button>
+                </div>
             </div>
 
             <Card>
@@ -97,65 +280,101 @@ const TutoresList = () => {
                                 <th>DNI</th>
                                 <th>Teléfono</th>
                                 <th>Email</th>
+                                <th>Atletas Representados</th>
                                 <th>Documentación</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan="6" className="text-center">Cargando...</td></tr>
+                                <tr><td colSpan="7" className="text-center">Cargando...</td></tr>
                             ) : tutores.length === 0 ? (
-                                <tr><td colSpan="6" className="text-center">No hay tutores registrados</td></tr>
+                                <tr><td colSpan="7" className="text-center">No hay tutores registrados</td></tr>
                             ) : (
-                                tutoresFiltrados.map((tutor) => (
-                                    <tr key={tutor.idPersona}>
-                                        <td>{tutor.nombrePersona || `${tutor.persona?.nombre} ${tutor.persona?.apellido}` || '-'}</td>
-                                        <td>{tutor.documento || tutor.persona?.documento || '-'}</td>
-                                        <td>{tutor.telefono || tutor.persona?.telefono || '-'}</td>
-                                        <td>{tutor.email || tutor.persona?.email || '-'}</td>
-                                        <td>
-                                            <div className="flex items-center justify-center gap-2">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="p-1 h-auto"
-                                                    title="Subir documentos"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setSelectedTutorForDocs(tutor);
-                                                        loadDocuments(tutor.idPersona);
-                                                        setShowUploadModal(true);
-                                                    }}
-                                                >
-                                                    <Plus size={18} className="text-primary" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="p-1 h-auto"
-                                                    title="Ver documentos"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setSelectedTutorForDocs(tutor);
-                                                        setShowViewerModal(true);
-                                                    }}
-                                                >
-                                                    <Eye size={18} className="text-primary" />
-                                                </Button>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div className="actions-cell">
-                                                <Button variant="ghost" size="sm" onClick={() => navigate(`/tutores/${tutor.idPersona}/edit`)}>
-                                                    <Edit size={18} />
-                                                </Button>
-                                                <Button variant="ghost" size="sm" className="text-danger" onClick={() => handleDelete(tutor.idPersona)}>
-                                                    <Trash2 size={18} />
-                                                </Button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
+                                tutoresFiltrados.map((tutor) => {
+                                    const atletasRepresentados = getAtletasRepresentados(tutor.idPersona);
+                                    return (
+                                        <tr
+                                            key={tutor.idPersona}
+                                            onClick={() => {
+                                                setSelectedTutorForDetails(tutor);
+                                                setShowDetailsModal(true);
+                                            }}
+                                            style={{ cursor: 'pointer' }}
+                                            className="hover:bg-gray-50"
+                                        >
+                                            <td>{tutor.nombrePersona || `${tutor.persona?.nombre} ${tutor.persona?.apellido}` || '-'}</td>
+                                            <td>{tutor.documento || tutor.persona?.documento || '-'}</td>
+                                            <td>{tutor.telefono || tutor.persona?.telefono || '-'}</td>
+                                            <td>{tutor.email || tutor.persona?.email || '-'}</td>
+                                            <td>
+                                                {atletasRepresentados.length > 0 ? (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                                        {atletasRepresentados.map((atleta, idx) => (
+                                                            <div key={idx} style={{ fontSize: '0.875rem' }}>
+                                                                <strong>{atleta.nombrePersona}</strong> - DNI: {atleta.documento}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <span style={{ color: 'var(--text-secondary)' }}>Sin atletas</span>
+                                                )}
+                                            </td>
+                                            <td>
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="p-1 h-auto"
+                                                        title="Subir documentos"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedTutorForDocs(tutor);
+                                                            loadDocuments(tutor.idPersona);
+                                                            setShowUploadModal(true);
+                                                        }}
+                                                    >
+                                                        <Plus size={18} className="text-primary" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="p-1 h-auto"
+                                                        title="Ver documentos"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedTutorForDocs(tutor);
+                                                            setShowViewerModal(true);
+                                                        }}
+                                                    >
+                                                        <Eye size={18} className="text-primary" />
+                                                    </Button>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="actions-cell" onClick={(e) => e.stopPropagation()}>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            setSelectedTutorForLink(tutor);
+                                                            setShowLinkAthleteModal(true);
+                                                        }}
+                                                        title="Enlazar atleta menor"
+                                                    >
+                                                        <UserPlus size={18} />
+                                                    </Button>
+                                                    <Button variant="ghost" size="sm" onClick={() => navigate(`/tutores/${tutor.idPersona}/edit`)}>
+                                                        <Edit size={18} />
+                                                    </Button>
+                                                    <Button variant="ghost" size="sm" className="text-danger" onClick={() => handleDeleteClick(tutor)}>
+                                                        <Trash2 size={18} />
+                                                    </Button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>
@@ -191,7 +410,456 @@ const TutoresList = () => {
                     personId={selectedTutorForDocs.idPersona}
                 />
             )}
+
+            {/* Link Athlete Modal */}
+            {showLinkAthleteModal && selectedTutorForLink && (
+                <LinkAthleteModal
+                    isOpen={showLinkAthleteModal}
+                    onClose={() => {
+                        setShowLinkAthleteModal(false);
+                        setSelectedTutorForLink(null);
+                    }}
+                    tutor={selectedTutorForLink}
+                    atletas={atletas}
+                    onSuccess={() => {
+                        loadTutores();
+                        setShowLinkAthleteModal(false);
+                        setSelectedTutorForLink(null);
+                        setSuccessMessage('Atleta enlazado correctamente');
+                        setShowSuccessModal(true);
+                    }}
+                />
+            )}
+
+            {/* Tutor Details Modal */}
+            {showDetailsModal && selectedTutorForDetails && (
+                <Modal
+                    isOpen={showDetailsModal}
+                    onClose={() => {
+                        setShowDetailsModal(false);
+                        setSelectedTutorForDetails(null);
+                    }}
+                    title="Detalles del Tutor"
+                    footer={
+                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                            <Button variant="secondary" onClick={() => {
+                                setShowDetailsModal(false);
+                                setSelectedTutorForDetails(null);
+                            }}>
+                                Cerrar
+                            </Button>
+                            <Button
+                                variant="primary"
+                                onClick={() => {
+                                    setShowDetailsModal(false);
+                                    navigate(`/tutores/${selectedTutorForDetails.idPersona}/edit`);
+                                }}
+                            >
+                                <Edit size={18} /> Editar Tutor
+                            </Button>
+                        </div>
+                    }
+                >
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', padding: '1rem' }}>
+                        <div>
+                            <label className="detail-label">Nombre Completo</label>
+                            <div className="detail-value">
+                                {selectedTutorForDetails.nombrePersona || `${selectedTutorForDetails.persona?.nombre} ${selectedTutorForDetails.persona?.apellido}` || '-'}
+                            </div>
+                        </div>
+                        <div>
+                            <label className="detail-label">DNI</label>
+                            <div className="detail-value">{selectedTutorForDetails.documento || selectedTutorForDetails.persona?.documento || '-'}</div>
+                        </div>
+                        <div>
+                            <label className="detail-label">Teléfono</label>
+                            <div className="detail-value">{selectedTutorForDetails.telefono || selectedTutorForDetails.persona?.telefono || '-'}</div>
+                        </div>
+                        <div>
+                            <label className="detail-label">Email</label>
+                            <div className="detail-value">{selectedTutorForDetails.email || selectedTutorForDetails.persona?.email || '-'}</div>
+                        </div>
+                        <div style={{ gridColumn: '1 / -1' }}>
+                            <label className="detail-label">Atletas Representados</label>
+                            <div className="detail-value">
+                                {(() => {
+                                    const atletasRep = getAtletasRepresentados(selectedTutorForDetails.idPersona);
+                                    return atletasRep.length > 0 ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                            {atletasRep.map((atleta, idx) => (
+                                                <div
+                                                    key={idx}
+                                                    onClick={() => {
+                                                        setShowDetailsModal(false);
+                                                        navigate(`/dashboard/atletas/editar/${atleta.idPersona}`, {
+                                                            state: { returnPath: '/dashboard/tutores' }
+                                                        });
+                                                    }}
+                                                    style={{
+                                                        padding: '0.75rem',
+                                                        backgroundColor: 'var(--bg-secondary)',
+                                                        borderRadius: '4px',
+                                                        border: '1px solid var(--border-color)',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s ease'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.backgroundColor = 'var(--primary-light)';
+                                                        e.currentTarget.style.borderColor = 'var(--primary)';
+                                                        e.currentTarget.style.transform = 'translateX(4px)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
+                                                        e.currentTarget.style.borderColor = 'var(--border-color)';
+                                                        e.currentTarget.style.transform = 'translateX(0)';
+                                                    }}
+                                                >
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <strong>{atleta.nombrePersona}</strong><br />
+                                                            <small style={{ color: 'var(--text-secondary)' }}>
+                                                                DNI: {atleta.documento} | Club: {atleta.nombreClub || '-'}
+                                                            </small>
+                                                        </div>
+                                                        <div style={{ color: 'var(--primary)', fontSize: '0.875rem' }}>
+                                                            Ver detalles →
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <span style={{ color: 'var(--text-secondary)' }}>Sin atletas representados</span>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+            {/* Add Existing Person Modal */}
+            {showAddExistingModal && (
+                <Modal
+                    isOpen={showAddExistingModal}
+                    onClose={() => setShowAddExistingModal(false)}
+                    title="Vincular Persona Existente"
+                    footer={
+                        <Button variant="secondary" onClick={() => setShowAddExistingModal(false)}>Cancelar</Button>
+                    }
+                >
+                    <div style={{ padding: '1rem', minWidth: '500px' }}>
+                        <div style={{ marginBottom: '1rem' }}>
+                            <FormField
+                                icon={Search}
+                                placeholder="Buscar persona por nombre o DNI..."
+                                value={searchTermPersonas}
+                                onChange={(e) => setSearchTermPersonas(e.target.value)}
+                            />
+                        </div>
+                        <div style={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                            {personasDisponibles
+                                .filter(p => {
+                                    if (!searchTermPersonas) return true;
+                                    const term = searchTermPersonas.toLowerCase();
+                                    return (p.nombre?.toLowerCase().includes(term) ||
+                                        p.apellido?.toLowerCase().includes(term) ||
+                                        p.documento?.includes(term));
+                                })
+                                .map(p => (
+                                    <div key={p.idPersona} style={{
+                                        padding: '0.75rem',
+                                        borderBottom: '1px solid var(--border-color)',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center'
+                                    }}>
+                                        <div>
+                                            <div style={{ fontWeight: 500 }}>{p.nombre} {p.apellido}</div>
+                                            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>DNI: {p.documento}</div>
+                                        </div>
+                                        <Button size="sm" onClick={() => handleAddExistingTutorClick(p)}>
+                                            Agregar
+                                        </Button>
+                                    </div>
+                                ))}
+                            {personasDisponibles.length === 0 && (
+                                <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                    No se encontraron personas disponibles (mayores de 18 y no tutores).
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {/* Confirm Add Existing Tutor Modal (Step 2) */}
+            {showConfirmAddModal && selectedPersonToAdd && (
+                <Modal
+                    isOpen={showConfirmAddModal}
+                    onClose={() => setShowConfirmAddModal(false)}
+                    title="Confirmar Tutor"
+                    footer={
+                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                            <Button variant="secondary" onClick={() => setShowConfirmAddModal(false)}>Cancelar</Button>
+                            <Button variant="primary" onClick={executeAddTutor}>Confirmar y Agregar</Button>
+                        </div>
+                    }
+                >
+                    <div style={{ padding: '1rem' }}>
+                        <p style={{ marginBottom: '1rem' }}>
+                            ¿Está seguro de agregar a <strong>{selectedPersonToAdd.nombre} {selectedPersonToAdd.apellido}</strong> como Tutor?
+                        </p>
+                        <div className="form-group">
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Parentesco *</label>
+                            <select
+                                className="form-input"
+                                value={selectedTutorType}
+                                onChange={(e) => setSelectedTutorType(e.target.value)}
+                                style={{ width: '100%', padding: '0.5rem' }}
+                            >
+                                {Object.entries(PARENTESCO_MAP).map(([key, label]) => (
+                                    <option key={key} value={key}>{label}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {/* Confirm Delete Modal */}
+            {showDeleteModal && tutorToDelete && (
+                <Modal
+                    isOpen={showDeleteModal}
+                    onClose={() => setShowDeleteModal(false)}
+                    title="Eliminar Tutor"
+                    footer={
+                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                            <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>Cancelar</Button>
+                            <Button variant="danger" onClick={confirmDelete}>
+                                <Trash2 size={16} style={{ marginRight: '8px' }} /> Eliminar
+                            </Button>
+                        </div>
+                    }
+                >
+                    <div style={{ padding: '1rem' }}>
+                        <p>¿Estás seguro de que deseas eliminar a este tutor?</p>
+                        <div style={{
+                            marginTop: '1rem',
+                            padding: '1rem',
+                            backgroundColor: 'var(--bg-secondary)',
+                            borderRadius: '4px',
+                            borderLeft: '4px solid var(--danger)'
+                        }}>
+                            <strong>{tutorToDelete.nombrePersona || `${tutorToDelete.persona?.nombre} ${tutorToDelete.persona?.apellido}`}</strong>
+                            <br />
+                            <small>DNI: {tutorToDelete.documento || tutorToDelete.persona?.documento}</small>
+                        </div>
+                        <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                            Esta acción no se puede deshacer. Se desvincularán los atletas asociados.
+                        </p>
+                    </div>
+                </Modal>
+            )}
+
+            {/* Success Modal */}
+            <Modal
+                isOpen={showSuccessModal}
+                onClose={() => setShowSuccessModal(false)}
+                title="Operación Exitosa"
+                footer={
+                    <Button variant="primary" onClick={() => setShowSuccessModal(false)}>Aceptar</Button>
+                }
+            >
+                <div style={{ padding: '2rem', textAlign: 'center' }}>
+                    <div style={{ color: 'var(--success)', marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
+                        <UserCheck size={48} />
+                    </div>
+                    <p style={{ fontSize: '1.1rem', fontWeight: '500' }}>{successMessage}</p>
+                </div>
+            </Modal>
+
         </div>
+    );
+};
+
+// Link Athlete Modal Component
+const LinkAthleteModal = ({ isOpen, onClose, tutor, atletas, onSuccess }) => {
+    const [selectedAtleta, setSelectedAtleta] = useState('');
+    const [parentesco, setParentesco] = useState('0');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    // Filtrar solo atletas menores de 18 años
+    const atletasMenores = atletas.filter(atleta => {
+        if (!atleta.fechaNacimiento) return false;
+        const hoy = new Date();
+        const nacimiento = new Date(atleta.fechaNacimiento);
+        let edad = hoy.getFullYear() - nacimiento.getFullYear();
+        const mes = hoy.getMonth() - nacimiento.getMonth();
+        if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+            edad--;
+        }
+        return edad < 18;
+    });
+
+    // Debug: Ver qué está pasando con los atletas
+    console.log('Total atletas:', atletas.length);
+    console.log('Atletas menores de 18:', atletasMenores.length);
+    console.log('Muestra de atletas:', atletas.slice(0, 3).map(a => ({
+        nombre: a.nombrePersona,
+        fechaNac: a.fechaNacimiento,
+        edad: a.fechaNacimiento ? new Date().getFullYear() - new Date(a.fechaNacimiento).getFullYear() : 'sin fecha'
+    })));
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+
+        try {
+            const idAtleta = parseInt(selectedAtleta);
+
+            // 1. Verificar y heredar contacto del tutor si falta
+            const atletaCompleto = atletas.find(a => a.idPersona === idAtleta);
+
+            if (atletaCompleto) {
+                const faltaEmail = !atletaCompleto.email || atletaCompleto.email.trim() === '';
+                const faltaTelefono = !atletaCompleto.telefono || atletaCompleto.telefono.trim() === '';
+
+                if (faltaEmail || faltaTelefono) {
+                    // Obtener datos completos de la persona para no perder info al hacer PUT
+                    const personaData = await api.get(`/Persona/${idAtleta}`);
+
+                    const emailTutor = tutor.email || tutor.persona?.email;
+                    const telefonoTutor = tutor.telefono || tutor.persona?.telefono;
+
+                    if ((faltaEmail && emailTutor) || (faltaTelefono && telefonoTutor)) {
+                        console.log(`Heredando contacto del tutor para atleta ${idAtleta}...`);
+
+                        const updatedPersona = {
+                            Nombre: personaData.nombre,
+                            Apellido: personaData.apellido,
+                            Documento: personaData.documento,
+                            FechaNacimiento: personaData.fechaNacimiento ? personaData.fechaNacimiento.split('T')[0] : null,
+                            Direccion: personaData.direccion,
+                            Sexo: personaData.sexo, // Check if Sexo is required/present
+                            Email: faltaEmail && emailTutor ? emailTutor : personaData.email,
+                            Telefono: faltaTelefono && telefonoTutor ? telefonoTutor : personaData.telefono
+                        };
+
+                        await api.put(`/Persona/${idAtleta}`, updatedPersona);
+                    }
+                }
+            }
+
+            // 2. Crear el enlace
+            const payload = {
+                idAtleta: idAtleta,
+                idTutor: tutor.idPersona,
+                parentesco: parseInt(parentesco)
+            };
+
+            await api.post('/AtletaTutor', payload);
+            onSuccess();
+        } catch (err) {
+            console.error('Error enlazando atleta:', err);
+            setError(err.message || 'Error al enlazar el atleta. Verifica que no esté ya enlazado.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={`Enlazar Atleta Menor - ${tutor.nombrePersona}`}
+            footer={
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                    <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+                    <Button
+                        variant="primary"
+                        onClick={handleSubmit}
+                        isLoading={loading}
+                        disabled={!selectedAtleta}
+                    >
+                        Enlazar Atleta
+                    </Button>
+                </div>
+            }
+        >
+            <form onSubmit={handleSubmit} style={{ padding: '1rem' }}>
+                {error && (
+                    <div style={{
+                        padding: '0.75rem',
+                        marginBottom: '1rem',
+                        backgroundColor: 'var(--danger-light)',
+                        color: 'var(--danger)',
+                        borderRadius: '4px'
+                    }}>
+                        {error}
+                    </div>
+                )}
+
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                        Atleta Menor de Edad *
+                    </label>
+                    {atletasMenores.length === 0 ? (
+                        <div style={{
+                            padding: '1rem',
+                            backgroundColor: 'var(--bg-secondary)',
+                            borderRadius: '4px',
+                            textAlign: 'center',
+                            color: 'var(--text-secondary)'
+                        }}>
+                            No hay atletas menores de 18 años disponibles para enlazar.
+                            <br />
+                            <small>Total de atletas en el sistema: {atletas.length}</small>
+                        </div>
+                    ) : (
+                        <>
+                            <select
+                                value={selectedAtleta}
+                                onChange={(e) => setSelectedAtleta(e.target.value)}
+                                className="form-input"
+                                required
+                                style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}
+                            >
+                                <option value="">Seleccione un atleta</option>
+                                {atletasMenores.map((atleta) => (
+                                    <option key={atleta.idPersona} value={atleta.idPersona}>
+                                        {atleta.nombrePersona} - DNI: {atleta.documento}
+                                    </option>
+                                ))}
+                            </select>
+                            <small style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                                Solo se muestran atletas menores de 18 años ({atletasMenores.length} disponibles)
+                            </small>
+                        </>
+                    )}
+                </div>
+
+                <div className="form-group">
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                        Parentesco *
+                    </label>
+                    <select
+                        value={parentesco}
+                        onChange={(e) => setParentesco(e.target.value)}
+                        className="form-input"
+                        required
+                        style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}
+                    >
+                        <option value="0">Padre/Madre</option>
+                        <option value="1">Tutor Legal</option>
+                        <option value="2">Abuelo/Abuela</option>
+                        <option value="3">Tío/Tía</option>
+                        <option value="4">Otro</option>
+                    </select>
+                </div>
+            </form>
+        </Modal>
     );
 };
 
