@@ -1,16 +1,26 @@
 
 export const CATEGORIA_MAP = {
-    0: 'Preinfantil',
-    1: 'Infantil',
-    2: 'Cadete',
-    3: 'Junior',
-    4: 'Sub21',
-    5: 'Sub23',
-    6: 'Senior',
-    7: 'Master'
+    1: 'Preinfantil',
+    2: 'Infantil',
+    3: 'Menores',
+    4: 'Cadete',
+    5: 'Junior',
+    6: 'Sub21',
+    7: 'Sub23',
+    8: 'Senior',
+    9: 'Master A'
 };
 
 // Start of new user-requested Enums
+
+export const TIPO_BOTE_MAP = {
+    0: 'K1',
+    1: 'K2',
+    2: 'K4',
+    3: 'C1',
+    4: 'C2',
+    5: 'C4'
+};
 
 export const CATEGORIA_EDAD_MAP = {
     1: 'Preinfantil (6-9 años)',
@@ -108,7 +118,8 @@ export const ROL_TIPO_MAP = {
 export const SEXO_MAP = {
     1: 'Masculino',
     2: 'Femenino',
-    3: 'Mixto'
+    3: 'Otro',
+    4: 'Prefiero no decir'
 };
 
 export const getCategoriaLabel = (value) => {
@@ -158,3 +169,4 @@ export const TIPO_DOCUMENTO_MAP = {
 };
 
 export const getTipoDocumentoLabel = (value) => TIPO_DOCUMENTO_MAP[value] ?? 'Documento';
+export const getTipoBoteLabel = (value) => TIPO_BOTE_MAP[value] ?? '-';

@@ -1,4 +1,3 @@
-import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Users, Calendar, Info, ChevronLeft, ChevronRight, Trophy, UserCheck, Award, Shield } from 'lucide-react';
 import './Sidebar.css';
@@ -39,6 +38,7 @@ const SidebarClub = ({ isOpen, closeMobile, isCollapsed, toggleSidebar }) => {
                             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
                             onClick={closeMobile}
                             title={isCollapsed ? item.label : ''}
+                            style={{ position: 'relative', zIndex: 102 }} // Ensure clickable
                         >
                             <item.icon size={20} />
                             <span className="nav-label">{item.label}</span>

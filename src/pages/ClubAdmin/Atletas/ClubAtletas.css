@@ -196,8 +196,8 @@
 }
 
 .detail-section {
-    margin-bottom: 1.5rem;
-    padding: 1rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
     background: rgba(255, 255, 255, 0.03);
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -216,28 +216,38 @@
 .detail-grid {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.25rem;
 }
 
 .detail-row {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.5rem 0;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    align-items: baseline !important;
+    gap: 0.5rem !important;
+    padding: 0.25rem 0 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.detail-row:last-child {
+    border-bottom: none;
 }
 
 .detail-row .label {
     font-size: 0.875rem;
-    color: var(--text-secondary);
-    font-weight: 500;
-    min-width: 150px;
+    color: var(--primary) !important;
+    /* Visual confirm */
+    font-weight: 700 !important;
+    min-width: auto !important;
+    white-space: nowrap !important;
 }
 
 .detail-row .value {
     font-size: 0.875rem;
     color: var(--text-primary);
-    font-weight: 600;
+    font-weight: 400;
     flex: 1;
+    text-align: left;
 }
 
 .detail-row svg {
@@ -298,4 +308,86 @@
 
 .filters-bar .form-group input:focus~svg {
     color: var(--primary) !important;
+}
+
+/* Form Grid Layout */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    padding: 1rem 0;
+}
+
+.form-grid .form-section-title {
+    grid-column: 1 / -1;
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--primary);
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.form-group {
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+/* Make checkboxes span appropriately or align better */
+.checkbox-group {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Ensure full width for certain elements if needed */
+.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    transition: all 0.2s;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Fix for select options visibility */
+.form-input option {
+    background-color: var(--bg-card, #1e293b);
+    color: var(--text-primary, #ffffff);
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
 }

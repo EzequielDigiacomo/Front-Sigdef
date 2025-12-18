@@ -3,8 +3,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
-import DataTable from '../../../components/common/DataTable';
-import { ArrowLeft, Ruler } from 'lucide-react';
+import { ArrowLeft, Ruler, Trash2 } from 'lucide-react';
+import {
+    getDistanciaLabel,
+    getCategoriaEdadLabel,
+    getSexoLabel,
+    getTipoBoteLabel,
+    getCategoriaLabel
+} from '../../../utils/enums';
 import './Evento.css';
 
 const DistanciasList = () => {
@@ -14,48 +20,6 @@ const DistanciasList = () => {
     const [evento, setEvento] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Mapeos de enums
-    const distanciaRegataMap = {
-        1: '200 Metros',
-        2: '350 Metros',
-        3: '400 Metros',
-        4: '500 Metros',
-        5: '1000 Metros',
-        6: '2 Kilómetros',
-        7: '3 Kilómetros',
-        8: '5 Kilómetros',
-        9: '10 Kilómetros',
-        10: '15 Kilómetros',
-        11: '22 Kilómetros',
-        12: '25 Kilómetros',
-        13: '32 Kilómetros'
-    };
-
-    const tipoBoteMap = {
-        0: 'K1',
-        1: 'K2',
-        2: 'K4',
-        3: 'C1',
-        4: 'C2',
-        5: 'C4'
-    };
-
-    const categoriaMap = {
-        0: 'Infantil',
-        1: 'Cadete',
-        2: 'Junior',
-        3: 'Sub23',
-        4: 'Senior',
-        5: 'Master',
-        6: 'Veterano'
-    };
-
-    const sexoMap = {
-        0: 'Masculino',
-        1: 'Femenino',
-        2: 'Mixto'
-    };
-
     useEffect(() => {
         loadData();
     }, [eventoId]);
@@ -63,11 +27,8 @@ const DistanciasList = () => {
     const loadData = async () => {
         setLoading(true);
         try {
-            // Cargar evento
             const eventoData = await api.get(`/Evento/${eventoId}`);
             setEvento(eventoData);
-
-            // Usar las distancias que vienen con el evento (priorizar 'distancias' del DTO)
             setDistancias(eventoData.distancias || eventoData.eventoDistancias || []);
         } catch (error) {
             console.error('Error cargando distancias:', error);
@@ -75,29 +36,6 @@ const DistanciasList = () => {
             setLoading(false);
         }
     };
-
-    const columns = [
-        {
-            label: 'Distancia',
-            key: 'distanciaCodigo',
-            render: (val, row) => val || row.distanciaNombre || '-'
-        },
-        {
-            label: 'Bote',
-            key: 'tipoBoteNombre',
-            render: (val) => val || '-'
-        },
-        {
-            label: 'Categoría',
-            key: 'categoriaEdad',
-            render: (val) => categoriaMap[val] || categoriaMap[String(val)] || val || '-'
-        },
-        {
-            label: 'Sexo',
-            key: 'sexoCompetencia',
-            render: (val) => sexoMap[val] || sexoMap[String(val)] || val || '-'
-        }
-    ];
 
     return (
         <div className="page-container">
@@ -116,12 +54,42 @@ const DistanciasList = () => {
             </div>
 
             <Card>
-                <DataTable
-                    columns={columns}
-                    data={distancias}
-                    loading={loading}
-                    emptyMessage="No hay distancias configuradas para este evento"
-                />
+                <div className="table-responsive">
+                    <table className="data-table">
+                        <thead>
+                            <tr>
+                                <th>Distancia</th>
+                                <th>Bote</th>
+                                <th>Categoría</th>
+                                <th>Sexo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="4" className="text-center">Cargando...</td>
+                                </tr>
+                            ) : distancias.length === 0 ? (
+                                <tr>
+                                    <td colSpan="4" className="text-center">No hay distancias configuradas para este evento</td>
+                                </tr>
+                            ) : (
+                                distancias.map((row, index) => (
+                                    <tr key={row.idDistancia || index}>
+                                        <td>{getDistanciaLabel(row.distanciaRegata)}</td>
+                                        <td>{getTipoBoteLabel(row.tipoBote)}</td>
+                                        <td>
+                                            {getCategoriaEdadLabel(row.categoriaEdad) !== 'Desconocido'
+                                                ? getCategoriaEdadLabel(row.categoriaEdad)
+                                                : getCategoriaLabel(row.categoriaEdad)}
+                                        </td>
+                                        <td>{getSexoLabel(row.sexoCompetencia)}</td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </Card>
         </div>
     );

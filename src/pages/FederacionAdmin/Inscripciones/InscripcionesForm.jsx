@@ -97,13 +97,28 @@ const InscripcionesForm = () => {
                 atletasParaMostrar = atletasDelClub;
             }
 
-            atletasParaMostrar.sort((a, b) => {
+            // Enriquecer con datos de Persona para obtener DNI
+            const atletasEnriquecidos = await Promise.all(atletasParaMostrar.map(async (atleta) => {
+                try {
+                    const personaData = await api.get(`/Persona/${atleta.idPersona}`);
+                    return {
+                        ...atleta,
+                        documento: personaData.documento || atleta.documento || '-',
+                        nombrePersona: `${personaData.nombre} ${personaData.apellido}` // Asegurar nombre completo
+                    };
+                } catch (err) {
+                    console.warn(`No se pudo cargar persona ${atleta.idPersona}`, err);
+                    return atleta;
+                }
+            }));
+
+            atletasEnriquecidos.sort((a, b) => {
                 const catA = a.categoria !== null ? a.categoria : 999;
                 const catB = b.categoria !== null ? b.categoria : 999;
                 return catA - catB;
             });
 
-            setAtletasDisponibles(atletasParaMostrar);
+            setAtletasDisponibles(atletasEnriquecidos);
         } catch (error) {
             console.error('Error cargando atletas:', error);
         }
@@ -221,10 +236,21 @@ const InscripcionesForm = () => {
 
     const getAvailableOptions = () => {
         if (!eventoDetalle || !eventoDetalle.distancias) return [];
-        return eventoDetalle.distancias.map(d => ({
-            value: `${d.distancia}|${d.categoria}|${d.sexo}`,
-            label: `${getDistanciaShortLabel(d.distancia)} - ${getCategoriaEdadLabel(d.categoria)} ${d.sexo ? `(${getSexoLabel(d.sexo)})` : '(Mixto)'}`
-        }));
+        return eventoDetalle.distancias.map(d => {
+            const distLabel = getDistanciaShortLabel(d.distanciaRegata || d.distancia);
+            // Fix: Check for categoriaEdad, then categoria. Ensure we pass the value, not the whole object if it was malformed.
+            const catValue = d.categoriaEdad !== undefined ? d.categoriaEdad : d.categoria;
+            const catLabel = getCategoriaEdadLabel(catValue); // This uses CATEGORIA_EDAD_MAP
+
+            // Fix Sex Label logic
+            const sexValue = d.sexoCompetencia !== undefined ? d.sexoCompetencia : d.sexo;
+            const sexLabel = sexValue !== null && sexValue !== undefined ? getSexoLabel(sexValue) : 'Mixto';
+
+            return {
+                value: `${d.distanciaRegata || d.distancia}|${catValue}|${sexValue}`,
+                label: `${distLabel} - ${catLabel} (${sexLabel})`
+            };
+        });
     };
 
     const options = getAvailableOptions();

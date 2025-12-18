@@ -8,6 +8,13 @@
     position: fixed;
     z-index: 100;
     height: 100vh;
+    pointer-events: none;
+    /* Let clicks pass through empty areas */
+}
+
+.sidebar-wrapper>* {
+    pointer-events: auto;
+    /* Re-enable clicks on the sidebar content */
 }
 
 .main-content {

@@ -74,19 +74,20 @@ const EventosForm = () => {
     ];
 
     const categoriaOptions = [
-        { value: 0, label: 'Infantil' },
-        { value: 1, label: 'Cadete' },
-        { value: 2, label: 'Junior' },
-        { value: 3, label: 'Sub23' },
-        { value: 4, label: 'Senior' },
-        { value: 5, label: 'Master' },
-        { value: 6, label: 'Veterano' }
+        { value: 1, label: 'Preinfantil (6-9 años)' },
+        { value: 2, label: 'Infantil (10-12 años)' },
+        { value: 3, label: 'Cadete (13-14 años)' },
+        { value: 4, label: 'Junior (15-17 años)' },
+        { value: 5, label: 'Sub21 (18-20 años)' },
+        { value: 6, label: 'Sub23 (18-22 años)' },
+        { value: 7, label: 'Senior (18-35 años)' },
+        { value: 8, label: 'Master (35+ años)' }
     ];
 
     const sexoOptions = [
-        { value: 0, label: 'Masculino' },
-        { value: 1, label: 'Femenino' },
-        { value: 2, label: 'Mixto' }
+        { value: 1, label: 'Masculino' },
+        { value: 2, label: 'Femenino' },
+        { value: 3, label: 'Mixto' }
     ];
 
     const [formData, setFormData] = useState({

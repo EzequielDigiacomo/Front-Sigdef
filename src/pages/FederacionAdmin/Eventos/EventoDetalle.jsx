@@ -170,8 +170,24 @@ const EventoDetalle = () => {
                         <div className="detail-row">
                             <MapPin size={24} />
                             <strong>Ubicación</strong>
-                            <p>{evento.ubicacion || '-'} {evento.ciudad ? `, ${evento.ciudad}` : ''} {evento.provincia ? `, ${evento.provincia}` : ''}</p>
+                            <p>{evento.ubicacion || '-'}</p>
                         </div>
+
+                        {evento.ciudad && (
+                            <div className="detail-row">
+                                <div style={{ width: 24 }}></div> {/* Spacer for icon alignment if needed, or use MapPin again */}
+                                <strong>Ciudad</strong>
+                                <p>{evento.ciudad}</p>
+                            </div>
+                        )}
+
+                        {evento.provincia && (
+                            <div className="detail-row">
+                                <div style={{ width: 24 }}></div>
+                                <strong>Provincia</strong>
+                                <p>{evento.provincia}</p>
+                            </div>
+                        )}
 
                         <div className="detail-row">
                             <DollarSign size={24} />
@@ -184,6 +200,16 @@ const EventoDetalle = () => {
                             <strong>Cupo</strong>
                             <p>{inscripciones.length} / {evento.cupoMaximo} inscritos</p>
                         </div>
+
+                        {evento.observaciones && (
+                            <div className="detail-row" style={{ alignItems: 'flex-start', marginTop: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                                <Info size={24} />
+                                <div>
+                                    <strong>Observaciones</strong>
+                                    <p style={{ marginTop: '0.25rem' }}>{evento.observaciones}</p>
+                                </div>
+                            </div>
+                        )}
                     </Card>
 
                     <Card className="detail-card">

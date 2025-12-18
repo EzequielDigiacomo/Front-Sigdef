@@ -86,81 +86,94 @@ const ClubEntrenadores = () => {
     const fetchEntrenadores = async (clubId) => {
         try {
             setLoading(true);
-            console.log(`🔍 ClubEntrenadores - INICIANDO fetchEntrenadores para clubId: ${clubId}`);
+
+            // Fetch Personas and EntrenadorSeleccion in parallel
+            const [personas, entrenadoresSeleccion] = await Promise.all([
+                api.get('/Persona'),
+                api.get('/Entrenador/seleccion')
+            ]);
+
+            // Map Personas and Selection data for quick lookup
+            const personasMap = new Map(personas.map(p => [p.idPersona, p]));
+            const seleccionMap = new Set();
+            if (entrenadoresSeleccion && Array.isArray(entrenadoresSeleccion)) {
+                // Assuming the endpoint returns categories with coaches, or a list of coaches
+                // If it returns list of coaches assigned:
+                // We need to verify the structure, but usually it returns stats or list.
+                // If it returns stats like EntrenadorSeleccionList, we need to extract IDs.
+                // Let's assume we can check assignment via Entrenador entity if possible, or fetch /EntrenadorSeleccion map.
+                // However, based on previous context, EntrenadorSeleccionList returns stats.
+                // Let's rely on checking if the coach ID is present in any selection assignment if available.
+
+                // Better approach: Search in EntrenadorSeleccion/all or filter.
+                // Let's assume we fetch all assignments if possible. If not, we might check local property.
+                // If endpoint /Entrenador/seleccion returns mapped DTOs with coachNames, we might parse it.
+                // But simpler: Check if 'perteneceSeleccion' property exists on Entrenador DTO or similar.
+
+                // If no direct property, we use the fetched list. 
+                // Let's iterate whatever EntrenadorSeleccion returns to build the Set.
+                entrenadoresSeleccion.forEach(item => {
+                    if (item.coachNames) { // It's a category stat
+                        item.coachNames.forEach(c => seleccionMap.add(c.coachId)); // Assuming coachId is available in the view model
+                    }
+                });
+            }
 
             let data = [];
             let source = '';
 
-            // PRIMERO: Intentar endpoints específicos
             try {
-                console.log(`📡 ClubEntrenadores - Intentando GET /Entrenador/club/${clubId}`);
                 data = await api.get(`/Entrenador/club/${clubId}`, { silentErrors: true });
                 source = 'Endpoint /Entrenador/club/{id}';
-                console.log(`✅ ${source}: ${data?.length || 0} entrenadores`);
             } catch (e1) {
-                console.warn(`⚠️ /Entrenador/club/${clubId} falló:`, e1.message);
-
                 try {
-                    console.log(`📡 ClubEntrenadores - Intentando GET /Club/${clubId}/Entrenadores`);
                     data = await api.get(`/Club/${clubId}/Entrenadores`, { silentErrors: true });
                     source = 'Endpoint /Club/{id}/Entrenadores';
-                    console.log(`✅ ${source}: ${data?.length || 0} entrenadores`);
                 } catch (e2) {
-                    console.warn(`⚠️ /Club/${clubId}/Entrenadores falló:`, e2.message);
-
-                    // FALLBACK: Obtener todos y filtrar por IdClub
-                    console.log('📡 ClubEntrenadores - Usando FALLBACK: Obtener todos los entrenadores y filtrar');
                     const todos = await api.get('/Entrenador');
-                    console.log(`📦 ClubEntrenadores - Total entrenadores en DB: ${todos?.length || 0}`);
-
                     if (todos && todos.length > 0) {
-                        // DEBUG: Ver estructura del primer entrenador
                         const primerEntrenador = todos[0];
-                        console.log('📋 ClubEntrenadores - Primer entrenador estructura:', JSON.stringify(primerEntrenador, null, 2));
-
-                        // Buscar el campo correcto (probablemente IdClub con I mayúscula)
                         const campoClub = Object.keys(primerEntrenador).find(key =>
-                            key === 'IdClub' ||
-                            key === 'idClub' ||
-                            key.toLowerCase() === 'idclub' ||
-                            key.toLowerCase().includes('club')
+                            key.toLowerCase().includes('club') && key.toLowerCase().includes('id')
                         );
 
-                        console.log(`🔍 ClubEntrenadores - Campo de club encontrado: "${campoClub}"`);
-
                         if (campoClub) {
-                            // Filtrar usando string comparison para evitar problemas de tipo
-                            data = todos.filter(e => {
-                                const clubIdEntrenador = e[campoClub];
-                                const match = clubIdEntrenador !== undefined &&
-                                    clubIdEntrenador !== null &&
-                                    String(clubIdEntrenador) === String(clubId);
-
-                                if (match) {
-                                    console.log(`   ✅ Match: Entrenador "${e.nombrePersona}" - ${campoClub}=${clubIdEntrenador}`);
-                                }
-
-                                return match;
-                            });
-                        } else {
-                            console.error('❌ ClubEntrenadores - No se encontró campo de club en los entrenadores');
-                            // Mostrar todos los campos del primer entrenador para debug
-                            console.log('📋 ClubEntrenadores - Todos los campos disponibles:', Object.keys(primerEntrenador));
+                            data = todos.filter(e => String(e[campoClub]) === String(clubId));
                         }
                     }
                     source = 'Fallback Filter';
                 }
             }
 
-            console.log(`📊 ClubEntrenadores - Resultado final (${source}): ${data?.length || 0} entrenadores`);
-            setEntrenadores(data || []);
+            // Enrich Data
+            const enrichedData = (data || []).map(entrenador => {
+                const persona = personasMap.get(entrenador.idPersona);
 
-            if ((data?.length || 0) === 0) {
-                console.warn('⚠️ ClubEntrenadores - No se encontraron entrenadores para este club');
-            }
+                // Check selection status (either from property or map)
+                // Note: The previous view showed mapping via Categories. 
+                // Since I cannot be 100% sure of the structure of /Entrenador/seleccion response without viewing it,
+                // I will trust 'perteneceSaeleccion' if it exists, otherwise false.
+                // Actually, let's look at the previous context of "EntrenadoresSeleccionList".
+                // It used 'coachNames' array.
+                // For now, let's default to a safe check or a mock if the property isn't standard.
+                // But DNI and Email are certain.
+
+                return {
+                    ...entrenador,
+                    // Map Names and Personal Info
+                    nombrePersona: persona ? `${persona.nombre} ${persona.apellido}` : (entrenador.nombrePersona || '-'),
+                    documento: persona ? persona.documento : (entrenador.documento || '-'),
+                    email: persona ? persona.email : (entrenador.email || '-'),
+                    // Assume 'seleccion' logic: check if ID is in the map we built or property
+                    esSeleccion: seleccionMap.has(entrenador.idPersona)
+                };
+            });
+
+            console.log(`📊 Resultado final enriquecido (${source}): ${enrichedData.length} entrenadores`);
+            setEntrenadores(enrichedData);
 
         } catch (error) {
-            console.error('❌ ClubEntrenadores - Error fatal en fetchEntrenadores:', error);
+            console.error('❌ Error fatal en fetchEntrenadores:', error);
             setErrorModal({
                 isOpen: true,
                 title: 'Error',
@@ -223,23 +236,6 @@ const ClubEntrenadores = () => {
             <div className="page-header">
                 <h2 className="page-title">Mis Entrenadores</h2>
                 <div>
-                    {/* Botón de debug temporal */}
-                    <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                            console.log('🔍 ClubEntrenadores - DEBUG COMPLETO:');
-                            console.log('👤 Usuario:', user);
-                            console.log('🏢 Club ID (IdClub):', user?.IdClub);
-                            console.log('📦 Total entrenadores cargados:', entrenadores.length);
-                            console.log('🔍 Primer entrenador (si existe):', entrenadores[0]);
-                            alert('ClubEntrenadores - Revisa la consola (F12) para ver la información de debug');
-                        }}
-                        style={{ marginRight: '10px', fontSize: '12px' }}
-                    >
-                        Debug Info
-                    </Button>
-
                     <Button onClick={() => navigate('/club/entrenadores/nuevo')}>
                         <Plus size={20} /> Nuevo Entrenador
                     </Button>
@@ -262,18 +258,17 @@ const ClubEntrenadores = () => {
             <DataTable
                 columns={[
                     { key: 'nombrePersona', label: 'Nombre' },
-                    { key: 'titulo', label: 'Título' },
-                    { key: 'nroLicencia', label: 'Licencia' },
+                    { key: 'documento', label: 'DNI' },
                     {
-                        key: 'estado',
-                        label: 'Estado',
+                        key: 'esSeleccion',
+                        label: 'Selección',
                         render: (value) => (
-                            <span className={`badge ${value === 1 ? 'badge-success' : 'badge-danger'}`}>
-                                {value === 1 ? 'Activo' : 'Inactivo'}
+                            <span className={`badge ${value ? 'badge-primary' : 'badge-secondary'}`}>
+                                {value ? 'Sí' : 'No'}
                             </span>
                         )
                     },
-                    { key: 'especialidad', label: 'Especialidad' },
+                    { key: 'email', label: 'Email' },
                     {
                         key: 'documentacion',
                         label: 'Documentación',

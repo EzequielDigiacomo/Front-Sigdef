@@ -1,4 +1,3 @@
-
 .sidebar {
     display: none;
     width: 260px;
@@ -11,7 +10,7 @@
     background: var(--glass-bg);
     backdrop-filter: blur(12px);
     flex-direction: column;
-    z-index: 100;
+    z-index: 1100;
     transition: transform 0.3s ease;
     overflow: hidden;
 }
@@ -34,7 +33,7 @@
 
 .collapse-toggle {
     display: none;
-    
+
 }
 
 .sidebar-nav {
@@ -56,6 +55,12 @@
     transition: var(--transition);
     font-weight: 500;
     text-decoration: none;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    /* Force clicks */
+    position: relative;
+    /* Ensure z-index works if needed */
+    z-index: 10;
 }
 
 .nav-item:hover {
@@ -76,10 +81,29 @@
     .sidebar {
         display: flex;
         transform: translateX(-100%);
+        width: 260px;
+        /* Ensure full width in mobile */
+        background: var(--bg-primary) !important;
+        /* Solid background */
+        backdrop-filter: none !important;
+        /* Remove backdrop filter */
+        -webkit-backdrop-filter: none !important;
+        border-right: 1px solid var(--border-color);
     }
 
     .sidebar.open {
         transform: translateX(0);
+    }
+
+    /* Force labels to show in mobile even if collapsed class is present */
+    .sidebar.open .nav-label {
+        display: inline !important;
+        opacity: 1 !important;
+    }
+
+    .sidebar.open .sidebar-title {
+        display: inline !important;
+        opacity: 1 !important;
     }
 
     .sidebar-overlay {

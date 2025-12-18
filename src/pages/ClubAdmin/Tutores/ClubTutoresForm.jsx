@@ -4,6 +4,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
+import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import { ArrowLeft, Save } from 'lucide-react';
 import { PARENTESCO_MAP } from '../../../utils/enums';
 import './ClubTutoresForm.css';
@@ -25,8 +26,25 @@ const ClubTutoresForm = () => {
         email: '',
         telefono: '',
         direccion: '',
-        tipoTutor: 0
+
+        tipoTutor: 0,
+        sexo: 1
     });
+
+    const [modalConfig, setModalConfig] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'info',
+        shouldNavigate: false
+    });
+
+    const handleModalClose = () => {
+        setModalConfig(prev => ({ ...prev, isOpen: false }));
+        if (modalConfig.shouldNavigate) {
+            navigate('/club/tutores');
+        }
+    };
 
     useEffect(() => {
         if (id) loadTutor();
@@ -35,13 +53,50 @@ const ClubTutoresForm = () => {
 
     const fetchAtletas = async () => {
         try {
-            const todosAtletas = await api.get('/Atleta');
-            
-            const atletasDelClub = todosAtletas.filter(a => {
-                const atletaClubId = a.idClub || a.clubId;
-                return atletaClubId === user.clubId;
-            });
-            setAtletas(atletasDelClub);
+            // Robust Club ID detection
+            const clubId = user?.IdClub || user?.idClub || user?.club?.id || user?.clubId;
+            if (!clubId) {
+                console.error('No se pudo identificar el Club ID');
+                return;
+            }
+
+            console.log('Cargando atletas para Club ID:', clubId);
+
+            const [allAtletas, allPersonas, allRelaciones] = await Promise.all([
+                api.get('/Atleta'),
+                api.get('/Persona'),
+                api.get('/AtletaTutor')
+            ]);
+
+            // Map Personas for name resolution
+            const personasMap = new Map(allPersonas.map(p => [p.idPersona, p]));
+
+            // Set of athletes with tutors
+            const atletasConTutorIds = new Set(allRelaciones.map(r => r.idAtleta));
+
+            // Filter athletes: 
+            // 1. Belongs to Club
+            // 2. Does NOT have a tutor (optional, based on user request "sin tutor asignado")
+            // 3. Enrich with Persona data
+            const atletasDisponibles = allAtletas
+                .filter(a => {
+                    const aClubId = a.idClub || a.clubId || a.IdClub; // Check all casing
+                    // Loose comparison for ID (string vs number)
+                    return aClubId && String(aClubId) === String(clubId);
+                })
+                .map(a => {
+                    const persona = personasMap.get(a.idPersona);
+                    return {
+                        ...a,
+                        nombrePersona: persona ? `${persona.nombre} ${persona.apellido}` : (a.nombrePersona || 'Sin Nombre'),
+                        documento: persona ? persona.documento : (a.documento || '-')
+                    };
+                })
+                .filter(a => !atletasConTutorIds.has(a.idPersona)); // Filter out those with tutors
+
+            console.log(`Encontrados ${atletasDisponibles.length} atletas disponibles sin tutor.`);
+            setAtletas(atletasDisponibles);
+
         } catch (error) {
             console.error('Error cargando atletas:', error);
         }
@@ -62,11 +117,18 @@ const ClubTutoresForm = () => {
                 email: data.email || data.persona?.email || '',
                 telefono: data.telefono || data.persona?.telefono || '',
                 direccion: data.persona?.direccion || '',
-                tipoTutor: parentescoKey ? parseInt(parentescoKey) : 0
+                tipoTutor: parentescoKey ? parseInt(parentescoKey) : 0,
+                sexo: data.persona?.sexo || 1
             });
         } catch (error) {
             console.error('Error cargando tutor:', error);
-            alert('Error al cargar los datos del tutor');
+            setModalConfig({
+                isOpen: true,
+                title: 'Error',
+                message: 'Error al cargar los datos del tutor',
+                type: 'danger',
+                shouldNavigate: true
+            });
         }
     };
 
@@ -83,7 +145,7 @@ const ClubTutoresForm = () => {
         setLoading(true);
 
         try {
-            
+
             const fechaNacimientoISO = formData.fechaNacimiento
                 ? new Date(formData.fechaNacimiento).toISOString()
                 : new Date().toISOString();
@@ -95,24 +157,27 @@ const ClubTutoresForm = () => {
                 fechaNacimiento: fechaNacimientoISO,
                 email: formData.email || "",
                 telefono: formData.telefono || "",
-                direccion: formData.direccion || ""
+                direccion: formData.direccion || "",
+                telefono: formData.telefono || "",
+                direccion: formData.direccion || "",
+                sexo: parseInt(formData.sexo)
             };
 
             const tutorPayload = {
-                idPersona: 0, 
+                idPersona: 0,
                 tipoTutor: PARENTESCO_MAP[formData.tipoTutor] || 'Padre'
             };
 
             let idPersona = null;
 
             if (id) {
-                
+
                 await api.put(`/Persona/${id}`, personaPayload);
                 await api.put(`/Tutor/${id}`, { ...tutorPayload, idPersona: parseInt(id) });
                 idPersona = parseInt(id);
 
             } else {
-                
+
                 let personaExistente = null;
 
                 try {
@@ -136,7 +201,7 @@ const ClubTutoresForm = () => {
                             });
 
                         } catch (tutorError) {
-                            
+
                             if (personaExistente.tipoPersona && personaExistente.tipoPersona !== 'Persona Base') {
                                 throw new Error(`Esta persona ya tiene el rol de: ${personaExistente.tipoPersona}. No se puede asignar como tutor.`);
                             }
@@ -150,9 +215,9 @@ const ClubTutoresForm = () => {
                         }
                     }
                 } catch (searchError) {
-                    
+
                     console.log('ℹ️ Persona no encontrada, se creará nueva');
-                    
+
                 }
 
                 if (!idPersona) {
@@ -184,25 +249,35 @@ const ClubTutoresForm = () => {
                     }
                 } catch (linkError) {
                     console.error('Error al vincular atleta:', linkError);
-                    
-                    alert('El tutor se guardó, pero hubo un error al vincularlo con el atleta (posiblemente ya estén vinculados).');
                 }
             }
 
-            alert('Tutor guardado exitosamente!');
-            navigate('/club/tutores');
+            setModalConfig({
+                isOpen: true,
+                title: 'Éxito',
+                message: 'Tutor guardado exitosamente!',
+                type: 'success',
+                shouldNavigate: true
+            });
         } catch (error) {
             console.error('Error guardando:', error);
 
+            let errorMessage = 'Error al guardar. Revisa la consola para más detalles.';
             if (error.message.includes('ya tiene otro rol asignado') ||
                 error.message.includes('ya tiene el rol de')) {
-                alert(`Error: ${error.message}\n\nUna persona no puede tener múltiples roles en el sistema.`);
+                errorMessage = `Error: ${error.message}\n\nUna persona no puede tener múltiples roles en el sistema.`;
             } else if (error.message.includes('Ya existe') ||
                 error.message.includes('Tutor con')) {
-                alert('Error: ' + error.message);
-            } else {
-                alert('Error al guardar. Revisa la consola para más detalles.');
+                errorMessage = 'Error: ' + error.message;
             }
+
+            setModalConfig({
+                isOpen: true,
+                title: 'Error',
+                message: errorMessage,
+                type: 'danger',
+                shouldNavigate: false
+            });
         } finally {
             setLoading(false);
         }
@@ -263,6 +338,19 @@ const ClubTutoresForm = () => {
                                 onChange={handleChange}
                                 className="form-input"
                             />
+                        </div>
+                        <div className="form-group">
+                            <label>Sexo *</label>
+                            <select
+                                name="sexo"
+                                value={formData.sexo}
+                                onChange={handleChange}
+                                className="form-input"
+                                required
+                            >
+                                <option value={1}>Masculino</option>
+                                <option value={2}>Femenino</option>
+                            </select>
                         </div>
                         <div className="form-group">
                             <label>Email</label>
@@ -334,7 +422,7 @@ const ClubTutoresForm = () => {
                                         if (!busquedaAtleta) return true;
                                         const search = busquedaAtleta.toLowerCase();
                                         const nombre = (a.nombrePersona || '').toLowerCase();
-                                        
+
                                         return nombre.includes(search);
                                     })
                                     .map(atleta => (
@@ -358,6 +446,18 @@ const ClubTutoresForm = () => {
                     </div>
                 </form>
             </Card>
+
+
+            <ConfirmationModal
+                isOpen={modalConfig.isOpen}
+                onClose={handleModalClose}
+                onConfirm={handleModalClose}
+                title={modalConfig.title}
+                message={modalConfig.message}
+                confirmText={modalConfig.type === 'danger' ? 'Entendido' : 'Aceptar'}
+                showCancel={false}
+                type={modalConfig.type}
+            />
         </div>
     );
 };

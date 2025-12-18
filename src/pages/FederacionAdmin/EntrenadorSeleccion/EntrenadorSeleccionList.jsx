@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
-import { Users, Award, ChevronRight } from 'lucide-react';
+import { Users, Award, ChevronRight, User } from 'lucide-react';
 import { CATEGORIA_MAP } from '../../../utils/enums';
-import './EntrenadorSeleccion.css';
+import './EntrenadorSeleccion.css?v=2';
 
 const EntrenadorSeleccionList = () => {
     const [stats, setStats] = useState([]);
@@ -28,14 +28,20 @@ const EntrenadorSeleccionList = () => {
             const categoryStats = Object.keys(CATEGORIA_MAP).map(key => {
                 const categoryId = parseInt(key);
                 const categoryLabel = CATEGORIA_MAP[key];
-                const coach = (coachesData || []).find(c => parseInt(c.categoriaSeleccion) === categoryId);
+
+                // Get ALL coaches for this category
+                const coaches = (coachesData || []).filter(c => parseInt(c.categoriaSeleccion) === categoryId);
+                const coachNames = coaches.map(c => c.nombrePersona || `${c.nombre} ${c.apellido}`);
+
                 const athleteCount = selectionAthletes.filter(a => a.categoria === categoryId).length;
 
                 return {
                     id: categoryId,
                     label: categoryLabel,
-                    coachName: coach ? (coach.nombrePersona || `${coach.nombre} ${coach.apellido}`) : 'Sin asignar',
-                    athleteCount: athleteCount
+                    coachNames: coachNames,
+                    athleteCount: athleteCount,
+                    // Para el estilo de la imagen, simulamos algunos datos adicionales
+                    hasTrainer: coachNames.length > 0
                 };
             });
 
@@ -47,60 +53,85 @@ const EntrenadorSeleccionList = () => {
         }
     };
 
+    const renderCoachSection = (names) => {
+        if (!names || names.length === 0) {
+            return (
+                <div className="no-coach-badge">
+                    <span className="mr-2">⚠️</span> No asignado
+                </div>
+            );
+        }
+
+        const maxDisplay = 3; // Mostrar hasta 3 ahora que es más alta
+        const displayed = names.slice(0, maxDisplay);
+        const remaining = names.length - maxDisplay;
+
+        return (
+            <div className="coach-mini-list">
+                {displayed.map((name, i) => (
+                    <div key={i} className="coach-mini-item">
+                        <div className="coach-avatar-small">
+                            <User size={14} />
+                        </div>
+                        <span className="text-ellipsis" title={name}>{name}</span>
+                    </div>
+                ))}
+                {remaining > 0 && (
+                    <span className="text-xs text-primary font-medium ml-1">+{remaining} más</span>
+                )}
+            </div>
+        );
+    };
+
     return (
-        <div className="page-container fade-in">
-            <div className="page-header">
-                <h1 className="page-title">
-                    <Award size={24} className="text-primary" />
-                    Selección Nacional
-                </h1>
-                <p className="page-subtitle">Panel de gestión por categorías</p>
+        <div className="dashboard-selection-container fade-in">
+            <div className="dashboard-selection-header">
+                <div>
+                    <h1 className="dashboard-title">
+                        <Award className="text-primary" size={32} />
+                        Selección Nacional
+                    </h1>
+                    <p className="dashboard-subtitle">Vista general de categorías y cuerpo técnico</p>
+                </div>
             </div>
 
             {loading ? (
-                <div className="text-center py-8">Cargando dashboard...</div>
+                <div className="flex-center h-64">
+                    <div className="spinner"></div>
+                </div>
             ) : (
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(4, 1fr)',
-                    gap: '1rem',
-                    maxWidth: '1400px',
-                    margin: '0 auto'
-                }}>
+                <div className="categories-grid">
                     {stats.map((stat) => (
-                        <Card
+                        <div
                             key={stat.id}
-                            className="category-card cursor-pointer hover:shadow-lg transition-all"
+                            className="category-card-horizontal"
                             onClick={() => navigate(`/dashboard/selecciones/categoria/${stat.id}`)}
-                            style={{ padding: '0.75rem' }}
                         >
-                            <div className="flex justify-between items-center mb-2">
-                                <div className="p-1.5 bg-primary-light rounded-lg">
-                                    <Award className="text-primary" size={18} />
+                            {/* Columna Izquierda: Icono y Título */}
+                            <div className="card-col-left">
+                                <div className="category-icon-wrapper">
+                                    <Award size={18} />
                                 </div>
-                                <span className="badge badge-secondary" style={{ fontSize: '0.7rem', padding: '0.2rem 0.4rem' }}>
-                                    {stat.athleteCount}
-                                </span>
+                                <h3 className="category-title">{stat.label}</h3>
                             </div>
 
-                            <h3 className="text-base font-bold mb-1.5">{stat.label}</h3>
-
-                            <div className="flex items-center text-gray-600 mb-1.5" style={{ fontSize: '0.75rem' }}>
-                                <Users size={12} className="mr-1" />
-                                <span style={{
-                                    fontSize: '0.75rem',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap'
-                                }}>
-                                    {stat.coachName}
-                                </span>
+                            {/* Columna Central: Entrenadores */}
+                            <div className="card-col-center">
+                                <div className="section-label">Cuerpo Técnico</div>
+                                {renderCoachSection(stat.coachNames)}
                             </div>
 
-                            <div className="flex justify-end text-primary font-medium items-center" style={{ fontSize: '0.7rem' }}>
-                                Ver <ChevronRight size={12} className="ml-0.5" />
+                            {/* Columna Derecha: Stats y Acción */}
+                            <div className="card-col-right">
+                                <div>
+                                    <div className="stat-big-number">{stat.athleteCount}</div>
+                                    <div className="stat-sublabel">Atletas</div>
+                                </div>
+                                <div className="btn-icon-action">
+                                    <ChevronRight size={16} />
+                                </div>
                             </div>
-                        </Card>
+                        </div>
                     ))}
                 </div>
             )}

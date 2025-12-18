@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
@@ -10,6 +11,7 @@ import { getCategoriaEdadLabel, getDistanciaShortLabel, getSexoLabel, getCategor
 const ClubEventoDetalle = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [evento, setEvento] = useState(null);
     const [inscripciones, setInscripciones] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -17,6 +19,54 @@ const ClubEventoDetalle = () => {
     // States for delete modal
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedInscripcionId, setSelectedInscripcionId] = useState(null);
+
+    // Payment States
+    const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+    const handlePagarInscripcion = async (inscripcion, e) => {
+        if (e) e.stopPropagation();
+
+        try {
+            setIsProcessingPayment(true);
+            const precio = evento.precioBase || 0; // Usar precio del evento
+
+            const pagoData = {
+                concepto: `Inscripción Evento: ${evento.nombre} - Atleta: ${inscripcion.nombreCompleto}`,
+                monto: precio,
+                idClub: user.idClub, // Fix: Usa el club del usuario que está pagando
+                idPersona: inscripcion.idAtleta,
+                estado: 0 // Pendiente
+            };
+
+            // NOTA: Si el pago es a la Federación, el IdClub debería ser el de la Federación o null/0.
+            // Asumiendo que el 'idClub' en pagoData es quien realiza el pago (el club del atleta) o quien lo recibe?
+            // Re-check Controller: pagoTransaccion.IdClub = pagoDto.IdClub.
+            // Usualmente el PAGO lo hace una Persona o un Club. Aquí es el Club pagando por el atleta?
+            // O el Atleta pagando?
+            // "IdClub" en PagoTransaccion parece ser el ORIGEN (quien paga) si es un pago de club.
+            // Si es inscripción, paga el Club?
+            // Usaremos el Club del atleta (inscripcion.IdClub no está en el DTO listado, pero podemos sacarlo).
+
+            // Fix: necesitamos el ID del Club del atleta.
+            // En 'inscripciones' tenemos 'nombreClub'. Si no tenemos ID, usar el del usuario actual si es ClubAdmin viendo sus inscripciones.
+
+            // Asumiendo que el usuario actual es el ClubAdmin que paga:
+            // pagoData.idClub = user.clubId; (Necesitamos context user aquí)
+
+            const response = await api.post('/PagoTransaccion/preferencia', pagoData);
+
+            if (response.paymentUrl) {
+                window.location.href = response.paymentUrl;
+            } else {
+                alert('Error generando link de pago');
+            }
+        } catch (error) {
+            console.error('Error al iniciar pago:', error);
+            alert('Error al iniciar pago');
+        } finally {
+            setIsProcessingPayment(false);
+        }
+    };
 
     const tipoEventoMap = {
         1: 'Carrera Oficial',
@@ -241,6 +291,7 @@ const ClubEventoDetalle = () => {
                                         <th>Atleta</th>
                                         <th>Club</th>
                                         <th>Categoría</th>
+                                        <th>Estado Pago</th>
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
@@ -260,6 +311,25 @@ const ClubEventoDetalle = () => {
                                                     {inscripcion.categoria !== null ?
                                                         getCategoriaLabel(inscripcion.categoria) : '-'
                                                     }
+                                                </td>
+                                                <td>
+                                                    {inscripcion.estadoPago === 1 ? (
+                                                        <span className="badge badge-success">Pagado</span>
+                                                    ) : (
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                            <span className="badge badge-warning">Pendiente</span>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={(e) => handlePagarInscripcion(inscripcion, e)}
+                                                                disabled={isProcessingPayment}
+                                                                title="Pagar Inscripción"
+                                                                style={{ padding: '2px 8px', height: '24px', fontSize: '0.75rem' }}
+                                                            >
+                                                                <DollarSign size={12} />
+                                                            </Button>
+                                                        </div>
+                                                    )}
                                                 </td>
                                                 <td>
                                                     {canDelete ? (

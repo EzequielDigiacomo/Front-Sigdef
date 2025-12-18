@@ -91,6 +91,25 @@ const ClubEventos = () => {
                 console.warn('No se pudieron cargar inscripciones', err);
             }
 
+            // Ordenar: Primero PROGRAMADO, luego EN_CURSO, luego FINALIZADO
+            // Dentro de cada grupo, ordenar por fecha de inicio (más próximo primero)
+            eventosDelClub.sort((a, b) => {
+                const statusPriority = { 'PROGRAMADO': 1, 'EN_CURSO': 2, 'FINALIZADO': 3 };
+
+                const estadoA = a.estado ? a.estado.toUpperCase() : '';
+                const estadoB = b.estado ? b.estado.toUpperCase() : '';
+
+                const priorityA = statusPriority[estadoA] || 99;
+                const priorityB = statusPriority[estadoB] || 99;
+
+                if (priorityA !== priorityB) {
+                    return priorityA - priorityB;
+                }
+
+                // Si tienen la misma prioridad, ordenar por fecha
+                return new Date(a.fechaInicio) - new Date(b.fechaInicio);
+            });
+
             setEventos(eventosDelClub);
 
         } catch (error) {

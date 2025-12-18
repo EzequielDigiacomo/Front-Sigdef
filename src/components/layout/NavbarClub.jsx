@@ -30,16 +30,18 @@ const NavbarClub = ({ toggleSidebar }) => {
             </div>
 
             <div className="navbar-center desktop-only">
-                {navItems.map((item) => (
-                    <NavLink
-                        key={item.path}
-                        to={item.path}
-                        className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                        title={item.label}
-                    >
-                        <span className="nav-label">{item.label}</span>
-                    </NavLink>
-                ))}
+                <div className="nav-row">
+                    {navItems.map((item) => (
+                        <NavLink
+                            key={item.path}
+                            to={item.path}
+                            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                            title={item.label}
+                        >
+                            <span className="nav-label">{item.label}</span>
+                        </NavLink>
+                    ))}
+                </div>
             </div>
 
             <div className="navbar-right">

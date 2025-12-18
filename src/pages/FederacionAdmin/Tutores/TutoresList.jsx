@@ -180,30 +180,43 @@ const TutoresList = () => {
 
     const loadTutores = async () => {
         try {
-            const [tutoresData, atletasData, relacionesData] = await Promise.all([
+            // Carga paralela de todos los recursos necesarios
+            const [tutoresData, atletasData, relacionesData, personasData] = await Promise.all([
                 api.get('/Tutor'),
                 api.get('/Atleta'),
-                api.get('/AtletaTutor')
+                api.get('/AtletaTutor'),
+                api.get('/Persona')
             ]);
 
-            // Enriquecer atletas con datos de Persona para obtener DNI y fecha de nacimiento
-            const atletasEnriquecidos = await Promise.all(
-                atletasData.map(async (atleta) => {
-                    try {
-                        const personaData = await api.get(`/Persona/${atleta.idPersona}`);
-                        return {
-                            ...atleta,
-                            documento: personaData.documento || atleta.documento || '-',
-                            fechaNacimiento: personaData.fechaNacimiento || atleta.fechaNacimiento
-                        };
-                    } catch (error) {
-                        console.error('Error obteniendo Persona:', error);
-                        return atleta;
-                    }
-                })
-            );
+            // Mapa para búsqueda rápida de personas por ID
+            const personasMap = new Map(personasData.map(p => [p.idPersona, p]));
 
-            setTutores(tutoresData);
+            // Enriquecer atletas con datos de Persona en memoria
+            const atletasEnriquecidos = atletasData.map(atleta => {
+                const persona = personasMap.get(atleta.idPersona);
+                return {
+                    ...atleta,
+                    documento: persona?.documento || atleta.documento || '-',
+                    fechaNacimiento: persona?.fechaNacimiento || atleta.fechaNacimiento,
+                    nombrePersona: persona ? `${persona.nombre} ${persona.apellido}` : atleta.nombrePersona
+                };
+            });
+
+            // Enriquecer tutores con datos de Persona si faltan
+            const tutoresEnriquecidos = tutoresData.map(tutor => {
+                const persona = personasMap.get(tutor.idPersona);
+                return {
+                    ...tutor,
+                    documento: persona?.documento || tutor.documento,
+                    telefono: persona?.telefono || tutor.telefono,
+                    email: persona?.email || tutor.email,
+                    nombrePersona: persona ? `${persona.nombre} ${persona.apellido}` : tutor.nombrePersona,
+                    // Mantener referencia al objeto persona completo por compatibilidad
+                    persona: persona || tutor.persona
+                };
+            });
+
+            setTutores(tutoresEnriquecidos);
             setAtletas(atletasEnriquecidos);
             setAtletaTutorRelaciones(relacionesData);
         } catch (error) {

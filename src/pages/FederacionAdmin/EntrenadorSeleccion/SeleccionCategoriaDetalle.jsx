@@ -4,12 +4,14 @@ import { api } from '../../../services/api';
 import DataTable from '../../../components/common/DataTable';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
-import { Users, ArrowLeft, Plus, Trash2, Edit, Eye } from 'lucide-react';
+import { Users, ArrowLeft, Plus, Trash2, Edit, Eye, UserCog } from 'lucide-react';
 import { getCategoriaLabel } from '../../../utils/enums';
 import AddAtletaSeleccionModal from './components/AddAtletaSeleccionModal';
+import AssignCoachModal from './components/AssignCoachModal';
 
 import DocumentUploadModal from '../../../components/common/DocumentUploadModal';
 import DocumentViewerModal from '../../../components/common/DocumentViewerModal';
+import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import './SeleccionCategoriaDetalle.css';
 
 const SeleccionCategoriaDetalle = () => {
@@ -18,6 +20,7 @@ const SeleccionCategoriaDetalle = () => {
     const [athletes, setAthletes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showCoachModal, setShowCoachModal] = useState(false);
 
     // New state for Upload Modal
     const [showUploadModal, setShowUploadModal] = useState(false);
@@ -26,6 +29,15 @@ const SeleccionCategoriaDetalle = () => {
     // New state for Document Viewer Modal
     const [showViewerModal, setShowViewerModal] = useState(false);
     const [selectedAthleteForViewer, setSelectedAthleteForViewer] = useState(null);
+
+    // Confirmation Modal State
+    const [showConfirmation, setShowConfirmation] = useState(false);
+    const [confirmationConfig, setConfirmationConfig] = useState({
+        type: 'danger',
+        title: '',
+        message: '',
+        onConfirm: () => { }
+    });
 
     const categoryLabel = getCategoriaLabel(parseInt(categoryId));
 
@@ -69,25 +81,43 @@ const SeleccionCategoriaDetalle = () => {
         }
     };
 
-    const handleRemoveAthlete = async (athlete) => {
-        if (window.confirm(`¿Quitar a ${athlete.nombrePersona} de la selección?`)) {
-            try {
-                // Update athlete to remove from selection
-                // We need to send the full object or patch
-                // Assuming PUT /Atleta updates the record
-                const updatedAthlete = {
-                    ...athlete,
-                    perteneceSeleccion: false,
-                    categoria: 0
-                };
+    const handleRemoveAthlete = (athlete) => {
+        setConfirmationConfig({
+            type: 'danger',
+            title: 'Confirmar eliminación',
+            message: `¿Estás seguro de que deseas quitar a ${athlete.nombrePersona} de la selección?`,
+            onConfirm: async () => {
+                try {
+                    // Update athlete to remove from selection
+                    const updatedAthlete = {
+                        ...athlete,
+                        perteneceSeleccion: false,
+                        categoria: 0
+                    };
 
-                await api.put('/Atleta', updatedAthlete);
-                fetchAthletes();
-            } catch (error) {
-                console.error('Error removing athlete:', error);
-                alert('Error al quitar el atleta');
-            }
-        }
+                    await api.put('/Atleta', updatedAthlete);
+                    fetchAthletes();
+                    setShowConfirmation(false);
+                } catch (error) {
+                    console.error('Error removing athlete:', error);
+                    // Show error modal
+                    setConfirmationConfig({
+                        type: 'danger',
+                        title: 'Error',
+                        message: 'Hubo un error al quitar el atleta de la selección.',
+                        onConfirm: () => setShowConfirmation(false),
+                        showCancel: false,
+                        confirmText: 'Entendido'
+                    });
+                    // Re-open modal for error display
+                    setShowConfirmation(true);
+                }
+            },
+            showCancel: true,
+            confirmText: 'Quitar',
+            cancelText: 'Cancelar'
+        });
+        setShowConfirmation(true);
     };
 
     const columns = [
@@ -182,7 +212,15 @@ const SeleccionCategoriaDetalle = () => {
                                     /* alert('DEBUG: Navegando a editar ID ' + row.idPersona); // Uncomment for extreme debug */
                                     navigate(`/dashboard/atletas/editar/${row.idPersona}`);
                                 } else {
-                                    alert('Error: No se encontró el ID del atleta');
+                                    setConfirmationConfig({
+                                        type: 'danger',
+                                        title: 'Error',
+                                        message: 'No se encontró el ID del atleta para editar.',
+                                        onConfirm: () => setShowConfirmation(false),
+                                        showCancel: false,
+                                        confirmText: 'Entendido'
+                                    });
+                                    setShowConfirmation(true);
                                     console.error('Fila sin ID:', row);
                                 }
                             }}
@@ -219,9 +257,14 @@ const SeleccionCategoriaDetalle = () => {
                         <p className="page-subtitle">Gestión de atletas seleccionados</p>
                     </div>
                 </div>
-                <Button onClick={() => setShowAddModal(true)}>
-                    <Plus size={20} /> Agregar Atleta
-                </Button>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <Button variant="secondary" onClick={() => setShowCoachModal(true)}>
+                        <UserCog size={20} /> Asignar Entrenador
+                    </Button>
+                    <Button onClick={() => setShowAddModal(true)}>
+                        <Plus size={20} /> Agregar Atleta
+                    </Button>
+                </div>
             </div>
 
             <Card>
@@ -244,6 +287,18 @@ const SeleccionCategoriaDetalle = () => {
                         fetchAthletes();
                     }}
                     categoryId={parseInt(categoryId)}
+                />
+            )}
+
+            {showCoachModal && (
+                <AssignCoachModal
+                    isOpen={showCoachModal}
+                    onClose={() => setShowCoachModal(false)}
+                    onSuccess={() => {
+                        setShowCoachModal(false);
+                    }}
+                    categoryId={parseInt(categoryId)}
+                    categoryLabel={categoryLabel}
                 />
             )}
 
@@ -274,6 +329,18 @@ const SeleccionCategoriaDetalle = () => {
                     personId={selectedAthleteForViewer.idPersona || selectedAthleteForViewer.IdPersona}
                 />
             )}
+
+            <ConfirmationModal
+                isOpen={showConfirmation}
+                onClose={() => setShowConfirmation(false)}
+                onConfirm={confirmationConfig.onConfirm}
+                title={confirmationConfig.title}
+                message={confirmationConfig.message}
+                type={confirmationConfig.type}
+                confirmText={confirmationConfig.confirmText || 'Confirmar'}
+                cancelText={confirmationConfig.cancelText || 'Cancelar'}
+                showCancel={confirmationConfig.showCancel !== false}
+            />
         </div>
     );
 };

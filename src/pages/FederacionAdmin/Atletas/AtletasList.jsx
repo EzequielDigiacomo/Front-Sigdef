@@ -41,64 +41,73 @@ const AtletasList = () => {
 
     const loadAtletas = async () => {
         try {
-            const data = await api.get('/Atleta');
-            // Enriquecer cada atleta con datos de Persona y tutor (si es menor)
-            const atletasEnriquecidos = await Promise.all(
-                data.map(async (atleta) => {
-                    // Obtener datos de Persona para DNI (si no viene en el DTO)
-                    let personaData = null;
-                    try {
-                        personaData = await api.get(`/Persona/${atleta.idPersona}`);
-                    } catch (err) {
-                        console.error('Error obteniendo Persona', err);
+            // Carga optimizada de todos los recursos
+            const [atletasData, relacionesData, personasData] = await Promise.all([
+                api.get('/Atleta'),
+                api.get('/AtletaTutor'),
+                api.get('/Persona')
+            ]);
+
+            // Mapa de Personas para búsqueda rápida
+            const personasMap = new Map(personasData.map(p => [p.idPersona, p]));
+
+            // Mapa de Relaciones: AtletaID -> TutorID (Tomamos el primero si hay varios)
+            const relacionesMap = new Map();
+            if (relacionesData) {
+                relacionesData.forEach(r => {
+                    if (!relacionesMap.has(r.idAtleta)) {
+                        relacionesMap.set(r.idAtleta, r.idTutor);
                     }
+                });
+            }
 
-                    // Calcular edad para saber si necesita tutor
-                    // Calcular edad para saber si necesita tutor
-                    const fechaNac = personaData?.fechaNacimiento || atleta.fechaNacimiento;
-                    let edad = null;
-                    let tutorInfo = null;
-                    if (fechaNac) {
-                        const hoy = new Date();
-                        const nacimiento = new Date(fechaNac);
-                        edad = hoy.getFullYear() - nacimiento.getFullYear();
-                        const mes = hoy.getMonth() - nacimiento.getMonth();
-                        if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
-                            edad--;
-                        }
-                        if (edad < 18) {
-                            try {
-                                const relaciones = await api.get(`/AtletaTutor/atleta/${atleta.idPersona}`);
-                                if (relaciones && relaciones.length > 0) {
-                                    const tutorId = relaciones[0].idTutor;
-                                    const tutorPersona = await api.get(`/Persona/${tutorId}`);
-                                    tutorInfo = {
-                                        nombre: tutorPersona.nombre || '',
-                                        apellido: tutorPersona.apellido || '',
-                                        documento: tutorPersona.documento || '',
-                                        telefono: tutorPersona.telefono || ''
-                                    };
-                                }
-                            } catch (err) {
-                                console.error('Error obteniendo tutor', err);
-                            }
-                        }
+            const atletasProcesados = atletasData.map(atleta => {
+                const persona = personasMap.get(atleta.idPersona) || atleta.persona || {};
+                const club = atleta.club || {};
+
+                // Calcular edad
+                let edad = null;
+                if (persona.fechaNacimiento) {
+                    const hoy = new Date();
+                    const nacimiento = new Date(persona.fechaNacimiento);
+                    edad = hoy.getFullYear() - nacimiento.getFullYear();
+                    const mes = hoy.getMonth() - nacimiento.getMonth();
+                    if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+                        edad--;
                     }
+                }
 
-                    return {
-                        ...atleta,
-                        documento: personaData?.documento || atleta.documento || '-',
-                        fechaNacimiento: personaData?.fechaNacimiento || atleta.fechaNacimiento || null,
-                        edad: edad,
-                        fechaCreacion: atleta.fechaCreacion || personaData?.fechaCreacion || new Date().toISOString(),
-                        tutorInfo
-                    };
-                })
-            );
+                // Buscar Tutor
+                let tutorData = null;
+                const idTutor = relacionesMap.get(atleta.idPersona);
+                if (idTutor) {
+                    const tutorPersona = personasMap.get(idTutor);
+                    if (tutorPersona) {
+                        tutorData = {
+                            id: idTutor,
+                            nombre: tutorPersona.nombre,
+                            apellido: tutorPersona.apellido,
+                            documento: tutorPersona.documento,
+                            telefono: tutorPersona.telefono
+                        };
+                    }
+                }
 
-            // Ordenar por ID descendente (más reciente primero)
-            atletasEnriquecidos.sort((a, b) => b.idPersona - a.idPersona);
-            setAtletas(atletasEnriquecidos);
+                return {
+                    ...atleta,
+                    idPersona: atleta.idPersona,
+                    nombrePersona: `${persona.nombre || ''} ${persona.apellido || ''}`.trim(),
+                    documento: persona.documento || '-',
+                    fechaNacimiento: persona.fechaNacimiento,
+                    nombreClub: club.nombre || 'Agente Libre',
+                    edad: edad,
+                    tutorInfo: tutorData
+                };
+            });
+
+            // Ordenar por ID descendente
+            atletasProcesados.sort((a, b) => b.idPersona - a.idPersona);
+            setAtletas(atletasProcesados);
         } catch (error) {
             console.error('Error cargando atletas:', error);
         } finally {
@@ -265,7 +274,13 @@ const AtletasList = () => {
                                                     <div>Tel: {atleta.tutorInfo.telefono || 'N/A'}</div>
                                                 </div>
                                             ) : (
-                                                <span className="text-muted">-</span>
+                                                atleta.edad !== null && atleta.edad < 18 ? (
+                                                    <span className="text-warning" style={{ fontSize: '0.85rem', fontWeight: 500 }}>
+                                                        ⚠️ Sin tutor asignado
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-muted">-</span>
+                                                )
                                             )}
                                         </td>
                                         <td>

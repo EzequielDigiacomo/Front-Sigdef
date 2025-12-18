@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../../services/api';
 import DataTable from '../../../components/common/DataTable';
 import Card from '../../../components/common/Card';
-import { Award, Search, Filter, Edit, Trash2, CheckCircle, AlertTriangle, Plus, Eye } from 'lucide-react';
+import { Award, Search, Filter, Edit, Trash2, CheckCircle, AlertTriangle, Plus, Eye, UserCog } from 'lucide-react';
 import FormField from '../../../components/forms/FormField';
 import FormSelect from '../../../components/forms/FormSelect';
 import Pagination from '../../../components/common/Pagination';
 import DocumentUploadModal from '../../../components/common/DocumentUploadModal';
 import DocumentViewerModal from '../../../components/common/DocumentViewerModal';
+import AssignCategoryModal from './components/AssignCategoryModal';
+import AddCoachToSelectionModal from './components/AddCoachToSelectionModal';
+import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import { getCategoriaLabel } from '../../../utils/enums';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../../components/common/Button';
@@ -30,6 +33,22 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
     const [showViewerModal, setShowViewerModal] = useState(false);
     const [selectedEntrenadorForDocs, setSelectedEntrenadorForDocs] = useState(null);
     const [existingDocuments, setExistingDocuments] = useState([]);
+
+    // Category Assignment Modal State
+    const [showCategoryModal, setShowCategoryModal] = useState(false);
+    const [selectedEntrenadorForCategory, setSelectedEntrenadorForCategory] = useState(null);
+
+    // Add Coach to Selection Modal State
+    const [showAddCoachModal, setShowAddCoachModal] = useState(false);
+
+    // Confirmation Modal State
+    const [showConfirmation, setShowConfirmation] = useState(false);
+    const [confirmationConfig, setConfirmationConfig] = useState({
+        type: 'info',
+        title: '',
+        message: '',
+        onConfirm: () => { }
+    });
 
     useEffect(() => {
         fetchData();
@@ -105,16 +124,17 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
         );
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm('¿Está seguro de que desea eliminar este entrenador?')) {
-            try {
-                // await api.delete(`/Entrenador/${id}`); // Descomentar cuando esté implementado
-                alert('Funcionalidad de eliminar pendiente de implementación en backend');
-                fetchData();
-            } catch (error) {
-                console.error('Error deleting:', error);
-            }
-        }
+    const handleDelete = (id) => {
+        // Placeholder for delete functionality
+        setConfirmationConfig({
+            type: 'info',
+            title: 'Funcionalidad Pendiente',
+            message: 'La funcionalidad de eliminar entrenador está pendiente de implementación en el backend.',
+            onConfirm: () => setShowConfirmation(false),
+            showCancel: false,
+            confirmText: 'Entendido'
+        });
+        setShowConfirmation(true);
     };
 
     const loadDocuments = async (personId) => {
@@ -244,6 +264,19 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
             key: 'actions',
             render: (value, row) => (
                 <div className="flex gap-2">
+                    {viewMode === 'seleccion' && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                                setSelectedEntrenadorForCategory(row);
+                                setShowCategoryModal(true);
+                            }}
+                            title="Asignar Categoría"
+                        >
+                            <UserCog size={18} className="text-primary" />
+                        </Button>
+                    )}
                     <Button variant="ghost" size="sm" onClick={() => handleEdit(row.id)} title="Editar">
                         <Edit size={18} className="text-primary" />
                     </Button>
@@ -263,11 +296,18 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
     return (
         <div className="page-container fade-in">
             <div className="page-header">
-                <h1 className="page-title">
-                    <Award size={24} className="text-primary" />
-                    {title}
-                </h1>
-                <p className="page-subtitle">{subtitle}</p>
+                <div>
+                    <h1 className="page-title">
+                        <Award size={24} className="text-primary" />
+                        {title}
+                    </h1>
+                    <p className="page-subtitle">{subtitle}</p>
+                </div>
+                {viewMode === 'seleccion' && (
+                    <Button onClick={() => setShowAddCoachModal(true)}>
+                        <Plus size={20} /> Agregar Entrenador
+                    </Button>
+                )}
             </div>
 
             <Card className="mb-6">
@@ -341,6 +381,47 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
                     personId={selectedEntrenadorForDocs.idPersona}
                 />
             )}
+
+            {/* Assign Category Modal */}
+            {showCategoryModal && selectedEntrenadorForCategory && (
+                <AssignCategoryModal
+                    isOpen={showCategoryModal}
+                    onClose={() => {
+                        setShowCategoryModal(false);
+                        setSelectedEntrenadorForCategory(null);
+                    }}
+                    onSuccess={() => {
+                        setShowCategoryModal(false);
+                        setSelectedEntrenadorForCategory(null);
+                        fetchData(); // Refresh the list
+                    }}
+                    coach={selectedEntrenadorForCategory}
+                />
+            )}
+
+            {/* Add Coach to Selection Modal */}
+            {showAddCoachModal && (
+                <AddCoachToSelectionModal
+                    isOpen={showAddCoachModal}
+                    onClose={() => setShowAddCoachModal(false)}
+                    onSuccess={() => {
+                        setShowAddCoachModal(false);
+                        fetchData(); // Refresh the list
+                    }}
+                />
+            )}
+
+            <ConfirmationModal
+                isOpen={showConfirmation}
+                onClose={() => setShowConfirmation(false)}
+                onConfirm={confirmationConfig.onConfirm}
+                title={confirmationConfig.title}
+                message={confirmationConfig.message}
+                type={confirmationConfig.type}
+                confirmText={confirmationConfig.confirmText || 'Confirmar'}
+                cancelText={confirmationConfig.cancelText || 'Cancelar'}
+                showCancel={confirmationConfig.showCancel !== false}
+            />
         </div>
     );
 };

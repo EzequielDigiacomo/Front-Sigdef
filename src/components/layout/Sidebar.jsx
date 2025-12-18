@@ -1,11 +1,11 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { LayoutDashboard, Users, Trophy, Calendar, Shield, DollarSign, UserCheck, ClipboardList, Award, ChevronLeft, ChevronRight, Lock, Briefcase } from 'lucide-react';
 import './Sidebar.css';
 
 const Sidebar = ({ isOpen, closeMobile, isCollapsed, toggleSidebar }) => {
     const { user } = useAuth();
+    const navigate = useNavigate();
 
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
@@ -24,6 +24,12 @@ const Sidebar = ({ isOpen, closeMobile, isCollapsed, toggleSidebar }) => {
     if (user?.role === 'FEDERACION') {
         navItems.push({ icon: Lock, label: 'Gestión de Accesos', path: '/dashboard/usuarios' });
     }
+
+    const handleNavigation = (e, path) => {
+        e.preventDefault();
+        navigate(path);
+        if (closeMobile) closeMobile();
+    };
 
     return (
         <>
@@ -48,7 +54,7 @@ const Sidebar = ({ isOpen, closeMobile, isCollapsed, toggleSidebar }) => {
                             key={item.path}
                             to={item.path}
                             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-                            onClick={closeMobile}
+                            onClick={(e) => handleNavigation(e, item.path)}
                             title={isCollapsed ? item.label : ''}
                         >
                             <item.icon size={20} />

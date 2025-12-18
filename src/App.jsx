@@ -121,7 +121,9 @@ function App() {
               <Route path="delegados/nuevo" element={<DelegadosForm />} />
               <Route path="delegados/editar/:id" element={<DelegadosForm />} />
 
-              { }
+              <Route path="delegados-club/nuevo" element={<DelegadosForm />} />
+
+              { /* CLUBES */}
               <Route path="clubes" element={<ClubesList />} />
               <Route path="clubes/nuevo" element={<ClubesForm />} />
               <Route path="clubes/editar/:id" element={<ClubesForm />} />

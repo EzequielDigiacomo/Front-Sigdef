@@ -6,7 +6,7 @@ import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import { ArrowLeft, Save } from 'lucide-react';
-import { CATEGORIA_MAP } from '../../../utils/enums';
+import { CATEGORIA_MAP, SEXO_MAP } from '../../../utils/enums';
 import '../Atletas/ClubAtletas.css';
 
 const ClubEntrenadoresForm = () => {
@@ -32,7 +32,8 @@ const ClubEntrenadoresForm = () => {
         becadoEnard: false,
         becadoSdn: false,
         montoBeca: 0,
-        presentoAptoMedico: false
+        presentoAptoMedico: false,
+        sexo: 1
     });
 
     const [modalConfig, setModalConfig] = useState({
@@ -77,6 +78,7 @@ const ClubEntrenadoresForm = () => {
                 email: persona.email || '',
                 telefono: persona.telefono || '',
                 direccion: persona.direccion || '',
+                sexo: persona.sexo || 1,
                 licencia: data.licencia || '',
                 perteneceSeleccion: data.perteneceSeleccion || false,
                 categoriaSeleccion: data.categoriaSeleccion || '',
@@ -127,7 +129,8 @@ const ClubEntrenadoresForm = () => {
                 fechaNacimiento: formData.fechaNacimiento ? new Date(formData.fechaNacimiento).toISOString() : new Date().toISOString(),
                 email: formData.email || "",
                 telefono: formData.telefono || "",
-                direccion: formData.direccion || ""
+                direccion: formData.direccion || "",
+                sexo: parseInt(formData.sexo)
             };
 
             if (id) {
@@ -247,6 +250,20 @@ const ClubEntrenadoresForm = () => {
                         <div className="form-group">
                             <label>Fecha Nacimiento *</label>
                             <input type="date" name="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} className="form-input" required />
+                        </div>
+                        <div className="form-group">
+                            <label>Sexo *</label>
+                            <select
+                                name="sexo"
+                                value={formData.sexo}
+                                onChange={handleChange}
+                                className="form-input"
+                                required
+                            >
+                                {Object.entries(SEXO_MAP).map(([key, label]) => (
+                                    <option key={key} value={key}>{label}</option>
+                                ))}
+                            </select>
                         </div>
                         <div className="form-group">
                             <label>Email</label>

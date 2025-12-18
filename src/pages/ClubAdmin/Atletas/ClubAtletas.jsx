@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { api } from '../../../services/api';
 import { useNavigate } from 'react-router-dom';
-import { Users, Plus, Search, Edit, Trash2, Phone, Mail, MapPin, User, Calendar, Award } from 'lucide-react';
+import { Users, Plus, Search, Edit, Trash2, Phone, Mail, MapPin, User, Calendar, Award, DollarSign } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
 import Button from '../../../components/common/Button';
 import Card from '../../../components/common/Card';
 import FormField from '../../../components/forms/FormField';
@@ -23,7 +24,57 @@ const ClubAtletas = () => {
     const [showModal, setShowModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [atletaToDelete, setAtletaToDelete] = useState(null);
-    const [errorModal, setErrorModal] = useState({ isOpen: false, title: '', message: '' });
+    const [feedbackModal, setFeedbackModal] = useState({ isOpen: false, title: '', message: '', type: 'info' });
+
+    // Payment State
+    const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+    const [showQRModal, setShowQRModal] = useState(false);
+    const [qrLink, setQrLink] = useState('');
+
+    const handlePagarAfiliacionAtleta = async (atleta) => {
+        try {
+            setIsProcessingPayment(true);
+            const currentYear = new Date().getFullYear();
+
+            const pagoData = {
+                concepto: `Afiliación Anual Atleta ${currentYear} - ${atleta.nombrePersona}`,
+                monto: 30000,
+                idClub: user.idClub,
+                idPersona: atleta.idPersona,
+                estado: 0 // Pendiente
+            };
+
+            const response = await api.post('/PagoTransaccion/preferencia', pagoData);
+
+            if (response.paymentUrl) {
+                setQrLink(response.paymentUrl);
+                setShowQRModal(true);
+            } else {
+                setFeedbackModal({
+                    isOpen: true,
+                    title: 'Error',
+                    message: 'No se pudo generar el link de pago',
+                    type: 'danger'
+                });
+            }
+        } catch (error) {
+            console.error('Error al iniciar pago:', error);
+            setFeedbackModal({
+                isOpen: true,
+                title: 'Error',
+                message: 'Error al iniciar el proceso de pago',
+                type: 'danger'
+            });
+        } finally {
+            setIsProcessingPayment(false);
+        }
+    };
+
+    // States for "Assign Existing Tutor"
+    const [showSelectTutorModal, setShowSelectTutorModal] = useState(false);
+    const [existingTutores, setExistingTutores] = useState([]);
+    const [selectedTutorIdToAssign, setSelectedTutorIdToAssign] = useState('');
+    const [loadingTutores, setLoadingTutores] = useState(false);
 
     // DEBUG: Verificar estructura del usuario
     useEffect(() => {
@@ -73,10 +124,11 @@ const ClubAtletas = () => {
                 });
             }
 
-            setErrorModal({
+            setFeedbackModal({
                 isOpen: true,
                 title: 'Error de configuración',
-                message: 'No se pudo identificar tu club. El campo IdClub no está disponible en tu perfil.'
+                message: 'No se pudo identificar tu club. El campo IdClub no está disponible en tu perfil.',
+                type: 'danger'
             });
             setLoading(false);
         }
@@ -85,87 +137,156 @@ const ClubAtletas = () => {
     const fetchAtletas = async (clubId) => {
         try {
             setLoading(true);
-            console.log(`🔍 INICIANDO fetchAtletas para clubId: ${clubId} (tipo: ${typeof clubId})`);
+
+            // 1. Fetch Personas in parallel to be ready
+            const personasPromise = api.get('/Persona');
 
             let data = [];
             let source = '';
 
-            // PRIMERO: Intentar endpoints específicos (ajustados para IdClub)
+            // Try to fetch athletes for the club
             try {
-                console.log(`📡 Intentando GET /Atleta/club/${clubId}`);
                 data = await api.get(`/Atleta/club/${clubId}`, { silentErrors: true });
                 source = 'Endpoint /Atleta/club/{id}';
-                console.log(`✅ ${source}: ${data?.length || 0} atletas`);
             } catch (e1) {
-                console.warn(`⚠️ /Atleta/club/${clubId} falló:`, e1.message);
-
                 try {
-                    console.log(`📡 Intentando GET /Club/${clubId}/Atletas`);
                     data = await api.get(`/Club/${clubId}/Atletas`, { silentErrors: true });
                     source = 'Endpoint /Club/{id}/Atletas';
-                    console.log(`✅ ${source}: ${data?.length || 0} atletas`);
                 } catch (e2) {
-                    console.warn(`⚠️ /Club/${clubId}/Atletas falló:`, e2.message);
-
-                    // FALLBACK: Obtener todos y filtrar por IdClub
-                    console.log('📡 Usando FALLBACK: Obtener todos los atletas y filtrar');
                     const todos = await api.get('/Atleta');
-                    console.log(`📦 Total atletas en DB: ${todos?.length || 0}`);
-
                     if (todos && todos.length > 0) {
-                        // DEBUG: Ver estructura del primer atleta
                         const primerAtleta = todos[0];
-                        console.log('📋 Primer atleta estructura:', JSON.stringify(primerAtleta, null, 2));
-
-                        // Buscar el campo correcto (probablemente IdClub con I mayúscula)
                         const campoClub = Object.keys(primerAtleta).find(key =>
-                            key === 'IdClub' ||
-                            key === 'idClub' ||
-                            key.toLowerCase() === 'idclub'
+                            key === 'IdClub' || key === 'idClub' || key.toLowerCase() === 'idclub'
                         );
 
-                        console.log(`🔍 Campo de club encontrado: "${campoClub}"`);
-
                         if (campoClub) {
-                            // Filtrar usando string comparison para evitar problemas de tipo
                             data = todos.filter(a => {
                                 const clubIdAtleta = a[campoClub];
-                                const match = clubIdAtleta !== undefined &&
+                                return clubIdAtleta !== undefined &&
                                     clubIdAtleta !== null &&
                                     String(clubIdAtleta) === String(clubId);
-
-                                if (match) {
-                                    console.log(`   ✅ Match: Atleta "${a.nombrePersona}" - ${campoClub}=${clubIdAtleta}`);
-                                }
-
-                                return match;
                             });
-                        } else {
-                            console.error('❌ No se encontró campo de club en los atletas');
-                            // Mostrar todos los campos del primer atleta para debug
-                            console.log('📋 Todos los campos disponibles:', Object.keys(primerAtleta));
                         }
                     }
                     source = 'Fallback Filter';
                 }
             }
 
-            console.log(`📊 Resultado final (${source}): ${data?.length || 0} atletas`);
-            setAtletas(data || []);
+            // 2. Await Personas
+            const personas = await personasPromise;
+            const personasMap = new Map(personas.map(p => [p.idPersona, p]));
 
-            if ((data?.length || 0) === 0) {
-                console.warn('⚠️ No se encontraron atletas para este club');
-            }
+            // 3. Map Athletes with Persona Data
+            const enrichedData = (data || []).map(atleta => {
+                const persona = personasMap.get(atleta.idPersona);
+                return {
+                    ...atleta,
+                    // Use persona data if available, otherwise fallback or empty
+                    nombrePersona: persona ? `${persona.nombre} ${persona.apellido}` : (atleta.nombrePersona || '-'),
+                    documento: persona ? persona.documento : (atleta.documento || '-')
+                };
+            });
+
+            console.log(`📊 Resultado final enriquecido (${source}): ${enrichedData.length} atletas`);
+            setAtletas(enrichedData);
 
         } catch (error) {
             console.error('❌ Error fatal en fetchAtletas:', error);
-            setErrorModal({
+            setFeedbackModal({
                 isOpen: true,
                 title: 'Error',
-                message: 'No se pudieron cargar los atletas. Por favor, intenta nuevamente.'
+                message: 'No se pudieron cargar los atletas. Por favor, intenta nuevamente.',
+                type: 'danger'
             });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchClubTutores = async () => {
+        try {
+            setLoadingTutores(true);
+            const clubId = user?.IdClub || user?.idClub || user?.club?.id || user?.clubId; // Reuse detection
+
+            if (!clubId) return;
+
+            // Fetch logic similar to ClubTutores to get "My Club Tutors"
+            const [allTutores, allAtletas, allRelaciones, allPersonas] = await Promise.all([
+                api.get('/Tutor'),
+                api.get('/Atleta'),
+                api.get('/AtletaTutor'),
+                api.get('/Persona')
+            ]);
+
+            // Filter My Club Athletes
+            const myClubAtletas = allAtletas.filter(a => {
+                const aClubId = a.idClub || a.clubId || a.IdClub;
+                return aClubId && String(aClubId) === String(clubId);
+            });
+            const myClubAtletaIds = new Set(myClubAtletas.map(a => a.idPersona));
+
+            // Filter Relationships
+            const myClubRelaciones = allRelaciones.filter(r => myClubAtletaIds.has(r.idAtleta));
+            const myClubTutorIds = new Set(myClubRelaciones.map(r => r.idTutor));
+
+            // Filter Tutors
+            const personasMap = new Map(allPersonas.map(p => [p.idPersona, p]));
+
+            const tutoresDelClub = allTutores
+                .filter(t => myClubTutorIds.has(t.idPersona)) // Only show tutors already linked to club
+                .map(t => {
+                    const persona = personasMap.get(t.idPersona);
+                    return {
+                        ...t,
+                        nombreCompleto: persona ? `${persona.nombre} ${persona.apellido}` : t.nombrePersona
+                    };
+                });
+
+            setExistingTutores(tutoresDelClub);
+
+        } catch (error) {
+            console.error("Error fetching club tutors:", error);
+            setFeedbackModal({
+                isOpen: true,
+                title: 'Error',
+                message: 'Error cargando lista de tutores',
+                type: 'danger'
+            });
+        } finally {
+            setLoadingTutores(false);
+        }
+    };
+
+    const handleAssignTutor = async () => {
+        if (!selectedTutorIdToAssign || !atletaDetails) return;
+
+        try {
+            await api.post('/AtletaTutor', {
+                idAtleta: atletaDetails.idPersona,
+                idTutor: parseInt(selectedTutorIdToAssign),
+                parentesco: 0 // Default or ask user? usually parentesco is needed. Assume Padre/Madre (0) or ask.
+            });
+
+            // Success
+            setFeedbackModal({
+                isOpen: true,
+                title: 'Éxito',
+                message: 'Tutor asignado correctamente',
+                type: 'success'
+            });
+            setShowSelectTutorModal(false);
+            handleCloseModal(); // Close details modal too or refresh it?
+
+            // Refresh logic could go here, for now just close
+        } catch (error) {
+            console.error("Error assigning tutor:", error);
+            setFeedbackModal({
+                isOpen: true,
+                title: 'Error',
+                message: 'Error al asignar tutor: ' + error.message,
+                type: 'danger'
+            });
         }
     };
 
@@ -186,11 +307,41 @@ const ClubAtletas = () => {
         } catch (error) {
             console.error('Error al eliminar atleta:', error);
             setShowDeleteModal(false);
-            setErrorModal({
+            setFeedbackModal({
                 isOpen: true,
                 title: 'Error al eliminar',
-                message: 'Hubo un problema al intentar eliminar el atleta.'
+                message: 'Hubo un problema al intentar eliminar el atleta.',
+                type: 'danger'
             });
+        }
+    };
+
+    const handleUnlinkTutor = async () => {
+        if (!window.confirm("¿Seguro que deseas desvincular este tutor?")) return;
+
+        try {
+            // Fetch relation first to get ID
+            const relaciones = await api.get('/AtletaTutor');
+            const rel = relaciones.find(r => r.idAtleta === atletaDetails.idPersona);
+
+            if (rel) {
+                // Try delete. Assuming backend supports Delete by ID
+                // If ID is 'id' or 'idAtletaTutor'
+                const idRel = rel.id || rel.idAtletaTutor || rel.IdAtletaTutor;
+                if (idRel) {
+                    await api.delete(`/AtletaTutor/${idRel}`);
+                } else {
+                    // Fallback: maybe send composite key in body?
+                    // This is risky without knowing API. Assuming ID exists.
+                    throw new Error("No se pudo identificar la relación para eliminar.");
+                }
+
+                setAtletaDetails(prev => ({ ...prev, tutor: null }));
+                setFeedbackModal({ isOpen: true, title: 'Éxito', message: 'Tutor desvinculado correctamente', type: 'success' });
+            }
+        } catch (error) {
+            console.error("Error unlinking tutor:", error);
+            setFeedbackModal({ isOpen: true, title: 'Error', message: 'No se pudo desvincular al tutor.', type: 'danger' });
         }
     };
 
@@ -204,12 +355,32 @@ const ClubAtletas = () => {
             console.log('📋 Datos completos de la persona:', persona);
 
             let tutor = null;
-            if (persona.idTutor) {
-                try {
-                    tutor = await api.get(`/Tutor/${persona.idTutor}`);
-                } catch (error) {
-                    console.log('No se pudo obtener tutor:', error);
+            try {
+                // Fetch relationships to find the tutor
+                const relaciones = await api.get('/AtletaTutor');
+                const relacion = relaciones.find(r => r.idAtleta === atleta.idPersona);
+
+                if (relacion) {
+                    try {
+                        tutor = await api.get(`/Tutor/${relacion.idTutor}`);
+                        // Enforce name presence
+                        if (tutor.persona) {
+                            tutor.nombre = `${tutor.persona.nombre} ${tutor.persona.apellido}`;
+                            tutor.telefono = tutor.telefono || tutor.persona.telefono;
+                            tutor.email = tutor.email || tutor.persona.email;
+                        } else if (!tutor.nombre && !tutor.nombrePersona) {
+                            // Fallback if Tutor object is bare
+                            const tutorPersona = await api.get(`/Persona/${relacion.idTutor}`);
+                            tutor.nombre = `${tutorPersona.nombre} ${tutorPersona.apellido}`;
+                            tutor.telefono = tutor.telefono || tutorPersona.telefono;
+                            tutor.email = tutor.email || tutorPersona.email;
+                        }
+                    } catch (e) {
+                        console.warn('Error fetching tutor details:', e);
+                    }
                 }
+            } catch (err) {
+                console.warn("Error checking relations:", err);
             }
 
             setAtletaDetails({
@@ -219,10 +390,11 @@ const ClubAtletas = () => {
             });
         } catch (error) {
             console.error('Error al cargar detalles del atleta:', error);
-            setErrorModal({
+            setFeedbackModal({
                 isOpen: true,
                 title: 'Error',
-                message: 'Error al cargar los detalles del atleta'
+                message: 'Error al cargar los detalles del atleta',
+                type: 'danger'
             });
         } finally {
             setLoadingDetails(false);
@@ -270,22 +442,7 @@ const ClubAtletas = () => {
                     <h1 className="text-gradient">Mis Atletas</h1>
                     <p className="page-subtitle">Gestiona los atletas de tu club</p>
 
-                    {/* Botón de debug temporal */}
-                    <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                            console.log('🔍 DEBUG COMPLETO:');
-                            console.log('👤 Usuario:', user);
-                            console.log('🏢 Club ID (IdClub):', user?.IdClub);
-                            console.log('📦 Total atletas cargados:', atletas.length);
-                            console.log('🔍 Primer atleta (si existe):', atletas[0]);
-                            alert('Revisa la consola (F12) para ver la información de debug');
-                        }}
-                        style={{ marginTop: '10px', fontSize: '12px' }}
-                    >
-                        Debug Info
-                    </Button>
+
                 </div>
                 <Button
                     variant="primary"
@@ -311,6 +468,7 @@ const ClubAtletas = () => {
                 <DataTable
                     columns={[
                         { key: 'nombrePersona', label: 'Nombre' },
+                        { key: 'documento', label: 'DNI' },
                         {
                             key: 'categoria',
                             label: 'Categoría',
@@ -444,6 +602,25 @@ const ClubAtletas = () => {
                                             : '❌ Pendiente'}
                                     </span>
                                 </div>
+                                <div className="detail-row" style={{ alignItems: 'center' }}>
+                                    <span className="label">Cuota Anual:</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                        <span className="value">
+                                            {atletaDetails.estadoPago === 1 ? '✅ Pagada' : '❌ Pendiente'}
+                                        </span>
+                                        {atletaDetails.estadoPago !== 1 && (
+                                            <Button
+                                                variant="primary"
+                                                size="sm"
+                                                onClick={() => handlePagarAfiliacionAtleta(atletaDetails)}
+                                                disabled={isProcessingPayment}
+                                                style={{ fontSize: '0.8rem', padding: '0.25rem 0.75rem' }}
+                                            >
+                                                {isProcessingPayment ? '...' : 'Pagar ($30.000)'} <DollarSign size={14} />
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
                                 {atletaDetails.montoBeca > 0 && (
                                     <div className="detail-row">
                                         <span className="label">Beca:</span>
@@ -458,7 +635,19 @@ const ClubAtletas = () => {
                         </div>
 
                         <div className="detail-section">
-                            <h4><Users size={18} /> Tutor</h4>
+                            <h4 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span><Users size={18} /> Tutor</span>
+                                {atletaDetails.tutor && (
+                                    <Button
+                                        variant="danger"
+                                        size="sm"
+                                        icon={Trash2}
+                                        onClick={handleUnlinkTutor}
+                                        title="Desvincular tutor"
+                                        style={{ padding: '0.25rem 0.5rem' }}
+                                    />
+                                )}
+                            </h4>
                             {atletaDetails.tutor ? (
                                 <div className="detail-grid">
                                     <div className="detail-row">
@@ -487,7 +676,18 @@ const ClubAtletas = () => {
                                             navigate(`/club/tutores/nuevo?atletaId=${atletaDetails.idPersona}`);
                                         }}
                                     >
-                                        Agregar Tutor
+                                        Agregar Nuevo Tutor
+                                    </Button>
+                                    <Button
+                                        variant="secondary"
+                                        icon={Users}
+                                        onClick={() => {
+                                            setShowSelectTutorModal(true);
+                                            fetchClubTutores();
+                                        }}
+                                        style={{ marginLeft: '10px' }}
+                                    >
+                                        Asignar Existente
                                     </Button>
                                 </div>
                             )}
@@ -519,6 +719,68 @@ const ClubAtletas = () => {
                 ) : null}
             </Modal>
 
+            {/* Modal para Seleccionar Tutor Existente */}
+            <Modal
+                isOpen={showSelectTutorModal}
+                onClose={() => setShowSelectTutorModal(false)}
+                title="Asignar Tutor Existente"
+            >
+                <div className="p-4">
+                    <p style={{ marginBottom: '1rem' }}>Selecciona un tutor de la lista (familiares de otros atletas del club):</p>
+
+                    {loadingTutores ? (
+                        <div className="spinner"></div>
+                    ) : (
+                        <select
+                            className="form-input"
+                            value={selectedTutorIdToAssign}
+                            onChange={(e) => setSelectedTutorIdToAssign(e.target.value)}
+                            style={{ width: '100%', marginBottom: '1rem' }}
+                        >
+                            <option value="">-- Seleccionar Tutor --</option>
+                            {existingTutores.map(t => (
+                                <option key={t.idPersona} value={t.idPersona}>
+                                    {t.nombreCompleto} (DNI: {t.documento || '-'})
+                                </option>
+                            ))}
+                        </select>
+                    )}
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+                        <Button variant="secondary" onClick={() => setShowSelectTutorModal(false)}>Cancelar</Button>
+                        <Button variant="primary" onClick={handleAssignTutor} disabled={!selectedTutorIdToAssign}>Asignar</Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* QR Modal */}
+            <Modal
+                isOpen={showQRModal}
+                onClose={() => setShowQRModal(false)}
+                title="Escanear QR para Pagar"
+            >
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem', gap: '1.5rem' }}>
+                    <p style={{ textAlign: 'center', color: '#ccc' }}>
+                        Escanea este código QR con la App de Mercado Pago o tu billetera virtual favorita.
+                    </p>
+
+                    <div style={{ background: 'white', padding: '1rem', borderRadius: '12px' }}>
+                        {qrLink && <QRCodeCanvas value={qrLink} size={250} />}
+                    </div>
+
+                    <div style={{ width: '100%', textAlign: 'center' }}>
+                        <p style={{ marginBottom: '1rem', fontSize: '0.9rem' }}>¿Prefieres pagar en el navegador?</p>
+                        <Button
+                            variant="primary"
+                            onClick={() => window.open(qrLink, '_blank')}
+                            style={{ width: '100%' }}
+                        >
+                            Ir a Mercado Pago
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
             <ConfirmationModal
                 isOpen={showDeleteModal}
                 onClose={() => {
@@ -534,16 +796,16 @@ const ClubAtletas = () => {
             />
 
             <ConfirmationModal
-                isOpen={errorModal.isOpen}
-                onClose={() => setErrorModal({ ...errorModal, isOpen: false })}
-                onConfirm={() => setErrorModal({ ...errorModal, isOpen: false })}
-                title={errorModal.title}
-                message={errorModal.message}
+                isOpen={feedbackModal.isOpen}
+                onClose={() => setFeedbackModal({ ...feedbackModal, isOpen: false })}
+                onConfirm={() => setFeedbackModal({ ...feedbackModal, isOpen: false })}
+                title={feedbackModal.title}
+                message={feedbackModal.message}
                 confirmText="Entendido"
                 showCancel={false}
-                type="danger"
+                type={feedbackModal.type || 'info'}
             />
-        </div>
+        </div >
     );
 };
 

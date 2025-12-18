@@ -3,8 +3,9 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
-import { ArrowLeft, Save } from 'lucide-react';
-import { CATEGORIA_MAP, PARENTESCO_MAP } from '../../../utils/enums';
+import Modal from '../../../components/common/Modal';
+import { ArrowLeft, Save, CheckCircle, XCircle } from 'lucide-react';
+import { CATEGORIA_MAP, PARENTESCO_MAP, SEXO_MAP } from '../../../utils/enums';
 import { getCategoryByAge } from '../../../utils/categoryConfig';
 import './Atletas.css';
 
@@ -21,6 +22,7 @@ const AtletasForm = () => {
         nombre: '',
         apellido: '',
         documento: '',
+        sexo: 1,
         fechaNacimiento: '',
         email: '',
         telefono: '',
@@ -44,6 +46,13 @@ const AtletasForm = () => {
         parentesco: 0,
         existe: false,
         idPersona: null
+    });
+
+    const [resultModal, setResultModal] = useState({
+        open: false,
+        type: 'success',
+        title: '',
+        message: ''
     });
 
     useEffect(() => {
@@ -87,22 +96,27 @@ const AtletasForm = () => {
     const loadAtleta = async () => {
         try {
             const data = await api.get(`/Atleta/${id}`);
+            console.log('📦 DATOS ATLETA DETALLE:', JSON.stringify(data, null, 2));
+            const p = data.persona || data.Persona || {};
+
             setFormData({
-                nombre: data.persona?.nombre || '',
-                apellido: data.persona?.apellido || '',
-                documento: data.persona?.documento || '',
-                fechaNacimiento: data.persona?.fechaNacimiento ? data.persona.fechaNacimiento.split('T')[0] : '',
-                email: data.persona?.email || '',
-                telefono: data.persona?.telefono || '',
-                direccion: data.persona?.direccion || '',
-                idClub: data.idClub || '',
-                categoria: data.categoria || 0,
-                becadoEnard: data.becadoEnard || false,
-                becadoSdn: data.becadoSdn || false,
-                montoBeca: data.montoBeca || 0,
-                presentoAptoMedico: data.presentoAptoMedico || false,
-                estadoPago: data.estadoPago || 0,
-                perteneceSeleccion: data.perteneceSeleccion || false
+                nombre: p.nombre || p.Nombre || '',
+                apellido: p.apellido || p.Apellido || '',
+                documento: p.documento || p.Documento || '',
+                sexo: p.sexo || p.Sexo || 1,
+                fechaNacimiento: (p.fechaNacimiento || p.FechaNacimiento || '').split('T')[0],
+                email: p.email || p.Email || '',
+                telefono: p.telefono || p.Telefono || '',
+                direccion: p.direccion || p.Direccion || '',
+
+                idClub: data.idClub || data.IdClub || '',
+                categoria: data.categoria || data.Categoria || 0,
+                becadoEnard: data.becadoEnard || data.BecadoEnard || false,
+                becadoSdn: data.becadoSdn || data.BecadoSdn || false,
+                montoBeca: data.montoBeca || data.MontoBeca || 0,
+                presentoAptoMedico: data.presentoAptoMedico || data.PresentoAptoMedico || false,
+                estadoPago: data.estadoPago || data.EstadoPago || 0,
+                perteneceSeleccion: data.perteneceSeleccion || data.PerteneceSeleccion || false
             });
         } catch (error) {
             console.error('Error cargando atleta:', error);
@@ -137,7 +151,7 @@ const AtletasForm = () => {
         const { name, value, type, checked } = e.target;
         setFormData(prev => ({
             ...prev,
-            [name]: type === 'checkbox' ? checked : (name === 'categoria' || name === 'idClub' ? parseInt(value) || value : value)
+            [name]: type === 'checkbox' ? checked : (['categoria', 'idClub', 'sexo'].includes(name) ? parseInt(value) || value : value)
         }));
     };
 
@@ -171,6 +185,7 @@ const AtletasForm = () => {
                 Nombre: formData.nombre,
                 Apellido: formData.apellido,
                 Documento: formData.documento,
+                Sexo: parseInt(formData.sexo),
                 FechaNacimiento: fechaNacimientoISO,
                 Email: emailFinal,
                 Telefono: telefonoFinal,
@@ -179,7 +194,7 @@ const AtletasForm = () => {
 
             const getAtletaPayload = (idPersona) => ({
                 IdPersona: idPersona,
-                IdClub: parseInt(formData.idClub),
+                IdClub: formData.idClub ? parseInt(formData.idClub) : null,
                 Categoria: parseInt(formData.categoria) || 0,
                 BecadoEnard: formData.becadoEnard,
                 BecadoSdn: formData.becadoSdn,
@@ -299,17 +314,33 @@ const AtletasForm = () => {
                 }
             }
 
-            alert('Atleta guardado exitosamente!');
+            setResultModal({
+                open: true,
+                type: 'success',
+                title: '¡Éxito!',
+                message: 'El atleta ha sido guardado correctamente.'
+            });
+        } catch (error) {
+            console.error('Error guardando:', error);
+            setResultModal({
+                open: true,
+                type: 'error',
+                title: 'Error',
+                message: `Hubo un problema al guardar: ${error.message || 'Error desconocido'}`
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCloseResultModal = () => {
+        setResultModal(prev => ({ ...prev, open: false }));
+        if (resultModal.type === 'success') {
             if (location.state?.returnPath) {
                 navigate(location.state.returnPath);
             } else {
                 navigate('/atletas');
             }
-        } catch (error) {
-            console.error('Error guardando:', error);
-            alert('Error al guardar. Revisa la consola para más detalles.');
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -352,6 +383,16 @@ const AtletasForm = () => {
                         <div className="form-group">
                             <label>Fecha Nacimiento *</label>
                             <input type="date" name="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} className="form-input" required />
+                        </div>
+                        <div className="form-group">
+                            <label>Sexo *</label>
+                            <select name="sexo" value={formData.sexo} onChange={handleChange} className="form-input" required>
+                                {Object.entries(SEXO_MAP)
+                                    .filter(([key]) => key === "1" || key === "2")
+                                    .map(([key, label]) => (
+                                        <option key={key} value={key}>{label}</option>
+                                    ))}
+                            </select>
                         </div>
                         <div className="form-group">
                             <label>Email {esMenor ? (tutorLater ? '(opcional)' : '(opcional - se usará el del tutor si está vacío)') : ''}</label>
@@ -453,9 +494,9 @@ const AtletasForm = () => {
                         <h3 className="form-section-title">Datos Deportivos</h3>
 
                         <div className="form-group">
-                            <label>Club *</label>
-                            <select name="idClub" value={formData.idClub} onChange={handleChange} className="form-input" required>
-                                <option value="">Seleccione un Club</option>
+                            <label>Club</label>
+                            <select name="idClub" value={formData.idClub} onChange={handleChange} className="form-input">
+                                <option value="">Sin Asignar (Agente Libre)</option>
                                 {clubes.map(club => (
                                     <option key={club.idClub} value={club.idClub}>{club.nombre}</option>
                                 ))}
@@ -504,6 +545,26 @@ const AtletasForm = () => {
                     </div>
                 </form>
             </Card>
+
+            <Modal
+                isOpen={resultModal.open}
+                onClose={handleCloseResultModal}
+                title={resultModal.title}
+                footer={
+                    <Button onClick={handleCloseResultModal} variant={resultModal.type === 'success' ? 'primary' : 'danger'}>
+                        Entendido
+                    </Button>
+                }
+            >
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '1rem', textAlign: 'center' }}>
+                    {resultModal.type === 'success' ? (
+                        <CheckCircle size={48} color="var(--success)" />
+                    ) : (
+                        <XCircle size={48} color="var(--danger)" />
+                    )}
+                    <p style={{ fontSize: '1.1rem' }}>{resultModal.message}</p>
+                </div>
+            </Modal>
         </div>
     );
 };

@@ -6,13 +6,11 @@ import Card from '../../../components/common/Card';
 import FormField from '../../../components/forms/FormField';
 import { Plus, Edit, Trash2, Search, Users, Target, Briefcase } from 'lucide-react';
 import { getCategoriaLabel } from '../../../utils/enums';
+import { seedDatabase } from '../../../utils/seeder';
 import './Clubes.css';
 
 const ClubesList = () => {
     const [clubes, setClubes] = useState([]);
-    const [atletas, setAtletas] = useState([]);
-    const [entrenadores, setEntrenadores] = useState([]);
-    const [delegados, setDelegados] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const navigate = useNavigate();
@@ -23,16 +21,9 @@ const ClubesList = () => {
 
     const loadData = async () => {
         try {
-            const [clubesData, atletasData, entrenadoresData, delegadosData] = await Promise.all([
-                api.get('/Club'),
-                api.get('/Atleta'),
-                api.get('/Entrenador'),
-                api.get('/DelegadoClub')
-            ]);
+            // Solo 1 petición - el backend calcula todo
+            const clubesData = await api.get('/Club');
             setClubes(clubesData);
-            setAtletas(atletasData);
-            setEntrenadores(entrenadoresData);
-            setDelegados(delegadosData);
         } catch (error) {
             console.error('❌ Error cargando datos:', error);
         } finally {
@@ -40,22 +31,14 @@ const ClubesList = () => {
         }
     };
 
-    const getClubStats = (idClub) => {
-        const atletasClub = atletas.filter(a => a.idClub === idClub);
-        const entrenadoresClub = entrenadores.filter(e => e.idClub === idClub);
-        const delegadoClub = delegados.find(d => d.idClub === idClub);
-        const totalAtletas = atletasClub.length;
-        const totalEntrenadores = entrenadoresClub.length;
-
-        const categorias = atletasClub.reduce((acc, curr) => {
-            const cat = curr.categoria;
-            if (cat !== null && cat !== undefined) {
-                acc[cat] = (acc[cat] || 0) + 1;
-            }
-            return acc;
-        }, {});
-
-        return { totalAtletas, totalEntrenadores, categorias, atletasClub, entrenadoresClub, delegadoClub };
+    const getClubStats = (club) => {
+        // Usar datos precalculados del backend
+        return {
+            totalAtletas: club.cantidadAtletas || 0,
+            totalEntrenadores: club.cantidadEntrenadores || 0,
+            categorias: club.atletasPorCategoria || {},
+            delegadoClub: club.tieneDelegado
+        };
     };
 
     const handleCardClick = (club) => {
@@ -87,9 +70,14 @@ const ClubesList = () => {
         <div className="page-container">
             <div className="page-header">
                 <h2 className="page-title">Gestión de Clubes</h2>
-                <Button onClick={() => navigate('nuevo')}>
-                    <Plus size={20} /> Nuevo Club
-                </Button>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    <Button variant="danger" onClick={seedDatabase}>
+                        GENERAR DATOS TEST
+                    </Button>
+                    <Button onClick={() => navigate('nuevo')}>
+                        <Plus size={20} /> Nuevo Club
+                    </Button>
+                </div>
             </div>
 
             <Card>
@@ -108,7 +96,7 @@ const ClubesList = () => {
                 ) : (
                     <div className="clubes-grid">
                         {filteredClubes.map((club) => {
-                            const stats = getClubStats(club.idClub);
+                            const stats = getClubStats(club);
 
                             return (
                                 <div

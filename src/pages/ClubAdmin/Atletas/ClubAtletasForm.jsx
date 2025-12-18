@@ -30,7 +30,9 @@ const ClubAtletasForm = () => {
         montoBeca: 0,
         presentoAptoMedico: false,
         estadoPago: 0,
+        estadoPago: 0,
         perteneceSeleccion: false,
+        sexo: 1, // Default Masculino or force user to select
     });
 
     const [tutorData, setTutorData] = useState({
@@ -96,28 +98,43 @@ const ClubAtletasForm = () => {
                 montoBeca: data.montoBeca || 0,
                 presentoAptoMedico: data.presentoAptoMedico || false,
                 estadoPago: data.estadoPago || 0,
+                estadoPago: data.estadoPago || 0,
                 perteneceSeleccion: data.perteneceSeleccion || false,
+                sexo: data.persona?.sexo || 1,
             });
 
             if (data.idPersona) {
                 try {
-                    const tutorResponse = await api.get(`/AtletaTutor/atleta/${data.idPersona}`);
-                    if (tutorResponse && tutorResponse.length > 0) {
-                        const tutor = tutorResponse[0].tutor;
-                        const personaTutor = await api.get(`/Persona/${tutor.idPersona}`);
-                        setTutorData({
-                            documento: personaTutor.documento || '',
-                            nombre: personaTutor.nombre || '',
-                            apellido: personaTutor.apellido || '',
-                            telefono: personaTutor.telefono || '',
-                            email: personaTutor.email || '',
-                            parentesco: tutorResponse[0].parentesco || 0,
-                            existe: true,
-                            idPersona: tutor.idPersona,
-                        });
+                    // Fetch all relations and filter (reliable fallback)
+                    const relaciones = await api.get('/AtletaTutor');
+                    const relacion = relaciones.find(r => r.idAtleta === data.idPersona);
+
+                    if (relacion) {
+                        try {
+                            // Check if relation object has tutor embedded or just ID
+                            const idTutor = relacion.idTutor;
+                            // Fetch basic tutor info
+                            const tutor = await api.get(`/Tutor/${idTutor}`);
+                            // Fetch full persona info
+                            const idPersonaTutor = tutor.idPersona || idTutor;
+                            const personaTutor = await api.get(`/Persona/${idPersonaTutor}`);
+
+                            setTutorData({
+                                documento: personaTutor.documento || '',
+                                nombre: personaTutor.nombre || '',
+                                apellido: personaTutor.apellido || '',
+                                telefono: personaTutor.telefono || '',
+                                email: personaTutor.email || '',
+                                parentesco: relacion.parentesco || 0,
+                                existe: true,
+                                idPersona: idPersonaTutor,
+                            });
+                        } catch (detailError) {
+                            console.error('Error fetching tutor details inside form:', detailError);
+                        }
                     }
                 } catch (error) {
-                    console.log('No se encontró tutor para este atleta:', error);
+                    console.log('Error buscando relaciones de tutor:', error);
                 }
             }
         } catch (error) {
@@ -176,11 +193,11 @@ const ClubAtletasForm = () => {
         let idTutor;
 
         if (!tutorData.existe) {
-            
+
             console.log('➕ Creando Persona para el Tutor...');
 
             const fechaNacimientoTutor = new Date();
-            fechaNacimientoTutor.setFullYear(fechaNacimientoTutor.getFullYear() - 30); 
+            fechaNacimientoTutor.setFullYear(fechaNacimientoTutor.getFullYear() - 30);
 
             const tutorPersonaPayload = {
                 nombre: tutorData.nombre,
@@ -204,7 +221,7 @@ const ClubAtletasForm = () => {
             await api.post('/Tutor', tutorPayload);
             idTutor = idPersonaTutor;
         } else {
-            
+
             console.log('✅ Usando Tutor existente ID:', tutorData.idPersona);
             idTutor = tutorData.idPersona;
 
@@ -230,7 +247,7 @@ const ClubAtletasForm = () => {
             console.log('✅ Vinculación exitosa');
         } catch (error) {
             console.error('Error vinculando tutor (posiblemente ya existe la relación):', error);
-            
+
         }
     };
 
@@ -257,7 +274,10 @@ const ClubAtletasForm = () => {
                 fechaNacimiento: fechaNacimientoISO,
                 email: emailFinal || "",
                 telefono: telefonoFinal || "",
-                direccion: direccionFinal || ""
+                direccion: direccionFinal || "",
+                telefono: telefonoFinal || "",
+                direccion: direccionFinal || "",
+                sexo: parseInt(formData.sexo)
             };
 
             const getAtletaPayload = (idPersona) => ({
@@ -274,7 +294,7 @@ const ClubAtletasForm = () => {
             });
 
             if (id) {
-                
+
                 await api.put(`/Persona/${id}`, personaPayload);
                 await api.put(`/Atleta/${id}`, getAtletaPayload(parseInt(id)));
                 idPersona = parseInt(id);
@@ -282,7 +302,7 @@ const ClubAtletasForm = () => {
                 if (esMenor && tutorData.documento) {
                     await handleTutorManagement(idPersona);
                 } else {
-                    
+
                     try {
                         await api.delete(`/AtletaTutor/atleta/${idPersona}`);
                     } catch (error) {
@@ -314,13 +334,13 @@ const ClubAtletasForm = () => {
                 }
 
                 try {
-                    
+
                     await api.get(`/Atleta/${idPersona}`);
                     console.log('⚠️ Esta persona ya es atleta.');
-                    
+
                     await api.put(`/Atleta/${idPersona}`, getAtletaPayload(idPersona));
                 } catch (error) {
-                    
+
                     console.log('➕ Creando registro de Atleta...');
                     await api.post('/Atleta', getAtletaPayload(idPersona));
                 }
@@ -380,6 +400,13 @@ const ClubAtletasForm = () => {
                         <div className="form-group">
                             <label>Fecha Nacimiento *</label>
                             <input type="date" name="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} className="form-input" required />
+                        </div>
+                        <div className="form-group">
+                            <label>Sexo *</label>
+                            <select name="sexo" value={formData.sexo} onChange={handleChange} className="form-input" required>
+                                <option value={1}>Masculino</option>
+                                <option value={2}>Femenino</option>
+                            </select>
                         </div>
                         <div className="form-group">
                             <label>Email {esMenor && '(opcional - se usará el del tutor si está vacío)'}</label>
@@ -481,19 +508,19 @@ const ClubAtletasForm = () => {
                                 ))}
                             </select>
                         </div>
-                        <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+                        <div className="form-group checkbox-group">
                             <input type="checkbox" name="presentoAptoMedico" checked={formData.presentoAptoMedico} onChange={handleChange} id="apto" />
-                            <label htmlFor="apto" style={{ marginBottom: 0 }}>Presentó Apto Médico</label>
+                            <label htmlFor="apto">Presentó Apto Médico</label>
                         </div>
 
                         <h3 className="form-section-title">Becas</h3>
-                        <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+                        <div className="form-group checkbox-group">
                             <input type="checkbox" name="becadoEnard" checked={formData.becadoEnard} onChange={handleChange} id="enard" />
-                            <label htmlFor="enard" style={{ marginBottom: 0 }}>Becado ENARD</label>
+                            <label htmlFor="enard">Becado ENARD</label>
                         </div>
-                        <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+                        <div className="form-group checkbox-group">
                             <input type="checkbox" name="becadoSdn" checked={formData.becadoSdn} onChange={handleChange} id="sdn" />
-                            <label htmlFor="sdn" style={{ marginBottom: 0 }}>Becado SDN</label>
+                            <label htmlFor="sdn">Becado SDN</label>
                         </div>
                         <div className="form-group">
                             <label>Monto Beca</label>

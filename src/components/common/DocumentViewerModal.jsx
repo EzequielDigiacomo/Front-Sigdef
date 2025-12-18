@@ -22,13 +22,43 @@ const DocumentViewerModal = ({ isOpen, onClose, personId, personName }) => {
         if (isOpen && personId) {
             fetchDocuments();
         }
+
+        return () => {
+            setDocuments([]);
+            setLoading(true);
+        };
     }, [isOpen, personId]);
 
     const fetchDocuments = async () => {
         setLoading(true);
         try {
-            const docs = await api.get(`/Documentacion/persona/${personId}`);
-            setDocuments(docs || []);
+            const response = await api.get(`/Documentacion/persona/${personId}`);
+
+            console.log('API Response:', response);
+
+            // Extraer documentos correctamente
+            let docsArray = [];
+
+            // Si response.data tiene documentos
+            if (response && response.data && response.data.documentos &&
+                Array.isArray(response.data.documentos)) {
+                docsArray = response.data.documentos;
+            }
+            // Si response directamente tiene documentos
+            else if (response && response.documentos && Array.isArray(response.documentos)) {
+                docsArray = response.documentos;
+            }
+            // Si es directamente un array
+            else if (Array.isArray(response)) {
+                docsArray = response;
+            }
+            // Si response.data es directamente el array
+            else if (response && response.data && Array.isArray(response.data)) {
+                docsArray = response.data;
+            }
+
+            console.log('Documentos extraídos:', docsArray);
+            setDocuments(docsArray);
         } catch (error) {
             console.error('Error fetching documents:', error);
             setDocuments([]);
@@ -85,7 +115,9 @@ const DocumentViewerModal = ({ isOpen, onClose, personId, personName }) => {
 
     const handleDownload = (doc) => {
         // Open in new tab to download
-        window.open(doc.urlArchivo, '_blank');
+        if (doc && doc.urlArchivo) {
+            window.open(doc.urlArchivo, '_blank');
+        }
     };
 
     const renderPreview = () => {
@@ -153,86 +185,129 @@ const DocumentViewerModal = ({ isOpen, onClose, personId, personName }) => {
                         </div>
                     ) : (
                         <div className="documents-list">
-                            {Object.entries(TIPO_DOCUMENTO_MAP).map(([tipoId, tipoLabel]) => {
-                                // Buscar si existe un documento de este tipo
-                                const doc = documents.find(d => d.tipoDocumento === parseInt(tipoId));
-                                const isLoaded = !!doc;
+                            {!Array.isArray(documents) ? (
+                                <div className="text-center py-8 text-danger">
+                                    <p>Error: Los documentos no se cargaron correctamente</p>
+                                    <p className="text-sm mt-2">Tipo recibido: {typeof documents}</p>
+                                </div>
+                            ) : documents.length === 0 ? (
+                                <div className="text-center py-8 text-secondary">
+                                    No hay documentos cargados
+                                </div>
+                            ) : (
+                                Object.entries(TIPO_DOCUMENTO_MAP).map(([tipoId, tipoLabel]) => {
+                                    // DEBUG: Ver qué estamos comparando
+                                    console.log('Comparando:', {
+                                        tipoId,
+                                        tipoLabel,
+                                        tipoIdType: typeof tipoId,
+                                        documents
+                                    });
 
-                                return (
-                                    <div key={tipoId} className={`document-row ${!isLoaded ? 'document-row-empty' : ''}`}>
-                                        {/* Column 1: Document Type */}
-                                        <div className="document-type-column">
-                                            <span className="document-type-label">
-                                                {tipoLabel}
-                                            </span>
-                                            {isLoaded && (
-                                                <span className="document-date">
-                                                    {new Date(doc.fechaCarga).toLocaleDateString('es-AR')}
+                                    // Buscar documento por tipoDocumento
+                                    const doc = documents.find(d => {
+                                        if (!d || d.tipoDocumento === undefined) return false;
+
+                                        // Convertir ambos a string para comparación segura
+                                        const docTipoStr = d.tipoDocumento.toString();
+                                        const tipoIdStr = tipoId.toString();
+
+                                        return docTipoStr === tipoIdStr;
+                                    });
+
+                                    const isLoaded = !!doc;
+
+                                    // DEBUG: Ver si encontró el documento
+                                    if (isLoaded) {
+                                        console.log('Documento encontrado para tipo', tipoId, ':', doc);
+                                    }
+
+                                    return (
+                                        <div key={tipoId} className={`document-row ${!isLoaded ? 'document-row-empty' : ''}`}>
+                                            {/* Column 1: Document Type */}
+                                            <div className="document-type-column">
+                                                <span className="document-type-label">
+                                                    {tipoLabel}
                                                 </span>
-                                            )}
-                                        </div>
+                                                {isLoaded && doc.fechaCarga && (
+                                                    <span className="document-date">
+                                                        {new Date(doc.fechaCarga).toLocaleDateString('es-AR')}
+                                                    </span>
+                                                )}
+                                            </div>
 
-                                        {/* Column 2: Thumbnail */}
-                                        <div className="document-thumbnail-column">
-                                            {isLoaded ? (
-                                                doc.urlArchivo?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                                                    <div
-                                                        className="document-thumbnail-small"
-                                                        onClick={() => handlePreview(doc)}
-                                                        title="Click para ver en tamaño completo"
-                                                    >
-                                                        <img
-                                                            src={doc.urlArchivo}
-                                                            alt="Miniatura"
-                                                        />
-                                                    </div>
+                                            {/* Column 2: Thumbnail */}
+                                            <div className="document-thumbnail-column">
+                                                {isLoaded ? (
+                                                    // Verificar si es imagen (jpg, jpeg, png, gif, webp)
+                                                    doc.urlArchivo && doc.urlArchivo.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                                        <div
+                                                            className="document-thumbnail-small"
+                                                            onClick={() => handlePreview(doc)}
+                                                            title="Click para ver en tamaño completo"
+                                                        >
+                                                            <img
+                                                                src={doc.urlArchivo}
+                                                                alt={`Miniatura ${tipoLabel}`}
+                                                                onError={(e) => {
+                                                                    console.error('Error cargando miniatura:', doc.urlArchivo);
+                                                                    e.target.style.display = 'none';
+                                                                    // Crear placeholder en caso de error
+                                                                    const placeholder = document.createElement('div');
+                                                                    placeholder.className = 'document-thumbnail-placeholder';
+                                                                    placeholder.innerHTML = '<FileText size={16} />';
+                                                                    e.target.parentElement.appendChild(placeholder);
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="document-thumbnail-placeholder">
+                                                            <FileText size={16} />
+                                                        </div>
+                                                    )
                                                 ) : (
-                                                    <div className="document-thumbnail-placeholder">
-                                                        <FileText size={16} />
-                                                    </div>
-                                                )
-                                            ) : (
-                                                <span className="document-empty-indicator">-</span>
-                                            )}
-                                        </div>
+                                                    <span className="document-empty-indicator">-</span>
+                                                )}
+                                            </div>
 
-                                        {/* Column 3: Actions */}
-                                        <div className="document-actions-column">
-                                            {isLoaded ? (
-                                                <>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handlePreview(doc)}
-                                                        title="Ver documento"
-                                                    >
-                                                        <Eye size={18} />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handleDownload(doc)}
-                                                        title="Descargar"
-                                                    >
-                                                        <Download size={18} />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="text-danger"
-                                                        onClick={() => handleDelete(doc)}
-                                                        title="Eliminar"
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </Button>
-                                                </>
-                                            ) : (
-                                                <span className="document-empty-indicator">-</span>
-                                            )}
+                                            {/* Column 3: Actions */}
+                                            <div className="document-actions-column">
+                                                {isLoaded ? (
+                                                    <>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => handlePreview(doc)}
+                                                            title="Ver documento"
+                                                        >
+                                                            <Eye size={18} />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => handleDownload(doc)}
+                                                            title="Descargar"
+                                                        >
+                                                            <Download size={18} />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="text-danger"
+                                                            onClick={() => handleDelete(doc)}
+                                                            title="Eliminar"
+                                                        >
+                                                            <Trash2 size={18} />
+                                                        </Button>
+                                                    </>
+                                                ) : (
+                                                    <span className="document-empty-indicator">-</span>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })
+                            )}
                         </div>
                     )}
                 </div>

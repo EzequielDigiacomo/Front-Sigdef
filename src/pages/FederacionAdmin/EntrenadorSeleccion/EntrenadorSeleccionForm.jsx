@@ -6,6 +6,7 @@ import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import { ArrowLeft, Save } from 'lucide-react';
 import { CATEGORIA_MAP } from '../../../utils/enums';
+import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import './EntrenadorSeleccion.css';
 
 const EntrenadorSeleccionForm = () => {
@@ -14,8 +15,17 @@ const EntrenadorSeleccionForm = () => {
     const [loading, setLoading] = useState(false);
     const [clubes, setClubes] = useState([]);
 
+    // Confirmation Modal State
+    const [showConfirmation, setShowConfirmation] = useState(false);
+    const [confirmationConfig, setConfirmationConfig] = useState({
+        type: 'success',
+        title: '',
+        message: '',
+        onConfirm: () => { }
+    });
+
     const [formData, setFormData] = useState({
-        
+
         nombre: '',
         apellido: '',
         documento: '',
@@ -29,7 +39,7 @@ const EntrenadorSeleccionForm = () => {
         categoriaSeleccion: '0',
         becadoEnard: false,
         becadoSdn: false,
-        montoBeca: '', 
+        montoBeca: '',
         presentoAptoMedico: false
     });
 
@@ -63,7 +73,7 @@ const EntrenadorSeleccionForm = () => {
                 categoriaSeleccion: data.categoriaSeleccion || '0',
                 becadoEnard: data.becadoEnard || false,
                 becadoSdn: data.becadoSdn || false,
-                montoBeca: data.montoBeca?.toString() || '', 
+                montoBeca: data.montoBeca?.toString() || '',
                 presentoAptoMedico: data.presentoAptoMedico || false
             });
         } catch (error) {
@@ -106,7 +116,7 @@ const EntrenadorSeleccionForm = () => {
             console.log('📤 Enviando datos...', formData);
 
             if (id) {
-                
+
                 console.log('🔄 Actualizando entrenador existente...');
 
                 const personaData = {
@@ -129,14 +139,14 @@ const EntrenadorSeleccionForm = () => {
                     categoriaSeleccion: formData.categoriaSeleccion,
                     becadoEnard: Boolean(formData.becadoEnard),
                     becadoSdn: Boolean(formData.becadoSdn),
-                    montoBeca: getMontoBecaNumber(formData.montoBeca), 
+                    montoBeca: getMontoBecaNumber(formData.montoBeca),
                     presentoAptoMedico: Boolean(formData.presentoAptoMedico)
                 };
                 console.log('🏃 Datos entrenador:', entrenadorData);
                 await api.put(`/Entrenador/${id}`, entrenadorData);
 
             } else {
-                
+
                 console.log('🆕 Creando nuevo entrenador...');
 
                 const personaData = {
@@ -167,7 +177,7 @@ const EntrenadorSeleccionForm = () => {
                     categoriaSeleccion: formData.categoriaSeleccion,
                     becadoEnard: Boolean(formData.becadoEnard),
                     becadoSdn: Boolean(formData.becadoSdn),
-                    montoBeca: getMontoBecaNumber(formData.montoBeca), 
+                    montoBeca: getMontoBecaNumber(formData.montoBeca),
                     presentoAptoMedico: Boolean(formData.presentoAptoMedico)
                 };
                 console.log('🏃 Creando entrenador:', entrenadorData);
@@ -175,7 +185,19 @@ const EntrenadorSeleccionForm = () => {
             }
 
             console.log('✅ Operación completada exitosamente');
-            navigate('/entrenadores-seleccion');
+
+            setConfirmationConfig({
+                type: 'success',
+                title: 'Operación Exitosa',
+                message: isEditing ? 'Entrenador actualizado correctamente.' : 'Entrenador creado correctamente.',
+                onConfirm: () => {
+                    setShowConfirmation(false);
+                    navigate('/dashboard/entrenadores-seleccion');
+                },
+                showCancel: false,
+                confirmText: 'Continuar'
+            });
+            setShowConfirmation(true);
 
         } catch (error) {
             console.error('❌ Error guardando:', error);
@@ -186,7 +208,15 @@ const EntrenadorSeleccionForm = () => {
             });
 
             const errorMessage = error.response?.data?.message || error.response?.data || error.message;
-            alert(`Error al guardar el entrenador: ${errorMessage}`);
+            setConfirmationConfig({
+                type: 'danger',
+                title: 'Error',
+                message: `Error al guardar el entrenador: ${errorMessage} `,
+                onConfirm: () => setShowConfirmation(false),
+                showCancel: false,
+                confirmText: 'Entendido'
+            });
+            setShowConfirmation(true);
         } finally {
             setLoading(false);
         }
@@ -363,13 +393,13 @@ const EntrenadorSeleccionForm = () => {
                         <div className="form-group">
                             <label>Monto Beca</label>
                             <input
-                                type="text" 
+                                type="text"
                                 name="montoBeca"
                                 value={formData.montoBeca}
                                 onChange={handleChange}
                                 className="form-input"
                                 placeholder="Ingrese el monto de la beca"
-                                inputMode="decimal" 
+                                inputMode="decimal"
                             />
                         </div>
                     </div>
@@ -388,6 +418,18 @@ const EntrenadorSeleccionForm = () => {
                     </div>
                 </form>
             </Card>
+
+            <ConfirmationModal
+                isOpen={showConfirmation}
+                onClose={() => setShowConfirmation(false)}
+                onConfirm={confirmationConfig.onConfirm}
+                title={confirmationConfig.title}
+                message={confirmationConfig.message}
+                type={confirmationConfig.type}
+                confirmText={confirmationConfig.confirmText || 'Confirmar'}
+                cancelText={confirmationConfig.cancelText || 'Cancelar'}
+                showCancel={confirmationConfig.showCancel !== false}
+            />
         </div>
     );
 };

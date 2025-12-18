@@ -1,18 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
 import { api } from '../../../services/api';
 import { UserCheck, Plus, Search, Edit, Trash2, Phone, Mail, MapPin } from 'lucide-react';
 import Button from '../../../components/common/Button';
 import Card from '../../../components/common/Card';
 import FormField from '../../../components/forms/FormField';
 import DataTable from '../../../components/common/DataTable';
+import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import '../Atletas/ClubAtletas.css';
 
 const ClubTutores = () => {
+    const { user } = useAuth();
     const navigate = useNavigate();
     const [tutores, setTutores] = useState([]);
     const [loading, setLoading] = useState(true);
+
     const [searchTerm, setSearchTerm] = useState('');
+    const [feedbackModal, setFeedbackModal] = useState({ isOpen: false, title: '', message: '', type: 'info' });
 
     useEffect(() => {
         fetchTutores();
@@ -21,20 +26,82 @@ const ClubTutores = () => {
     const fetchTutores = async () => {
         try {
             setLoading(true);
-            // Intentar endpoint específico por club
-            try {
-                // Patrón probable: /Tutor/club/{id}
-                const data = await api.get(`/Tutor/club/${user.clubId}`, { silentErrors: true });
-                // Assuming backend filters correctly
-                setTutores(data);
-            } catch (specificError) {
-                console.warn('⚠️ Endpoint específico falló, usando fallback:', specificError);
 
-                // Fallback: Traer todos y filtrar
-                const data = await api.get('/Tutor');
-                const tutoresFiltrados = data.filter(t => (t.idClub || t.clubId) == user.clubId);
-                setTutores(tutoresFiltrados);
+            // Robust Club ID detection
+            const clubId = user?.IdClub || user?.idClub || user?.club?.id || user?.clubId;
+            if (!clubId) {
+                console.error("No Club ID found for user");
+                setLoading(false);
+                return;
             }
+
+            console.log("Cargando tutores para Club ID:", clubId);
+
+            // Fetch essential data in parallel
+            const [allTutores, allAtletas, allRelaciones, allPersonas] = await Promise.all([
+                api.get('/Tutor'),
+                api.get('/Atleta'),
+                api.get('/AtletaTutor'),
+                api.get('/Persona')
+            ]);
+
+            // 1. Identify Athletes belonging to this Club
+            const myClubAtletas = allAtletas.filter(a => {
+                const aClubId = a.idClub || a.clubId || a.IdClub;
+                return aClubId && String(aClubId) === String(clubId);
+            });
+            const myClubAtletaIds = new Set(myClubAtletas.map(a => a.idPersona));
+
+            // Map for Athlete Names: ID -> Name
+            const personaMap = new Map(allPersonas.map(p => [p.idPersona, p]));
+            const atletaNameMap = new Map();
+            myClubAtletas.forEach(a => {
+                const persona = personaMap.get(a.idPersona);
+                const nombre = persona ? `${persona.nombre} ${persona.apellido}` : (a.nombrePersona || 'Desconocido');
+                atletaNameMap.set(a.idPersona, nombre);
+            });
+
+            // 2. Identify Relationships involving my Club's Athletes
+            // Filter relationships where the athlete is in my club
+            const myClubRelaciones = allRelaciones.filter(r => myClubAtletaIds.has(r.idAtleta));
+
+            // Create a Map: TutorID -> Array of Athlete Names
+            const tutorAtletasMap = new Map();
+            myClubRelaciones.forEach(r => {
+                const atletaNombre = atletaNameMap.get(r.idAtleta);
+                if (atletaNombre) {
+                    if (!tutorAtletasMap.has(r.idTutor)) {
+                        tutorAtletasMap.set(r.idTutor, []);
+                    }
+                    tutorAtletasMap.get(r.idTutor).push(atletaNombre);
+                }
+            });
+
+            // 3. Filter Tutors who are in that relationship set
+            // Tutors who are linked to AT LEAST one athlete of my club
+            const myClubTutorIds = new Set(myClubRelaciones.map(r => r.idTutor));
+
+            const tutoresFiltrados = allTutores
+                .filter(t => myClubTutorIds.has(t.idPersona)) // Strict filtering
+                .map(t => {
+                    // Enrich with Persona data if missing
+                    const persona = personaMap.get(t.idPersona);
+                    // Enrich with Assigned Athletes
+                    const atletasAsignados = tutorAtletasMap.get(t.idPersona) || [];
+
+                    return {
+                        ...t,
+                        nombrePersona: persona ? `${persona.nombre} ${persona.apellido}` : (t.nombrePersona || ''),
+                        email: persona ? persona.email : t.email,
+                        telefono: persona ? persona.telefono : t.telefono,
+                        direccion: persona ? persona.direccion : t.direccion,
+                        atletaVinculado: atletasAsignados.join(', ') // Display as string
+                    };
+                });
+
+            console.log(`Filtrados ${tutoresFiltrados.length} tutores para el club.`);
+            setTutores(tutoresFiltrados);
+
         } catch (error) {
             console.error('Error al cargar tutores:', error);
         } finally {
@@ -49,13 +116,18 @@ const ClubTutores = () => {
                 setTutores(tutores.filter(t => t.idPersona !== id));
             } catch (error) {
                 console.error('Error al eliminar tutor:', error);
-                alert('Error al eliminar el tutor. Por favor, intenta nuevamente.');
+                setFeedbackModal({
+                    isOpen: true,
+                    title: 'Error',
+                    message: 'Error al eliminar el tutor. Por favor, intenta nuevamente.',
+                    type: 'danger'
+                });
             }
         }
     };
 
     const filteredTutores = tutores.filter(tutor => {
-        const nombreCompleto = (tutor.nombrePersona || `${tutor.persona?.nombre} ${tutor.persona?.apellido}` || '').toLowerCase();
+        const nombreCompleto = (tutor.nombrePersona || '').toLowerCase();
         return nombreCompleto.includes(searchTerm.toLowerCase());
     });
 
@@ -95,22 +167,27 @@ const ClubTutores = () => {
                     {
                         key: 'nombrePersona',
                         label: 'Nombre',
-                        render: (value, row) => value || `${row.persona?.nombre} ${row.persona?.apellido}`
+                        render: (value, row) => value || 'Sin Nombre'
+                    },
+                    {
+                        key: 'atletaVinculado',
+                        label: 'Atleta Asignado',
+                        render: (value) => value || '-' // New Column
                     },
                     {
                         key: 'telefono',
                         label: 'Teléfono',
-                        render: (value, row) => value || row.persona?.telefono || '-'
+                        render: (value) => value || '-'
                     },
                     {
                         key: 'email',
                         label: 'Email',
-                        render: (value, row) => value || row.persona?.email || '-'
+                        render: (value) => value || '-'
                     },
                     {
                         key: 'direccion',
                         label: 'Dirección',
-                        render: (value, row) => value || row.persona?.direccion || '-'
+                        render: (value) => value || '-'
                     }
                 ]}
                 data={filteredTutores}
@@ -132,6 +209,16 @@ const ClubTutores = () => {
                         />
                     </div>
                 )}
+            />
+            <ConfirmationModal
+                isOpen={feedbackModal.isOpen}
+                onClose={() => setFeedbackModal({ ...feedbackModal, isOpen: false })}
+                onConfirm={() => setFeedbackModal({ ...feedbackModal, isOpen: false })}
+                title={feedbackModal.title}
+                message={feedbackModal.message}
+                confirmText="Entendido"
+                showCancel={false}
+                type={feedbackModal.type || 'info'}
             />
         </div>
     );
