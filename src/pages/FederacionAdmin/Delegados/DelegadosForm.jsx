@@ -12,6 +12,7 @@ const DelegadosForm = () => {
     const location = useLocation();
     const [loading, setLoading] = useState(false);
     const [clubes, setClubes] = useState([]);
+    const [federacionNombre, setFederacionNombre] = useState('');
 
     // Estado del formulario unificado (Persona + Delegado)
     const [formData, setFormData] = useState({
@@ -41,13 +42,63 @@ const DelegadosForm = () => {
 
     useEffect(() => {
         loadClubes();
-    }, []);
+        loadFederacion();
+        if (id) {
+            loadDelegado();
+        }
+    }, [id]);
+
+    const loadDelegado = async () => {
+        setLoading(true);
+        try {
+            // Suponemos que el ID que llega es el idPersona (o idDelegado que apunta a persona)
+            const delegado = await api.get(`/DelegadoClub/${id}`);
+            const persona = await api.get(`/Persona/${id}`);
+
+            setFormData(prev => ({
+                ...prev,
+                // Datos Persona
+                nombre: persona.nombre || persona.Nombre || '',
+                apellido: persona.apellido || persona.Apellido || '',
+                documento: persona.documento || persona.Documento || '',
+                sexo: persona.sexo || persona.Sexo || 1,
+                fechaNacimiento: (persona.fechaNacimiento || persona.FechaNacimiento || '').split('T')[0],
+                email: persona.email || persona.Email || '',
+                telefono: persona.telefono || persona.Telefono || '',
+                direccion: persona.direccion || persona.Direccion || '',
+
+                // Datos Delegado
+                idRol: delegado.idRol || delegado.IdRol || 3,
+                idClub: delegado.idClub || delegado.IdClub || '',
+                idFederacion: delegado.idFederacion || delegado.IdFederacion || 1
+            }));
+        } catch (error) {
+            console.error('Error cargando datos del delegado:', error);
+            showModal('Error', 'No se pudieron cargar los datos del delegado.', 'danger');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
         if (location.state?.clubId) {
             setFormData(prev => ({ ...prev, idClub: location.state.clubId }));
         }
     }, [location.state]);
+
+    const loadFederacion = async () => {
+        try {
+            // Forzamos buscar la ID 1 como pidió el usuario
+            const data = await api.get('/Federacion/1');
+            setFederacionNombre(data?.nombre || data?.Nombre || 'Federación Principal');
+            setFormData(prev => ({ ...prev, idFederacion: 1 }));
+        } catch (error) {
+            console.error('Error cargando federación invidual 1:', error);
+            // Si falla, mostramos fallback pero mantenemos ID 1
+            setFederacionNombre('Federación (ID 1)');
+            setFormData(prev => ({ ...prev, idFederacion: 1 }));
+        }
+    };
 
     const loadClubes = async () => {
         try {
@@ -126,33 +177,48 @@ const DelegadosForm = () => {
             try {
                 const personaExistente = await api.get(`/Persona/documento/${formData.documento}`);
                 if (personaExistente) {
-                    idPersonaFinal = personaExistente.idPersona || personaExistente.IdPersona;
+                    idPersonaFinal = personaExistente.idPersona || personaExistente.IdPersona || personaExistente.id;
+                    console.log('👤 Persona existente encontrada ID:', idPersonaFinal);
                     await api.put(`/Persona/${idPersonaFinal}`, personaPayload);
                 }
             } catch (err) {
-                // No existe, crear
+                console.log('ℹ️ Persona no encontrada, se procederá a crear.');
             }
 
             if (!idPersonaFinal) {
                 const nuevaPersona = await api.post('/Persona', personaPayload);
-                idPersonaFinal = nuevaPersona.idPersona || nuevaPersona.IdPersona;
+                // Capturamos el ID de la respuesta, soportando varios formatos de casing
+                idPersonaFinal = nuevaPersona.idPersona || nuevaPersona.IdPersona || nuevaPersona.id || nuevaPersona.Id;
+                console.log('✅ Nueva persona creada ID:', idPersonaFinal);
             }
 
-            // 3. Crear Registro Delegado
+            if (!idPersonaFinal) {
+                throw new Error("No se pudo obtener el ID de la persona para crear el delegado.");
+            }
+
+            // 3. Crear o Actualizar Registro Delegado
             const delegadoPayload = {
-                idPersona: idPersonaFinal,
-                idRol: parseInt(formData.idRol),
-                idFederacion: parseInt(formData.idFederacion),
-                idClub: formData.idClub ? parseInt(formData.idClub) : null // Agente Libre si es null/vacío
+                IdPersona: parseInt(idPersonaFinal),
+                IdRol: parseInt(formData.idRol),
+                IdFederacion: parseInt(formData.idFederacion)
             };
 
-            // Verificamos si ya existe como delegado (opcional, por si acaso)
-            // Aquí asumimos POST directo. Si ya existe, el backend podría fallar.
-            // Idealmente checkeamos antes, pero por simplicidad hacemos POST.
-            // Si el backend soporta upsert o checkeo, mejor.
-            // Dado que "DelegadoClub" es la tabla intermedia, podríamos checkear si ya existe.
+            // Solo incluimos la clave IdClub si realmente hay un club seleccionado.
+            // Si es Agente Libre, omitimos la propiedad para evitar que el backend 
+            // intente validar un club con ID null.
+            if (formData.idClub) {
+                delegadoPayload.IdClub = parseInt(formData.idClub);
+            }
 
-            await api.post('/DelegadoClub', delegadoPayload);
+            console.log('📦 Persona Payload:', personaPayload);
+            console.log('🚀 Enviando payload a DelegadoClub:', delegadoPayload);
+            console.log('🚀 Enviando payload a DelegadoClub:', delegadoPayload);
+
+            if (id) {
+                await api.put(`/DelegadoClub/${idPersonaFinal}`, delegadoPayload);
+            } else {
+                await api.post('/DelegadoClub', delegadoPayload);
+            }
 
             showModal('Éxito', 'Delegado guardado correctamente.', 'success', true);
 
@@ -268,6 +334,17 @@ const DelegadosForm = () => {
                             />
                         </div>
 
+                        <div className="form-group">
+                            <label>Dirección</label>
+                            <input
+                                type="text"
+                                name="direccion"
+                                value={formData.direccion}
+                                onChange={handleChange}
+                                className="form-input"
+                            />
+                        </div>
+
                         <h3 className="form-section-title" style={{ gridColumn: '1 / -1', marginTop: '1rem' }}>Datos del Delegado</h3>
 
                         <div className="form-group">
@@ -286,6 +363,16 @@ const DelegadosForm = () => {
                                 ))}
                             </select>
                             <small className="form-text text-muted">Si no selecciona un club, el delegado quedará como agente libre.</small>
+                        </div>
+
+                        <div className="form-group">
+                            <label>Federación</label>
+                            <input
+                                type="text"
+                                value={federacionNombre}
+                                className="form-input"
+                                disabled
+                            />
                         </div>
 
                         <div className="form-group">

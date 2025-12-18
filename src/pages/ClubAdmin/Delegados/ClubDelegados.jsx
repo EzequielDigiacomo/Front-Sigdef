@@ -27,27 +27,26 @@ const ClubDelegados = () => {
     const fetchDelegados = async () => {
         try {
             setLoading(true);
-            // Intentar endpoint específico por club
-            try {
-                // Patrón probable: /DelegadoClub/club/{id} o similar si existiera
-                const data = await api.get(`/DelegadoClub/club/${user.clubId}`, { silentErrors: true });
-                setDelegados(data);
-            } catch (specificError) {
-                console.warn('⚠️ Endpoint específico falló, usando fallback:', specificError);
+            // El backend retorna IdClub en PascalCase y el contexto usa idClub
+            const clubIdActual = user.idClub;
 
-                // Fallback: Traer todos y filtrar
-                const data = await api.get('/DelegadoClub');
-                const delegadosFiltrados = data.filter(d =>
-                    (d.idClub || d.clubId) == user.clubId
-                );
-                setDelegados(delegadosFiltrados);
-            }
+            // Traemos todos los delegados y filtramos por el club del usuario logueado
+            const data = await api.get('/DelegadoClub');
+
+            console.log('Filtrando delegados para el club:', clubIdActual);
+
+            const delegadosFiltrados = data.filter(d => {
+                const idClubDelegado = d.idClub || d.IdClub || d.clubId || d.ClubId;
+                return parseInt(idClubDelegado) === parseInt(clubIdActual);
+            });
+
+            setDelegados(delegadosFiltrados);
         } catch (error) {
             console.error('Error cargando delegados:', error);
             setErrorModal({
                 isOpen: true,
                 title: 'Error',
-                message: 'No se pudieron cargar los delegados. Por favor, intenta nuevamente.'
+                message: 'No se pudieron cargar los delegados de tu club.'
             });
         } finally {
             setLoading(false);
@@ -62,9 +61,11 @@ const ClubDelegados = () => {
     const handleConfirmDelete = async () => {
         if (!delegadoToDelete) return;
 
+        const id = delegadoToDelete.idPersona || delegadoToDelete.IdPersona;
+
         try {
-            await api.delete(`/DelegadoClub/${delegadoToDelete.idPersona}`);
-            setDelegados(delegados.filter(d => d.idPersona !== delegadoToDelete.idPersona));
+            await api.delete(`/DelegadoClub/${id}`);
+            setDelegados(delegados.filter(d => (d.idPersona || d.IdPersona) !== id));
             setShowDeleteModal(false);
             setDelegadoToDelete(null);
         } catch (error) {
@@ -110,28 +111,39 @@ const ClubDelegados = () => {
                         {
                             key: 'nombrePersona',
                             label: 'Nombre',
-                            render: (value) => <strong>{value || 'Sin nombre'}</strong>
+                            render: (_, row) => <strong>{row.nombrePersona || row.NombrePersona || 'Sin nombre'}</strong>
                         },
                         {
-                            key: 'idRol',
-                            label: 'Rol',
-                            render: (value) => <span className="badge badge-primary">Rol ID: {value}</span>
+                            key: 'documento',
+                            label: 'DNI',
+                            render: (_, row) => row.documento || row.Documento || '-'
                         },
                         {
-                            key: 'idFederacion',
+                            key: 'email',
+                            label: 'Email',
+                            render: (_, row) => row.email || row.Email || '-'
+                        },
+                        {
+                            key: 'telefono',
+                            label: 'Teléfono',
+                            render: (_, row) => row.telefono || row.Telefono || '-'
+                        },
+                        {
+                            key: 'nombreFederacion',
                             label: 'Federación',
-                            render: (value) => <span className="badge badge-info">Fed ID: {value}</span>
+                            render: (_, row) => row.nombreFederacion || row.NombreFederacion || '-'
                         }
                     ]}
                     data={filteredDelegados}
                     loading={loading}
-                    emptyMessage="No hay delegados registrados"
+                    keyField="idPersona"
+                    emptyMessage="No hay delegados registrados para tu club"
                     actions={(delegado) => (
                         <div className="actions-cell">
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => navigate(`/club/delegados/editar/${delegado.idPersona}`)}
+                                onClick={() => navigate(`/club/delegados/editar/${delegado.idPersona || delegado.IdPersona}`)}
                             >
                                 <Edit size={18} />
                             </Button>

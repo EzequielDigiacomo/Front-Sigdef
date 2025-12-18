@@ -43,12 +43,19 @@ const DelegadosList = () => {
     const delegadosFiltrados = delegados.filter(delegado => {
         if (!searchTerm) return true;
         const search = searchTerm.toLowerCase();
+
+        const nombre = (delegado.nombrePersona || delegado.NombrePersona || '').toLowerCase();
+        const club = (delegado.nombreClub || delegado.NombreClub || '').toLowerCase();
+        const dni = (delegado.documento || delegado.Documento || '').toLowerCase();
+        const email = (delegado.email || delegado.Email || '').toLowerCase();
+        const tel = (delegado.telefono || delegado.Telefono || '').toLowerCase();
+
         return (
-            delegado.nombrePersona?.toLowerCase().includes(search) ||
-            delegado.nombreClub?.toLowerCase().includes(search) ||
-            delegado.documento?.toLowerCase().includes(search) ||
-            delegado.email?.toLowerCase().includes(search) ||
-            delegado.telefono?.toLowerCase().includes(search)
+            nombre.includes(search) ||
+            club.includes(search) ||
+            dni.includes(search) ||
+            email.includes(search) ||
+            tel.includes(search)
         );
     });
 
@@ -92,27 +99,33 @@ const DelegadosList = () => {
                             ) : delegados.length === 0 ? (
                                 <tr><td colSpan="6" className="text-center">No hay delegados registrados</td></tr>
                             ) : (
-                                delegadosFiltrados.map((delegado) => (
-                                    <tr key={delegado.idPersona}>
-                                        <td>{delegado.nombrePersona || '-'}</td>
-                                        <td>{delegado.nombreClub || '-'}</td>
-                                        <td>{delegado.documento || '-'}</td>
-                                        <td>{delegado.email || '-'}</td>
-                                        <td>{delegado.telefono || '-'}</td>
-                                        <td>
-                                            <div className="actions-cell">
-                                                {/* 
-                                                <Button variant="ghost" size="sm" onClick={() => navigate(`/dashboard/delegados/editar/${delegado.idPersona}`)}>
-                                                    <Edit size={18} />
-                                                </Button> 
-                                                */}
-                                                <Button variant="ghost" size="sm" className="text-danger" onClick={() => handleDelete(delegado.idPersona)}>
-                                                    <Trash2 size={18} />
-                                                </Button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
+                                (delegadosFiltrados.map((delegado) => {
+                                    const nombre = delegado.nombrePersona || delegado.NombrePersona || '-';
+                                    const club = delegado.nombreClub || delegado.NombreClub || 'Agente Libre';
+                                    const dni = delegado.documento || delegado.Documento || '-';
+                                    const email = delegado.email || delegado.Email || '-';
+                                    const tel = delegado.telefono || delegado.Telefono || '-';
+
+                                    return (
+                                        <tr key={delegado.idPersona || delegado.IdPersona}>
+                                            <td>{nombre}</td>
+                                            <td>{club}</td>
+                                            <td>{dni}</td>
+                                            <td>{email}</td>
+                                            <td>{tel}</td>
+                                            <td>
+                                                <div className="actions-cell">
+                                                    <Button variant="ghost" size="sm" onClick={() => navigate(`/dashboard/delegados/editar/${delegado.idPersona || delegado.IdPersona}`)}>
+                                                        <Edit size={18} />
+                                                    </Button>
+                                                    <Button variant="ghost" size="sm" className="text-danger" onClick={() => handleDelete(delegado.idPersona || delegado.IdPersona)}>
+                                                        <Trash2 size={18} />
+                                                    </Button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                }))
                             )}
                         </tbody>
                     </table>

@@ -6,8 +6,9 @@ import Button from '../../../components/common/Button';
 import FormField from '../../../components/forms/FormField';
 import DocumentUploadModal from '../../../components/common/DocumentUploadModal';
 import DocumentViewerModal from '../../../components/common/DocumentViewerModal';
-import { Plus, Edit, Trash2, Search, UserCheck, Eye, UserPlus } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, UserCheck, Eye, UserPlus, FileText } from 'lucide-react';
 import Modal from '../../../components/common/Modal';
+import * as XLSX from 'xlsx';
 import '../Atletas/Atletas.css';
 import { PARENTESCO_MAP } from '../../../utils/enums';
 
@@ -180,47 +181,43 @@ const TutoresList = () => {
 
     const loadTutores = async () => {
         try {
-            // Carga paralela de todos los recursos necesarios
-            const [tutoresData, atletasData, relacionesData, personasData] = await Promise.all([
-                api.get('/Tutor'),
-                api.get('/Atleta'),
-                api.get('/AtletaTutor'),
-                api.get('/Persona')
+            setLoading(true);
+
+            // Eliminamos /Persona para evitar el crash del backend por circularidad profunda
+            const [tutoresRes, relacionesRes, atletasRes, clubesRes] = await Promise.all([
+                api.get('/Tutor').catch(() => []),
+                api.get('/AtletaTutor').catch(() => []),
+                api.get('/Atleta').catch(() => []),
+                api.get('/Club').catch(() => [])
             ]);
 
-            // Mapa para búsqueda rápida de personas por ID
-            const personasMap = new Map(personasData.map(p => [p.idPersona, p]));
+            const clubesMap = new Map((clubesRes || []).map(c => [c.idClub || c.IdClub, c]));
 
-            // Enriquecer atletas con datos de Persona en memoria
-            const atletasEnriquecidos = atletasData.map(atleta => {
-                const persona = personasMap.get(atleta.idPersona);
+            const atletasEnriquecidos = (atletasRes || []).map(atleta => {
+                const club = clubesMap.get(atleta.idClub || atleta.IdClub);
                 return {
                     ...atleta,
-                    documento: persona?.documento || atleta.documento || '-',
-                    fechaNacimiento: persona?.fechaNacimiento || atleta.fechaNacimiento,
-                    nombrePersona: persona ? `${persona.nombre} ${persona.apellido}` : atleta.nombrePersona
+                    documento: atleta.documento || atleta.Documento || '-',
+                    nombrePersona: atleta.nombrePersona || atleta.NombrePersona || 'Atleta',
+                    nombreClub: club ? (club.nombre || club.Nombre) : (atleta.nombreClub || atleta.NombreClub || 'Agente Libre')
                 };
             });
 
-            // Enriquecer tutores con datos de Persona si faltan
-            const tutoresEnriquecidos = tutoresData.map(tutor => {
-                const persona = personasMap.get(tutor.idPersona);
+            const tutoresEnriquecidos = (tutoresRes || []).map(tutor => {
                 return {
                     ...tutor,
-                    documento: persona?.documento || tutor.documento,
-                    telefono: persona?.telefono || tutor.telefono,
-                    email: persona?.email || tutor.email,
-                    nombrePersona: persona ? `${persona.nombre} ${persona.apellido}` : tutor.nombrePersona,
-                    // Mantener referencia al objeto persona completo por compatibilidad
-                    persona: persona || tutor.persona
+                    documento: tutor.documento || tutor.Documento || '-',
+                    telefono: tutor.telefono || tutor.Telefono || '-',
+                    email: tutor.email || tutor.Email || '-',
+                    nombrePersona: tutor.nombrePersona || tutor.NombrePersona || 'Tutor'
                 };
             });
 
             setTutores(tutoresEnriquecidos);
             setAtletas(atletasEnriquecidos);
-            setAtletaTutorRelaciones(relacionesData);
+            setAtletaTutorRelaciones(relacionesRes);
         } catch (error) {
-            console.error('Error cargando tutores:', error);
+            console.error('Error general en loadTutores:', error);
         } finally {
             setLoading(false);
         }
@@ -262,6 +259,65 @@ const TutoresList = () => {
             tutor.persona?.apellido?.toLowerCase().includes(search)
         );
     });
+
+    const exportTutorToExcel = (tutor) => {
+        if (!tutor) return;
+        try {
+            const atletasRepresentados = getAtletasRepresentados(tutor.idPersona);
+
+            // Estructura de la ficha
+            const rows = [
+                ['SISTEMA SIGDEF - FICHA DE TUTOR'],
+                [''],
+                ['DATOS PERSONALES DEL TUTOR'],
+                ['NombreCompleto', tutor.nombrePersona || '-'],
+                ['DNI / Documento', tutor.documento || '-'],
+                ['Teléfono', tutor.telefono || '-'],
+                ['Email', tutor.email || '-'],
+                [''],
+                ['ATLETAS REPRESENTADOS'],
+                ['Nombre del Atleta', 'DNI / Documento', 'Club / Entidad']
+            ];
+
+            if (atletasRepresentados.length > 0) {
+                atletasRepresentados.forEach(atleta => {
+                    rows.push([
+                        atleta.nombrePersona || 'Sin Nombre',
+                        atleta.documento || '-',
+                        atleta.nombreClub || 'Agente Libre'
+                    ]);
+                });
+            } else {
+                rows.push(['No tiene atletas vinculados', '', '']);
+            }
+
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Ficha");
+
+            // Generar el archivo como un array de bytes (Uint8Array)
+            const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+            // Crear el link de descarga manualmente para evitar que Browser Link interfiera
+            const url = window.URL.createObjectURL(data);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Ficha_Tutor_${tutor.documento || 'Detalle'}.xlsx`);
+            document.body.appendChild(link);
+            link.click();
+
+            // Limpieza
+            setTimeout(() => {
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            }, 100);
+
+        } catch (err) {
+            console.error('Error al exportar Excel:', err);
+            alert('No se pudo generar el archivo Excel.');
+        }
+    };
 
     return (
         <div className="page-container">
@@ -455,6 +511,9 @@ const TutoresList = () => {
                     title="Detalles del Tutor"
                     footer={
                         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                            <Button variant="secondary" onClick={() => exportTutorToExcel(selectedTutorForDetails)}>
+                                <FileText size={18} /> Exportar Excel
+                            </Button>
                             <Button variant="secondary" onClick={() => {
                                 setShowDetailsModal(false);
                                 setSelectedTutorForDetails(null);

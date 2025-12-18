@@ -32,29 +32,44 @@ const ClubDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [actividadReciente, setActividadReciente] = useState([]);
     const [proximosEventos, setProximosEventos] = useState([]);
+    const [clubNombre, setClubNombre] = useState('...');
 
     useEffect(() => {
-        fetchStats();
-    }, [user.clubId]);
+        if (user.idClub) {
+            fetchStats();
+        }
+    }, [user.idClub]);
 
     const fetchStats = async () => {
         try {
             setLoading(true);
 
-            const atletas = await api.get('/Atleta');
-            const atletasDelClub = atletas.filter(a => a.idClub == user.clubId);
+            // 1. Obtener datos del Club
+            try {
+                const clubData = await api.get(`/Club/${user.idClub}`);
+                setClubNombre(clubData.nombre || clubData.Nombre || 'Mi Club');
+            } catch (err) {
+                console.error('Error fetching club name:', err);
+                setClubNombre('Mi Club');
+            }
 
-            const eventos = await api.get('/Evento');
-            const eventosDelClub = eventos.filter(e => e.idClub == user.clubId);
+            // 2. Obtener estadísticas optimizadas
+            const [atletas, eventos, inscripciones] = await Promise.all([
+                api.get('/Atleta'),
+                api.get('/Evento'),
+                api.get('/Inscripcion')
+            ]);
 
-            const inscripciones = await api.get('/Inscripcion');
-            const inscripcionesDelClub = inscripciones.filter(i =>
-                atletasDelClub.some(a => a.id === i.atletaId)
-            );
+            const atletasDelClub = atletas.filter(a => (a.idClub || a.IdClub) == user.idClub);
+            const eventosDelClub = eventos.filter(e => (e.idClub || e.IdClub) == user.idClub);
+
+            // Filtramos inscripciones de atletas de este club
+            const atletaIds = new Set(atletasDelClub.map(a => a.idPersona || a.IdPersona));
+            const inscripcionesDelClub = inscripciones.filter(i => atletaIds.has(i.idAtleta || i.IdAtleta));
 
             const hoy = new Date();
             const eventosProximos = eventos.filter(e => {
-                const fechaEvento = new Date(e.fechaInicio);
+                const fechaEvento = new Date(e.fechaInicio || e.FechaInicio);
                 return fechaEvento >= hoy;
             });
 
@@ -65,48 +80,36 @@ const ClubDashboard = () => {
                 proximosEventos: eventosProximos.length
             });
 
+            // 3. Procesar actividad reciente
             const actividades = [];
 
-            for (const atleta of atletasDelClub.slice(0, 3).sort((a, b) => new Date(b.fechaCreacion || 0) - new Date(a.fechaCreacion || 0))) {
-                let documento = 'Sin DNI';
-                try {
-                    
-                    const persona = await api.get(`/Persona/${atleta.idPersona}`);
-                    documento = persona.documento || 'Sin DNI';
-                } catch (error) {
-                    console.error('Error obteniendo datos de persona:', error);
-                }
-
-                actividades.push({
-                    tipo: 'atleta',
-                    titulo: `Atleta registrado: ${atleta.nombrePersona || 'Sin nombre'}`,
-                    subtitulo: `DNI: ${documento}`,
-                    fecha: atleta.fechaCreacion || new Date().toISOString()
+            // Atletas recientes
+            atletasDelClub
+                .sort((a, b) => new Date(b.fechaCreacion || b.FechaCreacion || 0) - new Date(a.fechaCreacion || a.FechaCreacion || 0))
+                .slice(0, 3)
+                .forEach(atleta => {
+                    actividades.push({
+                        tipo: 'atleta',
+                        titulo: `Atleta registrado: ${atleta.nombrePersona || atleta.NombrePersona || 'Sin nombre'}`,
+                        subtitulo: `Estado: Activo`,
+                        fecha: atleta.fechaCreacion || atleta.FechaCreacion || new Date().toISOString()
+                    });
                 });
-            }
 
+            // Eventos recientes
             eventosDelClub
-                .sort((a, b) => new Date(b.fechaCreacion || 0) - new Date(a.fechaCreacion || 0))
+                .sort((a, b) => new Date(b.fechaCreacion || b.FechaCreacion || 0) - new Date(a.fechaCreacion || a.FechaCreacion || 0))
                 .slice(0, 2)
                 .forEach(evento => {
                     actividades.push({
                         tipo: 'evento',
-                        titulo: `Evento creado: ${evento.nombre}`,
-                        fecha: evento.fechaCreacion || new Date().toISOString()
+                        titulo: `Evento creado: ${evento.nombre || evento.Nombre}`,
+                        fecha: evento.fechaCreacion || evento.FechaCreacion || new Date().toISOString()
                     });
                 });
 
-            const actividadesOrdenadas = actividades
-                .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
-                .slice(0, 5);
-
-            setActividadReciente(actividadesOrdenadas);
-
-            const proximosEventosOrdenados = eventosProximos
-                .sort((a, b) => new Date(a.fechaInicio) - new Date(b.fechaInicio))
-                .slice(0, 5);
-
-            setProximosEventos(proximosEventosOrdenados);
+            setActividadReciente(actividades.sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 5));
+            setProximosEventos(eventosProximos.sort((a, b) => new Date(a.fechaInicio || a.FechaInicio) - new Date(b.fechaInicio || b.FechaInicio)).slice(0, 5));
 
         } catch (error) {
             console.error('Error al cargar estadísticas:', error);
@@ -158,8 +161,8 @@ const ClubDashboard = () => {
     return (
         <div className="club-dashboard">
             <div className="dashboard-header">
-                <h1 className="text-gradient">Bienvenido, {user.nombre}</h1>
-                <p className="dashboard-subtitle">Panel de gestión de tu club deportivo</p>
+                <h1 className="text-gradient">Bienvenido, {user.nombreCompleto || user.username}</h1>
+                <p className="dashboard-subtitle">Panel de gestión de <strong>{clubNombre}</strong></p>
             </div>
 
             <div className="stats-grid">
@@ -216,13 +219,13 @@ const ClubDashboard = () => {
                             </p>
                         ) : (
                             proximosEventos.map((evento) => {
-                                const fecha = new Date(evento.fechaInicio);
+                                const fecha = new Date(evento.fechaInicio || evento.FechaInicio);
                                 const dia = fecha.getDate();
                                 const mes = fecha.toLocaleDateString('es-AR', { month: 'short' }).toUpperCase();
 
                                 return (
                                     <div
-                                        key={evento.idEvento}
+                                        key={evento.idEvento || evento.IdEvento}
                                         className="event-item"
                                         onClick={() => navigate('/club/eventos-disponibles')}
                                         style={{ cursor: 'pointer' }}
@@ -232,8 +235,8 @@ const ClubDashboard = () => {
                                             <span className="event-month">{mes}</span>
                                         </div>
                                         <div className="event-details">
-                                            <h4>{evento.nombre}</h4>
-                                            <p>{evento.ubicacion}</p>
+                                            <h4>{evento.nombre || evento.Nombre}</h4>
+                                            <p>{evento.ubicacion || evento.Ubicacion || 'Sede Central'}</p>
                                         </div>
                                     </div>
                                 );
