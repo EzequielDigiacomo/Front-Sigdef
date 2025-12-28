@@ -118,7 +118,7 @@ const ClubDashboard = () => {
         }
     };
 
-    const statCards = [
+    const statCardsRaw = [
         {
             title: 'Total Atletas',
             value: stats.totalAtletas,
@@ -131,23 +131,28 @@ const ClubDashboard = () => {
             value: stats.eventosCreados,
             icon: Calendar,
             color: 'var(--success)',
-            bgColor: 'rgba(34, 197, 94, 0.1)'
+            bgColor: 'rgba(34, 197, 94, 0.1)',
+            hidden: true
         },
         {
             title: 'Inscripciones Activas',
             value: stats.inscripcionesActivas,
             icon: Trophy,
             color: 'var(--warning)',
-            bgColor: 'rgba(251, 146, 60, 0.1)'
+            bgColor: 'rgba(251, 146, 60, 0.1)',
+            hidden: true
         },
         {
             title: 'Próximos Eventos',
             value: stats.proximosEventos,
             icon: TrendingUp,
             color: 'var(--info)',
-            bgColor: 'rgba(59, 130, 246, 0.1)'
+            bgColor: 'rgba(59, 130, 246, 0.1)',
+            hidden: true
         }
     ];
+
+    const statCards = statCardsRaw.filter(s => !s.hidden);
 
     if (loading) {
         return (
@@ -210,40 +215,11 @@ const ClubDashboard = () => {
                     </div>
                 </div>
 
+                {/*
                 <div className="dashboard-section glass-panel">
-                    <h2>Próximos Eventos</h2>
-                    <div className="events-list">
-                        {proximosEventos.length === 0 ? (
-                            <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>
-                                No hay eventos próximos
-                            </p>
-                        ) : (
-                            proximosEventos.map((evento) => {
-                                const fecha = new Date(evento.fechaInicio || evento.FechaInicio);
-                                const dia = fecha.getDate();
-                                const mes = fecha.toLocaleDateString('es-AR', { month: 'short' }).toUpperCase();
-
-                                return (
-                                    <div
-                                        key={evento.idEvento || evento.IdEvento}
-                                        className="event-item"
-                                        onClick={() => navigate('/club/eventos-disponibles')}
-                                        style={{ cursor: 'pointer' }}
-                                    >
-                                        <div className="event-date">
-                                            <span className="event-day">{dia}</span>
-                                            <span className="event-month">{mes}</span>
-                                        </div>
-                                        <div className="event-details">
-                                            <h4>{evento.nombre || evento.Nombre}</h4>
-                                            <p>{evento.ubicacion || evento.Ubicacion || 'Sede Central'}</p>
-                                        </div>
-                                    </div>
-                                );
-                            })
-                        )}
-                    </div>
+                    ... (contenido de próximos eventos) ...
                 </div>
+*/}
             </div>
         </div>
     );

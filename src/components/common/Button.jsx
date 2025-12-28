@@ -12,7 +12,7 @@ const Button = ({
 }) => {
   return (
     <button
-      className={`btn btn-${variant} btn-${size} ${className} ${isLoading ? 'loading' : ''}`}
+      className={`btn btn-${variant} btn-${size} ${className}  ${isLoading ? 'loading' : ''}`}
       disabled={isLoading || props.disabled}
       {...props}
     >

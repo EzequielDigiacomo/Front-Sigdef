@@ -3,7 +3,8 @@ import { api } from '../../../../services/api';
 import Button from '../../../../components/common/Button';
 import FormField from '../../../../components/forms/FormField';
 import ConfirmationModal from '../../../../components/common/ConfirmationModal';
-import { Search, X, UserPlus, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, X, UserPlus, AlertCircle, Plus } from 'lucide-react';
 import './AddCoachToSelectionModal.css';
 
 const AddCoachToSelectionModal = ({ isOpen, onClose, onSuccess }) => {
@@ -13,6 +14,7 @@ const AddCoachToSelectionModal = ({ isOpen, onClose, onSuccess }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCoach, setSelectedCoach] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+    const navigate = useNavigate();
 
     // Confirmation Modal State
     const [showConfirmation, setShowConfirmation] = useState(false);
@@ -175,6 +177,17 @@ const AddCoachToSelectionModal = ({ isOpen, onClose, onSuccess }) => {
                                         ? 'No se encontraron entrenadores con ese criterio de búsqueda'
                                         : 'No hay entrenadores disponibles para agregar'}
                                 </p>
+                                {!searchTerm && (
+                                    <Button
+                                        className="mt-4"
+                                        onClick={() => {
+                                            onClose();
+                                            navigate('/dashboard/entrenadores-seleccion/nuevo');
+                                        }}
+                                    >
+                                        <Plus size={18} /> Crear Entrenador Nuevo
+                                    </Button>
+                                )}
                             </div>
                         ) : (
                             <ul className="coaches-list">

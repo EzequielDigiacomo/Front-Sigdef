@@ -23,7 +23,7 @@ const Login = () => {
         try {
             const success = await login(username, password);
             if (success) {
-                
+
                 console.log('Login exitoso, redirigiendo...');
                 navigate('/', { replace: true });
             } else {
@@ -41,7 +41,7 @@ const Login = () => {
             <div className="login-card glass-panel">
                 <div className="login-header">
                     <div className="login-logo">
-                        <Shield size={48} color="var(--primary)" />
+                        <Shield size={32} color="var(--primary)" />
                     </div>
                     <h2 className="text-gradient">Bienvenido a SIGDEF</h2>
                     <p className="login-subtitle">Sistema de Gestión Deportiva</p>

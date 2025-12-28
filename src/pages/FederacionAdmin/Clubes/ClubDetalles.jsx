@@ -5,6 +5,7 @@ import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import { ArrowLeft, Users, Target, Calendar, ClipboardList, Edit, Plus, CheckCircle, AlertTriangle, XCircle, Info } from 'lucide-react';
 import Modal from '../../../components/common/Modal';
+import AtletaDetailModal from '../Atletas/components/AtletaDetailModal';
 import { getCategoriaLabel } from '../../../utils/enums';
 
 const ClubDetalles = () => {
@@ -913,75 +914,18 @@ const ClubDetalles = () => {
                 </Modal>
             )}
 
-            {/* Modal Detalles Atleta */}
-            {
-                showAtletaDetailsModal && selectedAtleta && (
-                    <Modal
-                        isOpen={showAtletaDetailsModal}
-                        onClose={() => {
-                            setShowAtletaDetailsModal(false);
-                            setSelectedAtleta(null);
-                        }}
-                        title="Detalles del Atleta"
-                        footer={
-                            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                                <Button variant="secondary" onClick={() => {
-                                    setShowAtletaDetailsModal(false);
-                                    setSelectedAtleta(null);
-                                }}>
-                                    Cerrar
-                                </Button>
-                                <Button
-                                    variant="primary"
-                                    onClick={() => {
-                                        setShowAtletaDetailsModal(false);
-                                        navigate(`/dashboard/atletas/editar/${selectedAtleta.idPersona}`, {
-                                            state: { returnPath: `/dashboard/clubes/detalles/${id}` }
-                                        });
-                                    }}
-                                >
-                                    <Edit size={18} /> Editar Atleta
-                                </Button>
-                            </div>
-                        }
-                    >
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', padding: '1rem' }}>
-                            <div style={{ gridColumn: '1 / -1' }}>
-                                <label className="detail-label">Nombre Completo</label>
-                                <div className="detail-value" style={{ fontSize: '1.25rem', color: 'var(--primary)' }}>
-                                    {selectedAtleta.nombrePersona}
-                                </div>
-                            </div>
-                            <div>
-                                <label className="detail-label">DNI</label>
-                                <div className="detail-value">{selectedAtleta.documento}</div>
-                            </div>
-                            <div>
-                                <label className="detail-label">Categoría</label>
-                                <div className="detail-value">{getCategoriaLabel(selectedAtleta.categoria)}</div>
-                            </div>
-                            <div>
-                                <label className="detail-label">Selección</label>
-                                <div className="detail-value">
-                                    {selectedAtleta.perteneceSeleccion ? (
-                                        <span className="badge badge-success">Sí</span>
-                                    ) : (
-                                        <span className="badge badge-secondary">No</span>
-                                    )}
-                                </div>
-                            </div>
-                            <div>
-                                <label className="detail-label">Estado Pago</label>
-                                <div className="detail-value">
-                                    <span className={`badge badge-${selectedAtleta.estadoPago === 1 ? 'success' : 'warning'}`}>
-                                        {selectedAtleta.estadoPago === 1 ? 'Al día' : 'Pendiente'}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </Modal>
-                )
-            }
+            {showAtletaDetailsModal && selectedAtleta && (
+                <AtletaDetailModal
+                    isOpen={showAtletaDetailsModal}
+                    onClose={() => {
+                        setShowAtletaDetailsModal(false);
+                        setSelectedAtleta(null);
+                    }}
+                    athlete={selectedAtleta}
+                    onRefresh={loadClubDetalles}
+                    returnPath={`/dashboard/clubes/detalles/${id}`}
+                />
+            )}
         </div >
     );
 };

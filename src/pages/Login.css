@@ -1,8 +1,9 @@
 .login-container {
-    min-height: 100vh;
+    height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
 
     background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
     padding: 1rem;
@@ -10,8 +11,8 @@
 
 .login-card {
     width: 100%;
-    max-width: 400px;
-    padding: 2.5rem;
+    max-width: 380px;
+    padding: 1.5rem;
 
     background: #ffffff;
     border: 1px solid #e5e7eb;
@@ -27,13 +28,13 @@
 
 .login-header {
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
 }
 
 .login-logo {
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
     display: inline-flex;
-    padding: 1rem;
+    padding: 0.5rem;
     background: #f3f4f6;
     border-radius: 50%;
     border: 1px solid #e5e7eb;
@@ -43,10 +44,11 @@
 .login-header h2 {
     color: #1f2937;
     font-weight: 700;
+    font-size: 1.25rem;
+    margin: 0.25rem 0;
 }
 
 .text-gradient {
-
     background: none;
     -webkit-text-fill-color: initial;
     color: #1f2937;
@@ -54,23 +56,24 @@
 
 .login-subtitle {
     color: #6b7280;
-    margin-top: 0.5rem;
+    margin-top: 0.25rem;
+    font-size: 0.9rem;
 }
 
 .login-form {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1rem;
 }
 
 .form-group {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.25rem;
 }
 
 .form-group label {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 600;
     color: #374151;
 }
@@ -79,10 +82,10 @@
     background: #f9fafb;
     border: 1px solid #d1d5db;
     border-radius: 0.5rem;
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 0.75rem;
     color: #1f2937;
     font-family: inherit;
-    font-size: 1rem;
+    font-size: 0.95rem;
     transition: all 0.2s ease;
 }
 
@@ -100,16 +103,15 @@
 .error-message {
     background: #fee2e2;
     color: #991b1b;
-    padding: 0.75rem;
+    padding: 0.5rem;
     border-radius: 0.5rem;
-    font-size: 0.875rem;
+    font-size: 0.8rem;
     text-align: center;
     border: 1px solid #fecaca;
 }
 
 button[type="submit"] {
     background-color: #4b5563;
-
     border-color: #4b5563;
 }
 
@@ -125,12 +127,12 @@ button[type="submit"]:hover {
 
 .password-input-wrapper .form-input {
     width: 100%;
-    padding-right: 2.5rem;
+    padding-right: 2.25rem;
 }
 
 .password-toggle-btn {
     position: absolute;
-    right: 0.75rem;
+    right: 0.5rem;
     top: 50%;
     transform: translateY(-50%);
     background: none;

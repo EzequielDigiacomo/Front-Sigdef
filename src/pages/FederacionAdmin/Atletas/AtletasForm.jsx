@@ -48,6 +48,9 @@ const AtletasForm = () => {
         idPersona: null
     });
 
+    const [tutorSearchStatus, setTutorSearchStatus] = useState('idle'); // idle, loading, found, not_found
+
+
     const [resultModal, setResultModal] = useState({
         open: false,
         type: 'success',
@@ -59,6 +62,29 @@ const AtletasForm = () => {
         loadClubes();
         if (id) {
             loadAtleta();
+            // Fetch tutor data if exists
+            const fetchTutor = async () => {
+                try {
+                    const relRes = await api.get('/AtletaTutor');
+                    const relacion = relRes.find(r => r.idAtleta === parseInt(id));
+                    if (relacion) {
+                        const tutorRes = await api.get(`/Persona/${relacion.idTutor}`);
+                        setTutorData({
+                            documento: tutorRes.documento,
+                            nombre: tutorRes.nombre,
+                            apellido: tutorRes.apellido,
+                            telefono: tutorRes.telefono,
+                            email: tutorRes.email,
+                            parentesco: relacion.idParentesco,
+                            existe: true,
+                            idPersona: relacion.idTutor
+                        });
+                        setTutorLater(false);
+                    }
+                } catch (e) { console.log("No tutor found or error fetching", e); }
+            };
+            fetchTutor();
+
         } else if (location.state?.clubId) {
             setFormData(prev => ({ ...prev, idClub: location.state.clubId }));
         }
@@ -123,27 +149,64 @@ const AtletasForm = () => {
         }
     };
 
-    const buscarTutor = async (documento) => {
+    const buscarTutor = async (documentoRaw) => {
+        const documento = documentoRaw ? documentoRaw.replace(/[\s.]/g, '') : '';
         if (!documento || documento.length < 7) {
             setTutorData(prev => ({ ...prev, documento, nombre: '', apellido: '', telefono: '', email: '', existe: false, idPersona: null }));
+            setTutorSearchStatus('idle');
             return;
         }
 
+        setTutorSearchStatus('loading');
         try {
-            const persona = await api.get(`/Persona/documento/${documento}`);
+            // Intenta búsqueda directa
+            const persona = await api.get(`/Persona/documento/${documento}`, { silentErrors: true });
 
-            setTutorData({
+            setTutorData(prev => ({
+                ...prev,
                 documento,
                 nombre: persona.nombre || persona.Nombre || '',
                 apellido: persona.apellido || persona.Apellido || '',
                 telefono: persona.telefono || persona.Telefono || '',
                 email: persona.email || persona.Email || '',
-                parentesco: 0,
                 existe: true,
                 idPersona: persona.idPersona || persona.IdPersona
-            });
+            }));
+            setTutorSearchStatus('found');
         } catch (error) {
+            console.warn("Búsqueda directa falló, intentando búsqueda general...", error);
+            try {
+                // Fallback: Buscar en todas las personas
+                const allPersonas = await api.get('/Persona', { silentErrors: true });
+                if (Array.isArray(allPersonas)) {
+                    const found = allPersonas.find(p =>
+                        (p.documento && p.documento.replace(/[\s.]/g, '') === documento) ||
+                        (p.Documento && p.Documento.replace(/[\s.]/g, '') === documento)
+                    );
+
+                    if (found) {
+                        console.log("✅ Persona encontrada en búsqueda general:", found);
+                        setTutorData(prev => ({
+                            ...prev,
+                            documento,
+                            nombre: found.nombre || found.Nombre || '',
+                            apellido: found.apellido || found.Apellido || '',
+                            telefono: found.telefono || found.Telefono || '',
+                            email: found.email || found.Email || '',
+                            existe: true,
+                            idPersona: found.idPersona || found.IdPersona
+                        }));
+                        setTutorSearchStatus('found');
+                        return; // Éxito en fallback
+                    }
+                }
+            } catch (fallbackError) {
+                console.error("Falló también la búsqueda general", fallbackError);
+            }
+
+            // Si falla todo
             setTutorData(prev => ({ ...prev, documento, nombre: '', apellido: '', telefono: '', email: '', existe: false, idPersona: null }));
+            setTutorSearchStatus('not_found');
         }
     };
 
@@ -151,17 +214,19 @@ const AtletasForm = () => {
         const { name, value, type, checked } = e.target;
         setFormData(prev => ({
             ...prev,
-            [name]: type === 'checkbox' ? checked : (['categoria', 'idClub', 'sexo'].includes(name) ? parseInt(value) || value : value)
+            [name]: type === 'checkbox' ? checked : (['categoria', 'idClub', 'sexo'].includes(name) ? parseInt(value) || value : (name === 'documento' ? value.replace(/[\s.]/g, '') : value))
         }));
     };
 
     const handleTutorChange = (e) => {
         const { name, value } = e.target;
-        setTutorData(prev => ({ ...prev, [name]: name === 'parentesco' ? parseInt(value) : value }));
+        const sanitizedValue = name === 'documento' ? value.replace(/[\s.]/g, '') : value;
+
+        setTutorData(prev => ({ ...prev, [name]: name === 'parentesco' ? parseInt(value) : sanitizedValue }));
 
         if (name === 'documento') {
             if (window.tutorSearchTimeout) clearTimeout(window.tutorSearchTimeout);
-            window.tutorSearchTimeout = setTimeout(() => buscarTutor(value), 500);
+            window.tutorSearchTimeout = setTimeout(() => buscarTutor(sanitizedValue), 500);
         }
     };
 
@@ -211,16 +276,11 @@ const AtletasForm = () => {
                 await api.put(`/Atleta/${id}`, getAtletaPayload(parseInt(id)));
                 idPersona = parseInt(id);
             } else {
-
+                // Nuevo Atleta: Buscar o Crear Persona
                 try {
-                    console.log(`🔍 Buscando persona con DNI ${formData.documento}...`);
-                    const personaExistente = await api.get(`/Persona/documento/${formData.documento}`);
-
+                    const personaExistente = await api.get(`/Persona/documento/${formData.documento}`, { silentErrors: true });
                     if (personaExistente && (personaExistente.idPersona || personaExistente.IdPersona)) {
                         idPersona = personaExistente.idPersona || personaExistente.IdPersona;
-                        console.log('⚠️ Persona encontrada, reutilizando ID:', idPersona);
-
-                        console.log('🔄 Actualizando datos de persona existente...');
                         await api.put(`/Persona/${idPersona}`, personaPayload);
                     }
                 } catch (error) {
@@ -228,88 +288,93 @@ const AtletasForm = () => {
                 }
 
                 if (!idPersona) {
-                    console.log('➕ Creando nueva Persona:', personaPayload);
                     const personaResponse = await api.post('/Persona', personaPayload);
-                    console.log('✅ Persona creada:', personaResponse);
                     idPersona = personaResponse.IdPersona || personaResponse.idPersona;
                 }
 
+                // Asegurar registro de Atleta
                 try {
-
-                    await api.get(`/Atleta/${idPersona}`);
-                    console.log('⚠️ Esta persona ya es atleta.');
-
+                    await api.get(`/Atleta/${idPersona}`, { silentErrors: true });
                     await api.put(`/Atleta/${idPersona}`, getAtletaPayload(idPersona));
                 } catch (error) {
-
-                    console.log('➕ Creando registro de Atleta...');
                     await api.post('/Atleta', getAtletaPayload(idPersona));
                 }
+            }
 
-                if (esMenor && !tutorLater && tutorData.documento) {
-                    console.log('🔍 Procesando tutor...');
-                    let idTutor;
+            // --- PROCESAMIENTO DEL TUTOR (Común para Nuevo y Editar) ---
+            if (esMenor && !tutorLater && tutorData.documento) {
+                console.log('🔍 Procesando tutor...');
+                let idTutorPersona = tutorData.idPersona;
+                const sanitizedTutorDni = tutorData.documento.replace(/[\s.]/g, '');
 
-                    if (!tutorData.existe) {
+                // 1. Asegurar Persona del Tutor
+                if (!idTutorPersona) {
+                    try {
+                        let found = null;
+                        try {
+                            found = await api.get(`/Persona/documento/${sanitizedTutorDni}`, { silentErrors: true });
+                        } catch (e) {
+                            const all = await api.get('/Persona', { silentErrors: true });
+                            if (Array.isArray(all)) {
+                                found = all.find(p => (p.documento || p.Documento || '').replace(/[\s.]/g, '') === sanitizedTutorDni);
+                            }
+                        }
 
-                        console.log('➕ Creando Persona para el Tutor...');
-                        const tutorPersonaPayload = {
-                            Nombre: tutorData.nombre,
-                            Apellido: tutorData.apellido,
-                            Documento: tutorData.documento,
-                            FechaNacimiento: new Date().toISOString(),
-                            Email: tutorData.email || "",
-                            Telefono: tutorData.telefono || "",
-                            Direccion: ""
-                        };
+                        if (found) {
+                            idTutorPersona = found.idPersona || found.IdPersona;
+                        } else {
+                            const tutorPersonaPayload = {
+                                Nombre: tutorData.nombre,
+                                Apellido: tutorData.apellido,
+                                Documento: sanitizedTutorDni,
+                                Sexo: 1,
+                                FechaNacimiento: new Date('1980-01-01').toISOString(),
+                                Email: tutorData.email || "",
+                                Telefono: tutorData.telefono || "",
+                                Direccion: ""
+                            };
+                            const res = await api.post('/Persona', tutorPersonaPayload);
+                            idTutorPersona = res.idPersona || res.IdPersona;
+                        }
+                    } catch (err) {
+                        console.error("Error asegurando persona del tutor:", err);
+                    }
+                }
 
-                        const tutorPersonaResponse = await api.post('/Persona', tutorPersonaPayload);
-                        const idPersonaTutor = tutorPersonaResponse.IdPersona || tutorPersonaResponse.idPersona;
-
-                        console.log('➕ Registrando como Tutor...');
-                        const tutorPayload = {
-                            IdPersona: idPersonaTutor,
+                if (idTutorPersona) {
+                    // 2. Asegurar Rol de Tutor
+                    try {
+                        await api.get(`/Tutor/${idTutorPersona}`, { silentErrors: true });
+                    } catch (e) {
+                        const tutorRolePayload = {
+                            IdPersona: idTutorPersona,
                             TipoTutor: PARENTESCO_MAP[tutorData.parentesco] || 'Padre/Madre',
-                            NombrePersona: `${tutorData.nombre} ${tutorData.apellido}`,
-                            Documento: tutorData.documento,
+                            NombrePersona: `${tutorData.nombre || ''} ${tutorData.apellido || ''}`.trim(),
+                            Documento: sanitizedTutorDni,
                             Telefono: tutorData.telefono || '',
                             Email: tutorData.email || ''
                         };
-
-                        await api.post('/Tutor', tutorPayload);
-                        idTutor = idPersonaTutor;
-                    } else {
-
-                        console.log('✅ Usando Tutor existente ID:', tutorData.idPersona);
-                        idTutor = tutorData.idPersona;
-
-                        try {
-                            await api.get(`/Tutor/${idTutor}`);
-                        } catch (e) {
-                            console.log('➕ La persona existe pero no es Tutor, registrándolo...');
-                            const tutorPayload = {
-                                IdPersona: idTutor,
-                                TipoTutor: PARENTESCO_MAP[tutorData.parentesco] || 'Padre/Madre',
-                                NombrePersona: `${tutorData.nombre} ${tutorData.apellido}`,
-                                Documento: tutorData.documento,
-                                Telefono: tutorData.telefono || '',
-                                Email: tutorData.email || ''
-                            };
-                            await api.post('/Tutor', tutorPayload);
-                        }
+                        await api.post('/Tutor', tutorRolePayload);
                     }
 
-                    console.log('🔗 Vinculando Atleta y Tutor...');
+                    // 3. Vincular Atleta y Tutor
                     try {
-                        await api.post('/AtletaTutor', {
-                            IdAtleta: idPersona,
-                            IdTutor: idTutor,
-                            Parentesco: tutorData.parentesco
-                        });
-                        console.log('✅ Vinculación exitosa');
-                    } catch (error) {
-                        console.error('Error vinculando tutor (posiblemente ya existe la relación):', error);
+                        const relRes = await api.get('/AtletaTutor');
+                        const existingRel = Array.isArray(relRes) ? relRes.find(r => (r.idAtleta || r.IdAtleta) === idPersona) : null;
 
+                        const relPayload = {
+                            IdAtleta: idPersona,
+                            IdTutor: idTutorPersona,
+                            IdParentesco: parseInt(tutorData.parentesco)
+                        };
+
+                        if (existingRel) {
+                            const idRel = existingRel.idAtletaTutor || existingRel.IdAtletaTutor;
+                            await api.delete(`/AtletaTutor/${idRel}`);
+                        }
+                        await api.post('/AtletaTutor', relPayload);
+                    } catch (err) {
+                        console.error("Error vinculando tutor:", err);
                     }
                 }
             }
@@ -407,7 +472,7 @@ const AtletasForm = () => {
                             <input name="direccion" value={formData.direccion} onChange={handleChange} className="form-input" />
                         </div>
 
-                        {esMenor && !id && (
+                        {esMenor && (
                             <>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                                     <h3 className="form-section-title" style={{ marginBottom: 0 }}>Datos del Tutor (Menor de 18 años)</h3>
@@ -417,9 +482,15 @@ const AtletasForm = () => {
                                             checked={tutorLater}
                                             onChange={(e) => setTutorLater(e.target.checked)}
                                         />
-                                        Crear tutor más tarde
+                                        {id ? 'Editar/Ver tutor' : 'Crear tutor más tarde'}
                                     </label>
                                 </div>
+
+                                {id && tutorLater && (
+                                    <small style={{ display: 'block', marginBottom: '1rem', color: 'var(--text-secondary)' }}>
+                                        Desmarcar para editar o asignar tutor.
+                                    </small>
+                                )}
 
                                 {!tutorLater && (
                                     <>
@@ -433,7 +504,11 @@ const AtletasForm = () => {
                                                 placeholder="Buscar por documento..."
                                                 required={!tutorLater}
                                             />
-                                            {tutorData.existe && <small style={{ color: 'var(--success)' }}>✓ Tutor encontrado en el sistema</small>}
+                                            <div style={{ minHeight: '20px', fontSize: '0.85rem', marginTop: '4px' }}>
+                                                {tutorSearchStatus === 'loading' && <span style={{ color: 'var(--text-secondary)' }}>🔍 Buscando...</span>}
+                                                {tutorSearchStatus === 'found' && <span style={{ color: 'var(--success)' }}>✓ Persona encontrada, datos precargados.</span>}
+                                                {tutorSearchStatus === 'not_found' && <span style={{ color: 'var(--text-secondary)' }}>No existe ese DNI registrado, complete los datos.</span>}
+                                            </div>
                                         </div>
                                         <div className="form-group">
                                             <label>Nombre del Tutor *</label>

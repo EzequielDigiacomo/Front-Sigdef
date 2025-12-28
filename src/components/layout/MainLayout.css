@@ -29,15 +29,21 @@
     flex: 1;
     padding-bottom: 2rem;
     width: 100%;
-    max-width: none;
-    margin: 0;
 }
 
 .container {
-    width: 100% !important;
-    max-width: none !important;
-    margin: 0 !important;
-    padding: 0 2rem !important;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+.main-content.full-width {
+    padding-top: 2rem;
+}
+
+.app-container.no-nav .container {
+    max-width: 1200px;
 }
 
 .footer {

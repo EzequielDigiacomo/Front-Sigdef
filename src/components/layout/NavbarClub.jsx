@@ -16,8 +16,8 @@ const NavbarClub = ({ toggleSidebar }) => {
         { icon: UserCheck, label: 'Tutores', path: '/club/tutores' },
         { icon: Award, label: 'Entrenadores', path: '/club/entrenadores' },
         { icon: Shield, label: 'Delegados', path: '/club/delegados' },
-        { icon: Calendar, label: 'Eventos', path: '/club/eventos' },
-        { icon: Trophy, label: 'Disponibles', path: '/club/eventos-disponibles' },
+        //        { icon: Calendar, label: 'Eventos', path: '/club/eventos' },
+        //        { icon: Trophy, label: 'Disponibles', path: '/club/eventos-disponibles' },
     ];
 
     return (

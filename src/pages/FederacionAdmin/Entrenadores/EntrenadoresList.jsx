@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../../services/api';
 import DataTable from '../../../components/common/DataTable';
 import Card from '../../../components/common/Card';
-import { Award, Search, Filter, Edit, Trash2, CheckCircle, AlertTriangle, Plus, Eye, UserCog } from 'lucide-react';
+import { Award, Search, Filter, Edit, Trash2, CheckCircle, AlertTriangle, Plus, Eye, UserCog, UserPlus } from 'lucide-react';
 import FormField from '../../../components/forms/FormField';
 import FormSelect from '../../../components/forms/FormSelect';
 import Pagination from '../../../components/common/Pagination';
@@ -304,9 +304,14 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
                     <p className="page-subtitle">{subtitle}</p>
                 </div>
                 {viewMode === 'seleccion' && (
-                    <Button onClick={() => setShowAddCoachModal(true)}>
-                        <Plus size={20} /> Agregar Entrenador
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={() => setShowAddCoachModal(true)}>
+                            <UserPlus size={20} /> Vincular Existente
+                        </Button>
+                        <Button onClick={() => navigate('/dashboard/entrenadores-seleccion/nuevo')}>
+                            <Plus size={20} /> Crear Entrenador Nuevo
+                        </Button>
+                    </div>
                 )}
             </div>
 

@@ -33,41 +33,39 @@
 /* GRILLA */
 .categories-grid {
     display: grid;
-    /* Filas de 3 tarjetas mínimo */
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 1.25rem;
-    overflow-y: auto;
-    padding-right: 0.5rem;
-    padding-bottom: 2rem;
-    align-content: start;
+    /* Forzamos exactamente 3 columnas para el diseño 3x3 */
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, auto);
+    gap: 2rem;
+    padding: 1rem;
     width: 100%;
 }
 
-/* TARJETA UNIFICADA (Sin piezas sueltas) */
+/* TARJETA VERTICAL PARA 3x3 */
 .category-card-horizontal {
     background-color: var(--bg-card, #1e293b);
-    /* Fondo sólido */
     border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
-    border-left: 6px solid var(--primary, #3b82f6);
-    /* Barra integrada */
-    border-radius: 12px;
+    border-top: 8px solid var(--primary, #3b82f6);
+    /* Barra arriba ahora */
+    border-radius: 24px;
     display: flex;
-    flex-direction: row;
-    /* Horizontal */
+    flex-direction: column;
+    /* VERTICAL */
     align-items: center;
-    /* Centrado vertical perfecto */
-    padding: 1rem 1.25rem;
-    min-height: 120px;
+    justify-content: center;
+    padding: 1.5rem;
+    min-height: 280px;
+    /* Aumentamos para que quepa todo el contenido vertical */
+    /* Mucho más grandes */
     cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    gap: 1rem;
-    position: relative;
-    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    gap: 1.5rem;
+    text-align: center;
 }
 
 .category-card-horizontal:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    transform: translateY(-8px);
+    box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.5);
     border-color: var(--primary, #3b82f6);
 }
 
@@ -75,53 +73,64 @@
 .card-col-left {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: flex-start;
-    width: 110px;
-    /* Ancho fijo para alineación */
-    flex-shrink: 0;
+    align-items: center;
+    width: 100%;
 }
 
 .category-icon-wrapper {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
     background: var(--bg-secondary, rgba(255, 255, 255, 0.05));
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--primary, #3b82f6);
-    margin-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
 .category-title {
-    font-size: 1.1rem;
-    font-weight: 700;
+    font-size: 1.8rem;
+    font-weight: 800;
     color: var(--text-primary, #f3f4f6);
     line-height: 1.2;
     margin: 0;
 }
 
-/* COLUMNA 2: ENTRENADORES (Centro) - Flex Grow */
+/* COLUMNA 2: ENTRENADORES (Ahora abajo del título) */
 .card-col-center {
-    flex: 1;
-    /* Ocupa el espacio sobrante */
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin: 0.5rem 0;
+    padding: 1rem 0;
+    border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+}
+
+.coach-mini-list {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    padding: 0 1rem;
-    border-left: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
-    border-right: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
-    height: 80%;
-    /* Altura de los separadores */
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.coach-mini-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    color: var(--text-primary);
 }
 
 .section-label {
-    font-size: 0.65rem;
+    font-size: 0.8rem;
     font-weight: 700;
     text-transform: uppercase;
     color: var(--text-secondary, #9ca3af);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
     letter-spacing: 0.05em;
 }
 
@@ -145,12 +154,12 @@
 }
 
 .coach-name-clean {
-    font-size: 0.85rem;
+    font-size: 1rem;
     color: var(--text-primary, #f3f4f6);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 140px;
+    max-width: 180px;
 }
 
 /* Badge No Asignado (Limpio) */
@@ -170,43 +179,46 @@
     font-weight: 500;
 }
 
-/* COLUMNA 3: ATLETAS Y ACCIÓN (Derecha) */
+/* COLUMNA 3: ATLETAS Y ACCIÓN */
 .card-col-right {
+    display: flex !important;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-top: auto;
+    padding-top: 1rem;
+}
+
+.stat-group {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: flex-end;
-    width: 90px;
-    flex-shrink: 0;
-    gap: 0.5rem;
-    text-align: right;
+    align-items: center;
 }
 
 .stat-big-number {
-    font-size: 1.75rem;
+    font-size: 2rem;
     font-weight: 800;
     color: var(--primary, #3b82f6);
     line-height: 1;
 }
 
 .stat-sublabel {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
     color: var(--text-secondary, #9ca3af);
 }
 
 .btn-icon-action {
-    margin-top: 0.5rem;
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
     background-color: var(--bg-secondary, rgba(255, 255, 255, 0.05));
     color: var(--text-secondary);
-    transition: background-color 0.2s;
 }
 
 .category-card-horizontal:hover .btn-icon-action {

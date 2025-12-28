@@ -32,7 +32,9 @@ const createPersona = async (personaData) => {
         try {
             const existing = await api.get(`/Persona/documento/${personaData.Documento}`, { silentErrors: true });
             if (existing && (existing.idPersona || existing.IdPersona)) {
-                return existing.idPersona || existing.IdPersona;
+                const id = existing.idPersona || existing.IdPersona;
+                await api.put(`/Persona/${id}`, personaData);
+                return id;
             }
         } catch (e) {
             // Not found, continue
@@ -48,19 +50,16 @@ const createPersona = async (personaData) => {
 
 const createClub = async (name, siglas) => {
     const payload = {
-        nombre: name,
-        direccion: `Calle Falsa ${random(100, 999)}`,
-        telefono: `555-${random(1000, 9999)}`,
-        siglas: siglas
+        Nombre: name,
+        Direccion: `Calle Falsa ${random(100, 999)}`,
+        Telefono: `555-${random(1000, 9999)}`,
+        Siglas: siglas
     };
     try {
         const res = await api.post('/Club', payload);
-        return res ? (res.idClub || res.IdClub) : null; // Adjust based on API response
+        return res ? (res.idClub || res.IdClub) : null;
     } catch (e) {
-        // Assuming it might fail if exists, but we want unique names usually
         console.warn(`Club ${name} creation failed or exists:`, e);
-        // Try finding it? Hard to find by name without list. Assuming success or manual handling.
-        // Actually, getAllClubs is safer.
         return null;
     }
 };
@@ -72,6 +71,7 @@ const createTutor = async (childName) => {
         Nombre: nombre,
         Apellido: apellido,
         Documento: dni,
+        Sexo: random(1, 2),
         FechaNacimiento: randomDate(30, 60),
         Email: `tutor.${childName}@test.com`,
         Telefono: '123456789',
@@ -83,14 +83,14 @@ const createTutor = async (childName) => {
     try {
         const tutorPayload = {
             IdPersona: personaId,
-            TipoTutor: PARENTESCO_MAP[0], // Padre
+            TipoTutor: PARENTESCO_MAP[0] || 'Padre/Madre',
             NombrePersona: `${nombre} ${apellido}`,
             Documento: dni,
             Telefono: '123456789',
-            Email: `tutor.${childName}@test.com` // Assuming uniqueness
+            Email: `tutor.${childName}@test.com`
         };
         await api.post('/Tutor', tutorPayload);
-        return personaId; // Use personaId as tutorId usually in this system
+        return personaId;
     } catch (e) {
         console.error('Error creating tutor:', e);
         return null;
@@ -106,6 +106,7 @@ const createAtleta = async (clubId, isMinor) => {
         Nombre: nombre,
         Apellido: apellido,
         Documento: dni,
+        Sexo: random(1, 2),
         FechaNacimiento: birthDate,
         Email: `atleta.${dni}@test.com`,
         Telefono: '11111111',
@@ -114,11 +115,10 @@ const createAtleta = async (clubId, isMinor) => {
 
     if (!personaId) return;
 
-    // Create Atleta
-    const categoria = isMinor ? 2 : 6; // Simplified: 2=Cadete, 6=Senior
+    const categoria = isMinor ? 2 : 6;
     await api.post('/Atleta', {
         IdPersona: personaId,
-        IdClub: clubId,
+        IdClub: clubId ? parseInt(clubId) : null,
         Categoria: categoria,
         BecadoEnard: false,
         BecadoSdn: false,
@@ -135,7 +135,7 @@ const createAtleta = async (clubId, isMinor) => {
             await api.post('/AtletaTutor', {
                 IdAtleta: personaId,
                 IdTutor: tutorId,
-                Parentesco: 0
+                IdParentesco: 0
             });
         }
     }
@@ -148,6 +148,7 @@ const createEntrenador = async (clubId) => {
         Nombre: nombre,
         Apellido: apellido,
         Documento: dni,
+        Sexo: random(1, 2),
         FechaNacimiento: randomDate(25, 50),
         Email: `coach.${dni}@test.com`,
         Telefono: '99999999',
@@ -156,18 +157,17 @@ const createEntrenador = async (clubId) => {
 
     if (!personaId) return;
 
-    // Create Entrenador (This assumes similar payload to others, based on guesswork or standard practice)
-    // Actually, I should check ClubEntrenadoresForm to be sure, but standard pattern suggests:
-    // POST /Entrenador { IdPersona, IdClub, Licencia, ... }
-    // Let's assume standard fields.
     try {
         await api.post('/Entrenador', {
             IdPersona: personaId,
-            IdClub: clubId,
-            Licencia: `LIC-${random(1000, 9999)}`,
-            CategoriaSeleccion: null,
+            IdClub: clubId ? parseInt(clubId) : null,
+            Licencia: `SEED-${random(1000, 9999)}`,
+            PerteneceSeleccion: false,
+            CategoriaSeleccion: "0",
             BecadoEnard: false,
-            BecadoSdn: false
+            BecadoSdn: false,
+            MontoBeca: 0,
+            PresentoAptoMedico: true
         });
     } catch (e) { console.warn('Entrenador creation issue', e); }
 };
@@ -179,6 +179,7 @@ const createDelegado = async (clubId) => {
         Nombre: nombre,
         Apellido: apellido,
         Documento: dni,
+        Sexo: random(1, 2),
         FechaNacimiento: randomDate(30, 60),
         Email: `delegado.${dni}@test.com`,
         Telefono: '88888888',
@@ -190,8 +191,9 @@ const createDelegado = async (clubId) => {
     try {
         await api.post('/DelegadoClub', {
             IdPersona: personaId,
-            IdClub: clubId,
-            FechaInicio: new Date().toISOString()
+            IdClub: clubId ? parseInt(clubId) : null,
+            IdFederacion: 1,
+            IdRol: 3
         });
     } catch (e) { console.warn('Delegado creation issue', e); }
 };
@@ -201,33 +203,32 @@ const createEvento = async () => {
     const name = names[random(0, names.length - 1)] + " " + random(2025, 2030);
 
     const payload = {
-        nombre: name,
-        descripcion: "Evento generado automáticamente",
-        tipoEvento: random(1, 5),
-        fechaInicio: new Date(Date.now() + 86400000 * random(10, 100)).toISOString(),
-        fechaFin: new Date(Date.now() + 86400000 * random(101, 105)).toISOString(),
-        fechaInicioInscripciones: new Date().toISOString(),
-        fechaFinInscripciones: new Date(Date.now() + 86400000 * 5).toISOString(),
-        ubicacion: "Lago Central",
-        ciudad: "Tigre",
-        provincia: "Buenos Aires",
-        precioBase: random(1000, 5000),
-        cupoMaximo: 200,
-        tieneCronometraje: true,
-        requiereCertificadoMedico: true,
-        observaciones: "",
-        distancias: []
+        Nombre: name,
+        Descripcion: "Evento generado automáticamente",
+        TipoEvento: random(1, 5),
+        FechaInicio: new Date(Date.now() + 86400000 * random(10, 100)).toISOString(),
+        FechaFin: new Date(Date.now() + 86400000 * random(101, 105)).toISOString(),
+        FechaInicioInscripciones: new Date().toISOString(),
+        FechaFinInscripciones: new Date(Date.now() + 86400000 * 5).toISOString(),
+        Ubicacion: "Lago Central",
+        Ciudad: "Tigre",
+        Provincia: "Buenos Aires",
+        PrecioBase: random(1000, 5000),
+        CupoMaximo: 200,
+        TieneCronometraje: true,
+        RequiereCertificadoMedico: true,
+        Observaciones: "",
+        Distancias: []
     };
 
-    // Create 4-5 distances
     const numDistances = random(4, 5);
     for (let i = 0; i < numDistances; i++) {
-        payload.distancias.push({
-            distanciaRegata: random(1, 13), // 1..13
-            categoriaEdad: random(1, 8), // 1..8 (Avoiding 0 just in case based on error pattern, or keep 0 if sure. Reverting to 1..8 to be safe as user said "distancia sexo categoria")
-            sexoCompetencia: random(1, 2), // 1=Masculino, 2=Femenino
-            tipoBote: random(0, 5),
-            descripcion: "Prueba generada"
+        payload.Distancias.push({
+            DistanciaRegata: random(1, 13),
+            CategoriaEdad: random(1, 8),
+            SexoCompetencia: random(1, 2),
+            TipoBote: random(0, 5),
+            Descripcion: "Prueba generada"
         });
     }
 
@@ -250,51 +251,30 @@ export const seedDatabase = async () => {
     ];
 
     for (let c of clubNames) {
-        // Create Club
-        // First check if existing isn't easy without GET list, so we treat it optimistically
-        // Better: GET all clubs and check.
         let clubId = null;
         try {
-            const allClubs = await api.get('/Club');
-            const found = allClubs.find(cl => cl.nombre === c.name);
-            if (found) clubId = found.idClub;
+            const allClubs = await api.get('/Club', { silentErrors: true });
+            const found = allClubs.find(cl => (cl.nombre === c.name || cl.Nombre === c.name));
+            if (found) clubId = found.idClub || found.IdClub;
         } catch (e) { }
 
         if (!clubId) {
-            const res = await api.post('/Club', {
-                nombre: c.name,
-                direccion: "Calle Club " + random(1, 100),
-                telefono: "11-2222-3333",
-                siglas: c.siglas
-            });
-            // Result of POST /Club usually returns the object including IdClub
-            // Based on ClubDetalles loading, it seems it returns the object.
-            // But let's be safe and check field casing
-            if (res) clubId = res.idClub || res.IdClub;
+            clubId = await createClub(c.name, c.siglas);
         }
 
         if (clubId) {
             console.log(`Procesando Club: ${c.name} (ID: ${clubId})`);
-
-            // Create 5 Athletes
             for (let i = 0; i < 5; i++) {
-                // 2 minors, 3 adults
                 await createAtleta(clubId, i < 2);
             }
-
-            // Create Entrenador
             await createEntrenador(clubId);
-
-            // Create Delegado
             await createDelegado(clubId);
         }
     }
 
-    // Create 3 Events
     for (let i = 0; i < 3; i++) {
         await createEvento();
     }
 
     console.log("Seed Finalizado!");
-    alert("Proceso de creación finalizado. Refresca la página.");
 };

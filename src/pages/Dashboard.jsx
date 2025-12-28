@@ -2,14 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import Card from '../components/common/Card';
-import { Users, Shield, DollarSign, Calendar } from 'lucide-react';
+import { Users, Shield, DollarSign, Calendar, LayoutDashboard, Award, Trophy, ClipboardList, Briefcase, UserCheck, Lock, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import './Dashboard.css';
+
+import DataGenerationModal from '../components/common/DataGenerationModal';
+import ConfirmationModal from '../components/common/ConfirmationModal';
+import { DataGenerator } from '../utils/DataGenerator';
 
 const Dashboard = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [federacionNombre, setFederacionNombre] = useState('...');
+
+    // Data Generation Modal State
+    const [showGenModal, setShowGenModal] = useState(false);
+    const [showClearConfirm, setShowClearConfirm] = useState(false);
+    const [isClearing, setIsClearing] = useState(false);
+
     const [stats, setStats] = useState([
         {
             label: 'Total Atletas',
@@ -32,16 +42,20 @@ const Dashboard = () => {
             color: 'var(--danger)',
             route: '/dashboard/atletas?filter=deuda'
         },
-        {
-            label: 'Próximos Eventos',
-            value: '...',
-            icon: Calendar,
-            color: 'var(--warning)',
-            route: '/dashboard/eventos'
-        },
+        /*
+                {
+                    label: 'Próximos Eventos',
+                    value: '...',
+                    icon: Calendar,
+                    color: 'var(--warning)',
+                    route: '/dashboard/eventos'
+                },
+        */
     ]);
     const [proximosEventos, setProximosEventos] = useState([]);
     const [loading, setLoading] = useState(true);
+    // Trigger to refresh data after generation
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     useEffect(() => {
         const fetchFederacion = async () => {
@@ -58,6 +72,7 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
+                setLoading(true); // Ensure loading state shows during refresh
                 // 1. Lanzar peticiones BASE en paralelo
                 const [atletasData, clubesData, eventosResumen, inscripcionesData] = await Promise.all([
                     api.get('/Atleta').catch(err => { console.error('Error atletas', err); return []; }),
@@ -120,7 +135,7 @@ const Dashboard = () => {
                     { label: 'Total Atletas', value: totalAtletas, icon: Users, color: 'var(--primary)', route: '/dashboard/atletas' },
                     { label: 'Clubes Registrados', value: totalClubes, icon: Shield, color: 'var(--success)', route: '/dashboard/clubes' },
                     { label: 'Atletas con Deuda', value: atletasConDeuda, icon: DollarSign, color: 'var(--danger)', route: '/dashboard/atletas?filter=deuda' },
-                    { label: 'Próximos Eventos', value: eventosBasicos.filter(e => new Date(e.fechaFin || e.FechaFin) >= new Date()).length, icon: Calendar, color: 'var(--warning)', route: '/dashboard/eventos' },
+                    //                    { label: 'Próximos Eventos', value: eventosBasicos.filter(e => new Date(e.fechaFin || e.FechaFin) >= new Date()).length, icon: Calendar, color: 'var(--warning)', route: '/dashboard/eventos' },
                 ]);
 
                 setProximosEventos(eventosBasicos.slice(0, 10));
@@ -145,26 +160,92 @@ const Dashboard = () => {
         };
 
         fetchData();
-    }, []);
+    }, [refreshTrigger]); // Depend on refreshTrigger
 
     const handleEventoClick = (idEvento) => {
         navigate(`/dashboard/eventos/${idEvento}`);
     };
 
+    const navCards = [
+        { label: 'Clubes', icon: Shield, path: '/dashboard/clubes', color: '#3b82f6', description: 'Gestión de clubes y sedes' },
+        { label: 'Atletas', icon: Users, path: '/dashboard/atletas', color: '#10b981', description: 'Listado y registro de atletas' },
+        { label: 'Entrenadores', icon: Award, path: '/dashboard/entrenadores', color: '#f59e0b', description: 'Gestión de técnicos de clubes' },
+        { label: 'Selecciones', icon: Trophy, path: '/dashboard/selecciones', color: '#8b5cf6', description: 'Selecciones nacionales por categoría' },
+        { label: 'Delegados', icon: Briefcase, path: '/dashboard/delegados', color: '#ef4444', description: 'Representantes de clubes' },
+        { label: 'Tutores', icon: UserCheck, path: '/dashboard/tutores', color: '#ec4899', description: 'Tutoría de atletas menores' },
+        { label: 'Pagos', icon: DollarSign, path: '/dashboard/pagos', color: '#06b6d4', description: 'Control de cuotas y transacciones' },
+        { label: 'Federación', icon: Shield, path: '/dashboard/federacion', color: '#64748b', description: 'Información institucional' },
+    ];
+
+    if (user?.role === 'FEDERACION') {
+        navCards.push({ label: 'Accesos', icon: Lock, path: '/dashboard/usuarios', color: '#475569', description: 'Gestión de usuarios y permisos' });
+    }
+
     const handleCardClick = (route) => {
         navigate(route);
     };
 
+    const handleClearDB = async () => {
+        setIsClearing(true);
+        try {
+            await DataGenerator.clearAllData();
+            setRefreshTrigger(prev => prev + 1);
+            setShowClearConfirm(false);
+        } catch (error) {
+            console.error("Error clearing DB:", error);
+        } finally {
+            setIsClearing(false);
+        }
+    };
+
     return (
         <div className="dashboard-container">
-            <div className="dashboard-header mb-8">
-                <h1 className="text-gradient" style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>
-                    Bienvenido, {user?.nombreCompleto || user?.username || 'Administrador'}
-                </h1>
-                <p className="dashboard-subtitle" style={{ color: 'var(--text-secondary)', fontSize: '1.2rem', marginTop: '0.5rem' }}>
-                    Panel de control de <strong>{federacionNombre}</strong>
-                </p>
+            <div className="dashboard-header mb-8" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                    <h1 className="text-gradient" style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>
+                        Bienvenido, {user?.nombreCompleto || user?.username || 'Administrador'}
+                    </h1>
+                    <p className="dashboard-subtitle" style={{ color: 'var(--text-secondary)', fontSize: '1.2rem', marginTop: '0.5rem' }}>
+                        Panel de control de <strong>{federacionNombre}</strong>
+                    </p>
+                </div>
+                <div>
+                    <button
+                        className="btn btn-danger"
+                        onClick={() => setShowClearConfirm(true)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '1rem' }}
+                    >
+                        <Trash2 size={16} /> Limpiar DB
+                    </button>
+                    <button
+                        className="btn btn-secondary"
+                        onClick={() => setShowGenModal(true)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px dashed var(--text-secondary)' }}
+                    >
+                        ⚡ Generar Datos
+                    </button>
+                </div>
             </div>
+
+            {/* Modal de Confirmación para Limpiar */}
+            <ConfirmationModal
+                isOpen={showClearConfirm}
+                onClose={() => setShowClearConfirm(false)}
+                onConfirm={handleClearDB}
+                title="¿Limpiar Base de Datos?"
+                message="Esta acción eliminará Atletas, Clubes, Eventos y toda la información generada. Esta acción no se puede deshacer."
+                type="danger"
+                confirmText={isClearing ? "Limpiando..." : "Sí, Limpiar Todo"}
+                cancelText="Cancelar"
+                isLoading={isClearing}
+            />
+
+            {/* Modal de Generación */}
+            <DataGenerationModal
+                isOpen={showGenModal}
+                onClose={() => setShowGenModal(false)}
+                onDataGenerated={() => setRefreshTrigger(prev => prev + 1)}
+            />
 
             <div className="stats-grid">
                 {stats.map((stat, index) => (
@@ -185,66 +266,28 @@ const Dashboard = () => {
             </div>
 
             <div className="dashboard-content">
-                <Card title="Eventos Recientes" className="events-card">
-                    <div className="table-responsive">
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Evento</th>
-                                    <th>Fechas del Evento</th>
-                                    <th>Período Inscripción</th>
-                                    <th>Atletas</th>
-                                    <th>Clubes</th>
-                                    <th>Estado</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {loading ? (
-                                    <tr><td colSpan="6" style={{ textAlign: 'center' }}>Cargando datos...</td></tr>
-                                ) : proximosEventos.length === 0 ? (
-                                    <tr><td colSpan="6" style={{ textAlign: 'center' }}>No hay eventos registrados</td></tr>
-                                ) : (
-                                    proximosEventos.map(evento => (
-                                        <tr
-                                            key={evento.idEvento || evento.IdEvento}
-                                            onClick={() => handleEventoClick(evento.idEvento || evento.IdEvento)}
-                                            className={`clickable-row row-status-${evento.estadoColor}`}
-                                        >
-                                            <td>{evento.nombre || evento.Nombre}</td>
-                                            <td>
-                                                {new Date(evento.fechaInicio || evento.FechaInicio).toLocaleDateString()} - {new Date(evento.fechaFin || evento.FechaFin).toLocaleDateString()}
-                                            </td>
-                                            <td>
-                                                {(evento.fechaInicioInscripciones || evento.FechaInicioInscripciones) && (evento.fechaFinInscripciones || evento.FechaFinInscripciones) ? (
-                                                    <>
-                                                        {new Date(evento.fechaInicioInscripciones || evento.FechaInicioInscripciones).toLocaleDateString()} al {new Date(evento.fechaFinInscripciones || evento.FechaFinInscripciones).toLocaleDateString()}
-                                                    </>
-                                                ) : (
-                                                    <span className="text-muted">-</span>
-                                                )}
-                                            </td>
-                                            <td>
-                                                <span className={`badge badge-${evento.totalAtletas > 0 ? 'primary' : 'secondary'}`}>
-                                                    {evento.totalAtletas || 0}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <span className={`badge badge-${evento.totalClubes > 0 ? 'info' : 'secondary'}`}>
-                                                    {evento.totalClubes || 0}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <span className={`badge badge-${evento.estadoColor}`}>
-                                                    {evento.estadoTexto}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </Card>
+                <div className="section-header mb-4">
+                    <h2 className="section-title">Módulos de Gestión</h2>
+                    <p className="section-subtitle">Seleccione una sección para administrar</p>
+                </div>
+
+                <div className="nav-cards-grid">
+                    {navCards.map((card, index) => (
+                        <Card
+                            key={index}
+                            className="nav-module-card clickable-card"
+                            onClick={() => handleCardClick(card.path)}
+                        >
+                            <div className="nav-card-icon" style={{ backgroundColor: `${card.color}15`, color: card.color }}>
+                                <card.icon size={32} />
+                            </div>
+                            <div className="nav-card-info">
+                                <h3 className="nav-card-label">{card.label}</h3>
+                                <p className="nav-card-description">{card.description}</p>
+                            </div>
+                        </Card>
+                    ))}
+                </div>
             </div>
         </div>
     );

@@ -5,7 +5,7 @@ import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import { ArrowLeft, Save } from 'lucide-react';
-import { CATEGORIA_MAP } from '../../../utils/enums';
+import { CATEGORIA_MAP, SEXO_MAP } from '../../../utils/enums';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import './EntrenadorSeleccion.css';
 
@@ -29,13 +29,13 @@ const EntrenadorSeleccionForm = () => {
         nombre: '',
         apellido: '',
         documento: '',
+        sexo: 1,
         fechaNacimiento: '',
         email: '',
         telefono: '',
         direccion: '',
 
         idClub: '',
-        licencia: '',
         categoriaSeleccion: '0',
         becadoEnard: false,
         becadoSdn: false,
@@ -64,12 +64,12 @@ const EntrenadorSeleccionForm = () => {
                 nombre: data.persona?.nombre || '',
                 apellido: data.persona?.apellido || '',
                 documento: data.persona?.documento || '',
+                sexo: data.persona?.sexo || 1,
                 fechaNacimiento: data.persona?.fechaNacimiento ? data.persona.fechaNacimiento.split('T')[0] : '',
                 email: data.persona?.email || '',
                 telefono: data.persona?.telefono || '',
                 direccion: data.persona?.direccion || '',
                 idClub: data.idClub || '',
-                licencia: data.licencia || '',
                 categoriaSeleccion: data.categoriaSeleccion || '0',
                 becadoEnard: data.becadoEnard || false,
                 becadoSdn: data.becadoSdn || false,
@@ -120,27 +120,28 @@ const EntrenadorSeleccionForm = () => {
                 console.log('🔄 Actualizando entrenador existente...');
 
                 const personaData = {
-                    nombre: formData.nombre,
-                    apellido: formData.apellido,
-                    documento: formData.documento,
-                    fechaNacimiento: formData.fechaNacimiento,
-                    email: formData.email,
-                    telefono: formData.telefono,
-                    direccion: formData.direccion
+                    Nombre: formData.nombre,
+                    Apellido: formData.apellido,
+                    Documento: formData.documento,
+                    Sexo: parseInt(formData.sexo),
+                    FechaNacimiento: formData.fechaNacimiento ? new Date(formData.fechaNacimiento).toISOString() : new Date().toISOString(),
+                    Email: formData.email || null,
+                    Telefono: formData.telefono || null,
+                    Direccion: formData.direccion || null
                 };
                 console.log('👤 Datos persona:', personaData);
                 await api.put(`/Persona/${id}`, personaData);
 
                 const entrenadorData = {
-                    idPersona: parseInt(id),
-                    idClub: parseInt(formData.idClub),
-                    licencia: formData.licencia,
-                    perteneceSeleccion: true,
-                    categoriaSeleccion: formData.categoriaSeleccion,
-                    becadoEnard: Boolean(formData.becadoEnard),
-                    becadoSdn: Boolean(formData.becadoSdn),
-                    montoBeca: getMontoBecaNumber(formData.montoBeca),
-                    presentoAptoMedico: Boolean(formData.presentoAptoMedico)
+                    IdPersona: parseInt(id),
+                    IdClub: formData.idClub ? parseInt(formData.idClub) : null,
+                    PerteneceSeleccion: true,
+                    CategoriaSeleccion: formData.categoriaSeleccion.toString(),
+                    Licencia: "N/A",
+                    BecadoEnard: Boolean(formData.becadoEnard),
+                    BecadoSdn: Boolean(formData.becadoSdn),
+                    MontoBeca: getMontoBecaNumber(formData.montoBeca),
+                    PresentoAptoMedico: Boolean(formData.presentoAptoMedico)
                 };
                 console.log('🏃 Datos entrenador:', entrenadorData);
                 await api.put(`/Entrenador/${id}`, entrenadorData);
@@ -150,13 +151,14 @@ const EntrenadorSeleccionForm = () => {
                 console.log('🆕 Creando nuevo entrenador...');
 
                 const personaData = {
-                    nombre: formData.nombre,
-                    apellido: formData.apellido,
-                    documento: formData.documento,
-                    fechaNacimiento: formData.fechaNacimiento,
-                    email: formData.email,
-                    telefono: formData.telefono,
-                    direccion: formData.direccion
+                    Nombre: formData.nombre,
+                    Apellido: formData.apellido,
+                    Documento: formData.documento,
+                    Sexo: parseInt(formData.sexo),
+                    FechaNacimiento: formData.fechaNacimiento ? new Date(formData.fechaNacimiento).toISOString() : new Date().toISOString(),
+                    Email: formData.email || null,
+                    Telefono: formData.telefono || null,
+                    Direccion: formData.direccion || null
                 };
                 console.log('👤 Creando persona:', personaData);
                 const personaResponse = await api.post('/Persona', personaData);
@@ -170,15 +172,15 @@ const EntrenadorSeleccionForm = () => {
                 }
 
                 const entrenadorData = {
-                    idPersona: parseInt(idPersona),
-                    idClub: parseInt(formData.idClub),
-                    licencia: formData.licencia,
-                    perteneceSeleccion: true,
-                    categoriaSeleccion: formData.categoriaSeleccion,
-                    becadoEnard: Boolean(formData.becadoEnard),
-                    becadoSdn: Boolean(formData.becadoSdn),
-                    montoBeca: getMontoBecaNumber(formData.montoBeca),
-                    presentoAptoMedico: Boolean(formData.presentoAptoMedico)
+                    IdPersona: parseInt(idPersona),
+                    IdClub: formData.idClub ? parseInt(formData.idClub) : null,
+                    PerteneceSeleccion: true,
+                    CategoriaSeleccion: formData.categoriaSeleccion.toString(),
+                    Licencia: "N/A",
+                    BecadoEnard: Boolean(formData.becadoEnard),
+                    BecadoSdn: Boolean(formData.becadoSdn),
+                    MontoBeca: getMontoBecaNumber(formData.montoBeca),
+                    PresentoAptoMedico: Boolean(formData.presentoAptoMedico)
                 };
                 console.log('🏃 Creando entrenador:', entrenadorData);
                 await api.post('/Entrenador', entrenadorData);
@@ -189,7 +191,7 @@ const EntrenadorSeleccionForm = () => {
             setConfirmationConfig({
                 type: 'success',
                 title: 'Operación Exitosa',
-                message: isEditing ? 'Entrenador actualizado correctamente.' : 'Entrenador creado correctamente.',
+                message: id ? 'Entrenador actualizado correctamente.' : 'Entrenador creado correctamente.',
                 onConfirm: () => {
                     setShowConfirmation(false);
                     navigate('/dashboard/entrenadores-seleccion');
@@ -226,7 +228,7 @@ const EntrenadorSeleccionForm = () => {
         <div className="page-container">
             <div className="page-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Button variant="ghost" onClick={() => navigate('/entrenadores-seleccion')}>
+                    <Button variant="ghost" onClick={() => navigate('/dashboard/entrenadores-seleccion')}>
                         <ArrowLeft size={20} />
                     </Button>
                     <h2 className="page-title">{id ? 'Editar Entrenador de Selección' : 'Nuevo Entrenador de Selección'}</h2>
@@ -279,6 +281,22 @@ const EntrenadorSeleccionForm = () => {
                             />
                         </div>
                         <div className="form-group">
+                            <label>Sexo *</label>
+                            <select
+                                name="sexo"
+                                value={formData.sexo}
+                                onChange={handleChange}
+                                className="form-input"
+                                required
+                            >
+                                {Object.entries(SEXO_MAP)
+                                    .filter(([key]) => key === "1" || key === "2")
+                                    .map(([key, label]) => (
+                                        <option key={key} value={key}>{label}</option>
+                                    ))}
+                            </select>
+                        </div>
+                        <div className="form-group">
                             <label>Email</label>
                             <input
                                 type="email"
@@ -318,21 +336,13 @@ const EntrenadorSeleccionForm = () => {
                                 className="form-input"
                             >
                                 <option value="">Seleccione un Club</option>
+                                <option value="0">--- Sin Club ---</option>
                                 {clubes.map(club => (
                                     <option key={club.idClub} value={club.idClub}>
                                         {club.nombre}
                                     </option>
                                 ))}
                             </select>
-                        </div>
-                        <div className="form-group">
-                            <label>Licencia</label>
-                            <input
-                                name="licencia"
-                                value={formData.licencia}
-                                onChange={handleChange}
-                                className="form-input"
-                            />
                         </div>
                         <div className="form-group">
                             <label>Categoría de Selección *</label>
@@ -343,6 +353,7 @@ const EntrenadorSeleccionForm = () => {
                                 className="form-input"
                                 required
                             >
+                                <option value="0">--- Sin asignar ---</option>
                                 {Object.entries(CATEGORIA_MAP).map(([key, label]) => (
                                     <option key={key} value={key}>{label}</option>
                                 ))}
@@ -408,7 +419,7 @@ const EntrenadorSeleccionForm = () => {
                         <Button
                             type="button"
                             variant="secondary"
-                            onClick={() => navigate('/entrenadores-seleccion')}
+                            onClick={() => navigate('/dashboard/entrenadores-seleccion')}
                         >
                             Cancelar
                         </Button>

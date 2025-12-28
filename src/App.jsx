@@ -130,6 +130,7 @@ function App() {
               <Route path="clubes/detalles/:id" element={<ClubDetalles />} />
 
               { }
+              { /*
               <Route path="eventos" element={<EventosList />} />
               <Route path="eventos/nuevo" element={<EventosForm />} />
               <Route path="eventos/editar/:id" element={<EventosForm />} />
@@ -137,6 +138,7 @@ function App() {
               <Route path="eventos/:eventoId/distancias" element={<DistanciasList />} />
               <Route path="eventos/:eventoId/distancias/nueva" element={<DistanciasForm />} />
               <Route path="eventos/:eventoId/distancias/editar/:id" element={<DistanciasForm />} />
+*/ }
 
               { }
               <Route path="tutores" element={<TutoresList />} />
@@ -144,8 +146,10 @@ function App() {
               <Route path="tutores/:id/edit" element={<TutoresForm />} />
 
               { }
+              { /*
               <Route path="inscripciones" element={<InscripcionesList />} />
               <Route path="inscripciones/new" element={<InscripcionesForm />} />
+*/ }
 
               {/* ENTRENADORES */}
               <Route path="entrenadores" element={<EntrenadoresList viewMode="club" />} />
@@ -181,18 +185,22 @@ function App() {
               <Route path="tutores" element={<ClubTutores />} />
               <Route path="tutores/nuevo" element={<ClubTutoresForm />} />
               <Route path="tutores/editar/:id" element={<ClubTutoresForm />} />
+              { /*
               <Route path="eventos" element={<ClubEventos />} />
               <Route path="eventos/nuevo" element={<ClubEventosForm />} />
               <Route path="eventos/editar/:id" element={<ClubEventosForm />} />
               <Route path="eventos/:id" element={<ClubEventoDetalle />} />
               <Route path="eventos-disponibles" element={<EventosDisponibles />} />
+*/ }
               <Route path="entrenadores" element={<ClubEntrenadores />} />
               <Route path="entrenadores/nuevo" element={<ClubEntrenadoresForm />} />
               <Route path="entrenadores/editar/:id" element={<ClubEntrenadoresForm />} />
               <Route path="delegados" element={<ClubDelegados />} />
               <Route path="delegados/nuevo" element={<ClubDelegadosForm />} />
               <Route path="delegados/editar/:id" element={<ClubDelegadosForm />} />
+              { /*
               <Route path="inscripciones/nuevo" element={<InscripcionesForm />} />
+*/ }
             </Route>
 
             { }

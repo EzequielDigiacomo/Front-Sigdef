@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
-import { Users, Award, ChevronRight, User } from 'lucide-react';
+import { Users, Award, ChevronRight, User, Plus } from 'lucide-react';
 import { CATEGORIA_MAP } from '../../../utils/enums';
 import './EntrenadorSeleccion.css?v=2';
 
@@ -93,6 +93,14 @@ const EntrenadorSeleccionList = () => {
                     </h1>
                     <p className="dashboard-subtitle">Vista general de categorías y cuerpo técnico</p>
                 </div>
+                <button
+                    className="btn-primary"
+                    onClick={() => navigate('/dashboard/entrenadores-seleccion/nuevo')}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                    <Plus size={20} />
+                    Crear Entrenador
+                </button>
             </div>
 
             {loading ? (
@@ -110,7 +118,7 @@ const EntrenadorSeleccionList = () => {
                             {/* Columna Izquierda: Icono y Título */}
                             <div className="card-col-left">
                                 <div className="category-icon-wrapper">
-                                    <Award size={18} />
+                                    <Award size={48} />
                                 </div>
                                 <h3 className="category-title">{stat.label}</h3>
                             </div>
@@ -123,12 +131,12 @@ const EntrenadorSeleccionList = () => {
 
                             {/* Columna Derecha: Stats y Acción */}
                             <div className="card-col-right">
-                                <div>
+                                <div className="stat-group">
                                     <div className="stat-big-number">{stat.athleteCount}</div>
                                     <div className="stat-sublabel">Atletas</div>
                                 </div>
                                 <div className="btn-icon-action">
-                                    <ChevronRight size={16} />
+                                    <ChevronRight size={28} />
                                 </div>
                             </div>
                         </div>

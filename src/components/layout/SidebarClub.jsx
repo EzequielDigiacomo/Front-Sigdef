@@ -10,7 +10,7 @@ const SidebarClub = ({ isOpen, closeMobile, isCollapsed, toggleSidebar }) => {
         { icon: UserCheck, label: 'Mis Tutores', path: '/club/tutores' },
         { icon: Award, label: 'Mis Entrenadores', path: '/club/entrenadores' },
         { icon: Shield, label: 'Mis Delegados', path: '/club/delegados' },
-        { icon: Calendar, label: 'Mis Eventos', path: '/club/eventos' },
+        //        { icon: Calendar, label: 'Mis Eventos', path: '/club/eventos' },
     ];
 
     return (

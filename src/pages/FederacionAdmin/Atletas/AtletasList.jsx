@@ -11,9 +11,8 @@ import { Plus, Edit, Trash2, Search, FileText, Eye } from 'lucide-react';
 import { getCategoriaLabel, getEstadoPagoLabel, getEstadoPagoColor } from '../../../utils/enums';
 import './Atletas.css';
 import Modal from '../../../components/common/Modal';
+import AtletaDetailModal from './components/AtletaDetailModal';
 import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 const AtletasList = () => {
     const [atletas, setAtletas] = useState([]);
@@ -49,27 +48,37 @@ const AtletasList = () => {
             ]);
 
             // Mapa de Personas para búsqueda rápida
-            const personasMap = new Map(personasData.map(p => [p.idPersona, p]));
+            const personasMap = new Map();
+            if (personasData) {
+                personasData.forEach(p => {
+                    const id = p.idPersona || p.IdPersona;
+                    if (id) personasMap.set(id, p);
+                });
+            }
 
             // Mapa de Relaciones: AtletaID -> TutorID (Tomamos el primero si hay varios)
             const relacionesMap = new Map();
-            if (relacionesData) {
+            if (relacionesData && Array.isArray(relacionesData)) {
                 relacionesData.forEach(r => {
-                    if (!relacionesMap.has(r.idAtleta)) {
-                        relacionesMap.set(r.idAtleta, r.idTutor);
+                    const idAtleta = r.idAtleta || r.IdAtleta;
+                    const idTutor = r.idTutor || r.IdTutor;
+                    if (idAtleta && idTutor && !relacionesMap.has(idAtleta)) {
+                        relacionesMap.set(idAtleta, idTutor);
                     }
                 });
             }
 
             const atletasProcesados = atletasData.map(atleta => {
-                const persona = personasMap.get(atleta.idPersona) || atleta.persona || {};
-                const club = atleta.club || {};
+                const idAtleta = atleta.idPersona || atleta.IdPersona;
+                const persona = personasMap.get(idAtleta) || atleta.persona || atleta.Persona || {};
+                const club = atleta.club || atleta.Club || {};
 
                 // Calcular edad
                 let edad = null;
-                if (persona.fechaNacimiento) {
+                const fechaNac = persona.fechaNacimiento || persona.FechaNacimiento;
+                if (fechaNac) {
                     const hoy = new Date();
-                    const nacimiento = new Date(persona.fechaNacimiento);
+                    const nacimiento = new Date(fechaNac);
                     edad = hoy.getFullYear() - nacimiento.getFullYear();
                     const mes = hoy.getMonth() - nacimiento.getMonth();
                     if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
@@ -79,27 +88,27 @@ const AtletasList = () => {
 
                 // Buscar Tutor
                 let tutorData = null;
-                const idTutor = relacionesMap.get(atleta.idPersona);
+                const idTutor = relacionesMap.get(idAtleta);
                 if (idTutor) {
                     const tutorPersona = personasMap.get(idTutor);
                     if (tutorPersona) {
                         tutorData = {
                             id: idTutor,
-                            nombre: tutorPersona.nombre,
-                            apellido: tutorPersona.apellido,
-                            documento: tutorPersona.documento,
-                            telefono: tutorPersona.telefono
+                            nombre: tutorPersona.nombre || tutorPersona.Nombre,
+                            apellido: tutorPersona.apellido || tutorPersona.Apellido,
+                            documento: tutorPersona.documento || tutorPersona.Documento,
+                            telefono: tutorPersona.telefono || tutorPersona.Telefono
                         };
                     }
                 }
 
                 return {
                     ...atleta,
-                    idPersona: atleta.idPersona,
-                    nombrePersona: `${persona.nombre || ''} ${persona.apellido || ''}`.trim(),
-                    documento: persona.documento || '-',
-                    fechaNacimiento: persona.fechaNacimiento,
-                    nombreClub: club.nombre || 'Agente Libre',
+                    idPersona: idAtleta,
+                    nombrePersona: `${persona.nombre || persona.Nombre || ''} ${persona.apellido || persona.Apellido || ''}`.trim(),
+                    documento: persona.documento || persona.Documento || '-',
+                    fechaNacimiento: fechaNac,
+                    nombreClub: club.nombre || club.Nombre || 'Agente Libre',
                     edad: edad,
                     tutorInfo: tutorData
                 };
@@ -161,23 +170,6 @@ const AtletasList = () => {
         XLSX.writeFile(wb, "Atletas_SIGDEF.xlsx");
     };
 
-    const exportToPDF = async () => {
-        const input = document.getElementById('modal-content-export');
-        if (!input) return;
-
-        try {
-            const canvas = await html2canvas(input, { scale: 2 });
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-            pdf.save(`Atleta_${selectedAtleta.nombrePersona.replace(/\s+/g, '_')}.pdf`);
-        } catch (err) {
-            console.error("Error exportando PDF", err);
-        }
-    };
     // Filtrar atletas por búsqueda
     const filteredAtletas = atletas.filter(atleta => {
         if (!searchTerm) return true;
@@ -343,95 +335,12 @@ const AtletasList = () => {
                 <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
             </Card>
 
-            <Modal
+            <AtletaDetailModal
                 isOpen={showModal}
                 onClose={handleCloseModal}
-                title="Detalle del Atleta"
-                footer={
-                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                        <Button variant="secondary" onClick={exportToPDF}>
-                            <FileText size={18} /> PDF
-                        </Button>
-                        <Button variant="secondary" onClick={handleCloseModal}>Cerrar</Button>
-                        {selectedAtleta && (
-                            <Button
-                                variant="primary"
-                                onClick={() => {
-                                    handleCloseModal();
-                                    navigate(`/dashboard/atletas/editar/${selectedAtleta.idPersona}`, {
-                                        state: { returnPath: '/dashboard/atletas' }
-                                    });
-                                }}
-                            >
-                                <Edit size={18} /> Editar Atleta
-                            </Button>
-                        )}
-                    </div>
-                }
-            >
-                {selectedAtleta && (
-                    <div id="modal-content-export" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', padding: '1rem', backgroundColor: 'var(--bg-secondary)' }}>
-                        <div style={{ gridColumn: '1 / -1', textAlign: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-                            <h2 style={{ margin: 0, color: 'var(--primary)' }}>Ficha del Atleta</h2>
-                            <p style={{ margin: 0, color: 'var(--text-secondary)' }}>SIGDEF - Sistema de Gestión Deportiva</p>
-                        </div>
-                        <div>
-                            <label className="detail-label">Nombre Completo</label>
-                            <div className="detail-value">{selectedAtleta.nombrePersona}</div>
-                        </div>
-                        <div>
-                            <label className="detail-label">Documento</label>
-                            <div className="detail-value">{selectedAtleta.documento}</div>
-                        </div>
-                        <div>
-                            <label className="detail-label">Club</label>
-                            <div className="detail-value">{selectedAtleta.nombreClub}</div>
-                        </div>
-                        <div>
-                            <label className="detail-label">Categoría</label>
-                            <div className="detail-value">{getCategoriaLabel(selectedAtleta.categoria)}</div>
-                        </div>
-                        {selectedAtleta.tutorInfo && (
-                            <>
-                                <div style={{ gridColumn: '1 / -1' }}>
-                                    <label className="detail-label">Tutor</label>
-                                    <div className="detail-value">
-                                        {selectedAtleta.tutorInfo.nombre} {selectedAtleta.tutorInfo.apellido}<br />
-                                        DNI: {selectedAtleta.tutorInfo.documento}<br />
-                                        Tel: {selectedAtleta.tutorInfo.telefono || 'N/A'}
-                                    </div>
-                                </div>
-                            </>
-                        )}
-                        <div>
-                            <label className="detail-label">Selección Nacional</label>
-                            <div className="detail-value">
-                                {selectedAtleta.perteneceSeleccion ? (
-                                    <span className="badge badge-success">Sí</span>
-                                ) : (
-                                    <span className="badge badge-secondary">No</span>
-                                )}
-                            </div>
-                        </div>
-                        {selectedAtleta.perteneceSeleccion && (
-                            <div>
-                                <label className="detail-label">Entrenador de Selección</label>
-                                <div className="detail-value highlight">{getEntrenadorSeleccion(selectedAtleta)}</div>
-                            </div>
-                        )}
-                        <div>
-                            <label className="detail-label">Estado de Pago</label>
-                            <div>
-                                <span className={`badge badge-${getEstadoPagoColor(selectedAtleta.estadoPago)}`}> {getEstadoPagoLabel(selectedAtleta.estadoPago)} </span>
-                            </div>
-                        </div>
-                        <div>
-                            <label className="detail-label">Fecha de Nacimiento</label>
-                            <div className="detail-value">{selectedAtleta.fechaNacimiento ? new Date(selectedAtleta.fechaNacimiento).toLocaleDateString() : '-'}</div>
-                        </div>
-                    </div>
-                )}
-            </Modal>
+                athlete={selectedAtleta}
+                onRefresh={loadAtletas}
+            />
 
             {/* Document Upload Modal */}
             {showUploadModal && selectedAthleteForUpload && (
@@ -463,6 +372,7 @@ const AtletasList = () => {
                     personId={selectedAthleteForViewer.idPersona}
                 />
             )}
+
         </div>
     );
 };
