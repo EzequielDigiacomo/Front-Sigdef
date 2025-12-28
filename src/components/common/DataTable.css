@@ -1,0 +1,48 @@
+.data-table {
+    width: 100%;
+}
+
+.clickable-row {
+    cursor: pointer;
+}
+
+.clickable-row:hover {
+    background-color: var(--bg-hover);
+}
+
+/* Mobile responsive table */
+@media (max-width: 768px) {
+    .data-table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: var(--radius-md);
+    }
+
+    .data-table table {
+        min-width: 600px;
+        /* Minimum width to ensure readability */
+        font-size: 0.875rem;
+        /* Slightly smaller text */
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 0.5rem 0.75rem;
+        /* Reduce padding */
+        white-space: nowrap;
+        /* Prevent text wrapping */
+    }
+
+    /* Add scroll indicator shadow */
+    .data-table::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 30px;
+        background: linear-gradient(to left, rgba(0, 0, 0, 0.1), transparent);
+        pointer-events: none;
+    }
+}

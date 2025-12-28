@@ -1,0 +1,227 @@
+/* Dashboard Layout */
+.dashboard-selection-container {
+    width: 100%;
+    height: 100%;
+    padding: 1.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.dashboard-selection-header {
+    margin-bottom: 1.5rem;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    padding-bottom: 1rem;
+}
+
+.dashboard-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+}
+
+.dashboard-subtitle {
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+/* GRILLA */
+.categories-grid {
+    display: grid;
+    /* Forzamos exactamente 3 columnas para el diseño 3x3 */
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, auto);
+    gap: 2rem;
+    padding: 1rem;
+    width: 100%;
+}
+
+/* TARJETA VERTICAL PARA 3x3 */
+.category-card-horizontal {
+    background-color: var(--bg-card, #1e293b);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    border-top: 8px solid var(--primary, #3b82f6);
+    /* Barra arriba ahora */
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    /* VERTICAL */
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    min-height: 280px;
+    /* Aumentamos para que quepa todo el contenido vertical */
+    /* Mucho más grandes */
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    gap: 1.5rem;
+    text-align: center;
+}
+
+.category-card-horizontal:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.5);
+    border-color: var(--primary, #3b82f6);
+}
+
+/* COLUMNA 1: ICONO Y NOMBRE (Izquierda) */
+.card-col-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.category-icon-wrapper {
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
+    background: var(--bg-secondary, rgba(255, 255, 255, 0.05));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary, #3b82f6);
+    margin-bottom: 1.5rem;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.category-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--text-primary, #f3f4f6);
+    line-height: 1.2;
+    margin: 0;
+}
+
+/* COLUMNA 2: ENTRENADORES (Ahora abajo del título) */
+.card-col-center {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin: 0.5rem 0;
+    padding: 1rem 0;
+    border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+}
+
+.coach-mini-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.coach-mini-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.section-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-secondary, #9ca3af);
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.05em;
+}
+
+.coach-item-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+}
+
+.avatar-circle {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: var(--bg-secondary, rgba(255, 255, 255, 0.1));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: var(--text-primary);
+}
+
+.coach-name-clean {
+    font-size: 1rem;
+    color: var(--text-primary, #f3f4f6);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
+}
+
+/* Badge No Asignado (Limpio) */
+.badge-no-coach {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.5rem;
+    background-color: rgba(234, 179, 8, 0.1);
+    /* Amarillo muy suave */
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    border-radius: 6px;
+    color: #fca5a5;
+    /* Rojo suave o Amarillo según preferencia */
+    color: var(--warning, #fbbf24);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* COLUMNA 3: ATLETAS Y ACCIÓN */
+.card-col-right {
+    display: flex !important;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-top: auto;
+    padding-top: 1rem;
+}
+
+.stat-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-big-number {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--primary, #3b82f6);
+    line-height: 1;
+}
+
+.stat-sublabel {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-secondary, #9ca3af);
+}
+
+.btn-icon-action {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: var(--bg-secondary, rgba(255, 255, 255, 0.05));
+    color: var(--text-secondary);
+}
+
+.category-card-horizontal:hover .btn-icon-action {
+    background-color: var(--primary);
+    color: white;
+}

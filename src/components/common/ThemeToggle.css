@@ -1,0 +1,24 @@
+.theme-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    transition: var(--transition);
+    background-color: transparent;
+}
+
+.theme-toggle-btn:hover {
+    color: var(--text-primary);
+    background-color: var(--bg-secondary);
+}
+
+.toggle-icon {
+    transition: transform 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.theme-toggle-btn:active .toggle-icon {
+    transform: scale(0.9);
+}
+

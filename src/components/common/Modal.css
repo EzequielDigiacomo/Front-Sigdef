@@ -1,0 +1,178 @@
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease-out;
+}
+
+
+.modal-container {
+    background-color: var(--bg-secondary);
+    border-radius: 16px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: slideUp 0.3s ease-out;
+    max-height: 90vh;
+    max-width: 1200px;
+}
+
+/* Modal Size Variants */
+.modal-small {
+    width: 90%;
+    max-width: 400px;
+}
+
+.modal-medium {
+    width: 90%;
+    max-width: 600px;
+}
+
+.modal-large {
+    width: 90%;
+    max-width: 900px;
+}
+
+.modal-xlarge {
+    width: 95%;
+    max-width: 1200px;
+    max-height: 95vh;
+}
+
+
+.modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    width: 100%;
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    text-align: center;
+}
+
+.modal-close {
+    position: absolute;
+    right: 1.5rem;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.modal-content {
+    padding: 0;
+
+    display: flex;
+    /* usar flex para que el contenido se estire en ancho y alto */
+    flex-direction: column;
+    align-items: stretch;
+    flex: 1 1 auto;
+    /* permite que el modal-expanda el contenido hasta max-height */
+    box-sizing: border-box;
+    overflow: hidden;
+    /* evita overflow en el container principal */
+}
+
+
+.modal-footer {
+    padding: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    width: 100%;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* ===== MODAL VARIANTS ===== */
+
+/* Document Viewer Variant - Optimizado para mostrar documentación */
+.modal-variant-document .modal-header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark, #1e40af) 100%);
+    color: white;
+    padding: 1.25rem 2rem;
+}
+
+.modal-variant-document .modal-title {
+    color: white;
+    font-size: 1.35rem;
+}
+
+.modal-variant-document .modal-content {
+    padding: 0;
+    background: var(--bg-primary);
+}
+
+/* Form Variant - Para formularios y entrada de datos */
+.modal-variant-form .modal-header {
+    background: var(--bg-secondary);
+    border-bottom: 2px solid var(--primary);
+}
+
+.modal-variant-form .modal-content {
+    padding: 2rem;
+}
+
+.modal-variant-form .modal-footer {
+    background: var(--bg-tertiary, var(--bg-secondary));
+}
+
+/* Default Variant - Estilo estándar */
+.modal-variant-default .modal-header {
+    background: var(--bg-secondary);
+}
+
+.modal-variant-default .modal-content {
+    padding: 1.5rem;
+}
