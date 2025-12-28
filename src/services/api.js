@@ -1,4 +1,5 @@
-const API_URL = 'https://localhost:7112/api';
+// const API_URL = 'https://localhost:7112/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const defaultHeaders = {
     'Content-Type': 'application/json',
