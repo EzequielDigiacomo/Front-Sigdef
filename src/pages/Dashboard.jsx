@@ -22,7 +22,7 @@ const Dashboard = () => {
 
     const [stats, setStats] = useState([
         {
-            label: 'Total Atletas',
+            label: 'Total Atletas Registrados',
             value: '...',
             icon: Users,
             color: 'var(--primary)',
@@ -132,7 +132,7 @@ const Dashboard = () => {
                 const atletasConDeuda = atletasData.filter(a => (a.estadoPago || a.EstadoPago) === 2).length;
 
                 setStats([
-                    { label: 'Total Atletas', value: totalAtletas, icon: Users, color: 'var(--primary)', route: '/dashboard/atletas' },
+                    { label: 'Atletas Registrados', value: totalAtletas, icon: Users, color: 'var(--primary)', route: '/dashboard/atletas' },
                     { label: 'Clubes Registrados', value: totalClubes, icon: Shield, color: 'var(--success)', route: '/dashboard/clubes' },
                     { label: 'Atletas con Deuda', value: atletasConDeuda, icon: DollarSign, color: 'var(--danger)', route: '/dashboard/atletas?filter=deuda' },
                     //                    { label: 'Próximos Eventos', value: eventosBasicos.filter(e => new Date(e.fechaFin || e.FechaFin) >= new Date()).length, icon: Calendar, color: 'var(--warning)', route: '/dashboard/eventos' },
