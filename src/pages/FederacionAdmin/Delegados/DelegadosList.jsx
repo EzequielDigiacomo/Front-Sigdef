@@ -19,7 +19,9 @@ const DelegadosList = () => {
     const loadDelegados = async () => {
         try {
             const data = await api.get('/DelegadoClub');
-            setDelegados(data);
+            // Ordenar por ID descendente (más recientes primero)
+            const sortedData = (data || []).sort((a, b) => (b.idPersona || b.IdPersona || b.id || b.Id) - (a.idPersona || a.IdPersona || a.id || a.Id));
+            setDelegados(sortedData);
         } catch (error) {
             console.error('Error cargando delegados:', error);
         } finally {

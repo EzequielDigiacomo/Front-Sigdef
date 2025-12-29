@@ -98,12 +98,12 @@ const ClubEntrenadoresForm = () => {
                 telefono: persona.telefono || '',
                 direccion: persona.direccion || '',
                 sexo: persona.sexo || 1,
-                perteneceSeleccion: data.perteneceSeleccion || false,
+                perteneceSeleccion: data.perteneceSeleccion ?? false,
                 categoriaSeleccion: data.categoriaSeleccion || '',
-                becadoEnard: data.becadoEnard || false,
-                becadoSdn: data.becadoSdn || false,
-                montoBeca: data.montoBeca || 0,
-                presentoAptoMedico: data.presentoAptoMedico || false,
+                becadoEnard: data.becadoEnard ?? false,
+                becadoSdn: data.becadoSdn ?? false,
+                montoBeca: data.montoBeca ?? 0,
+                presentoAptoMedico: data.presentoAptoMedico ?? false,
                 idClub: data.idClub || ''
             });
 
@@ -180,10 +180,10 @@ const ClubEntrenadoresForm = () => {
                     IdClub: parseInt(targetClubId),
                     PerteneceSeleccion: formData.perteneceSeleccion,
                     CategoriaSeleccion: formData.categoriaSeleccion || "",
-                    BecadoEnard: formData.becadoEnard,
-                    BecadoSdn: formData.becadoSdn,
+                    BecadoEnard: formData.becadoEnard ?? false,
+                    BecadoSdn: formData.becadoSdn ?? false,
                     MontoBeca: parseFloat(formData.montoBeca) || 0,
-                    PresentoAptoMedico: formData.presentoAptoMedico
+                    PresentoAptoMedico: formData.presentoAptoMedico ?? false
                 };
 
                 await api.put(`/Entrenador/${id}`, entrenadorPayload);
@@ -207,12 +207,12 @@ const ClubEntrenadoresForm = () => {
                 const entrenadorPayload = {
                     IdPersona: idPersona,
                     IdClub: parseInt(targetClubId),
-                    PerteneceSeleccion: formData.perteneceSeleccion,
+                    PerteneceSeleccion: formData.perteneceSeleccion ?? false,
                     CategoriaSeleccion: formData.categoriaSeleccion || "",
-                    BecadoEnard: formData.becadoEnard,
-                    BecadoSdn: formData.becadoSdn,
+                    BecadoEnard: formData.becadoEnard ?? false,
+                    BecadoSdn: formData.becadoSdn ?? false,
                     MontoBeca: parseFloat(formData.montoBeca) || 0,
-                    PresentoAptoMedico: formData.presentoAptoMedico
+                    PresentoAptoMedico: formData.presentoAptoMedico ?? false
                 };
 
                 await api.post('/Entrenador', entrenadorPayload);
@@ -308,47 +308,51 @@ const ClubEntrenadoresForm = () => {
                             <input name="direccion" value={formData.direccion} onChange={handleChange} className="form-input" />
                         </div>
 
-                        <h3 className="form-section-title">Datos del Entrenador</h3>
-                        <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
-                            <input type="checkbox" name="perteneceSeleccion" checked={formData.perteneceSeleccion} onChange={handleChange} id="seleccion" />
-                            <label htmlFor="seleccion" style={{ marginBottom: 0 }}>Pertenece a Selección</label>
-                        </div>
-                        {formData.perteneceSeleccion && (
-                            <div className="form-group">
-                                <label>Categoría de Selección</label>
-                                <select
-                                    name="categoriaSeleccion"
-                                    value={formData.categoriaSeleccion}
-                                    onChange={handleChange}
-                                    className="form-input"
-                                >
-                                    <option value="">Seleccione una categoría</option>
-                                    {Object.entries(CATEGORIA_MAP).map(([key, label]) => (
-                                        <option key={key} value={key}>{label}</option>
-                                    ))}
-                                </select>
-                            </div>
+                        {user?.role === 'FEDERACION' && (
+                            <>
+                                <h3 className="form-section-title">Datos del Entrenador</h3>
+                                <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+                                    <input type="checkbox" name="perteneceSeleccion" checked={formData.perteneceSeleccion} onChange={handleChange} id="seleccion" />
+                                    <label htmlFor="seleccion" style={{ marginBottom: 0 }}>Pertenece a Selección</label>
+                                </div>
+                                {formData.perteneceSeleccion && (
+                                    <div className="form-group">
+                                        <label>Categoría de Selección</label>
+                                        <select
+                                            name="categoriaSeleccion"
+                                            value={formData.categoriaSeleccion}
+                                            onChange={handleChange}
+                                            className="form-input"
+                                        >
+                                            <option value="">Seleccione una categoría</option>
+                                            {Object.entries(CATEGORIA_MAP).map(([key, label]) => (
+                                                <option key={key} value={key}>{label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+
+                                <h3 className="form-section-title">Becas</h3>
+                                <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+                                    <input type="checkbox" name="becadoEnard" checked={formData.becadoEnard} onChange={handleChange} id="enard" />
+                                    <label htmlFor="enard" style={{ marginBottom: 0 }}>Becado ENARD</label>
+                                </div>
+                                <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+                                    <input type="checkbox" name="becadoSdn" checked={formData.becadoSdn} onChange={handleChange} id="sdn" />
+                                    <label htmlFor="sdn" style={{ marginBottom: 0 }}>Becado SDN</label>
+                                </div>
+                                <div className="form-group">
+                                    <label>Monto Beca</label>
+                                    <input type="number" name="montoBeca" value={formData.montoBeca} onChange={handleChange} className="form-input" min="0" step="0.01" />
+                                </div>
+
+                                <h3 className="form-section-title">Apto Médico</h3>
+                                <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+                                    <input type="checkbox" name="presentoAptoMedico" checked={formData.presentoAptoMedico} onChange={handleChange} id="apto" />
+                                    <label htmlFor="apto" style={{ marginBottom: 0 }}>Presentó Apto Médico</label>
+                                </div>
+                            </>
                         )}
-
-                        <h3 className="form-section-title">Becas</h3>
-                        <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
-                            <input type="checkbox" name="becadoEnard" checked={formData.becadoEnard} onChange={handleChange} id="enard" />
-                            <label htmlFor="enard" style={{ marginBottom: 0 }}>Becado ENARD</label>
-                        </div>
-                        <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
-                            <input type="checkbox" name="becadoSdn" checked={formData.becadoSdn} onChange={handleChange} id="sdn" />
-                            <label htmlFor="sdn" style={{ marginBottom: 0 }}>Becado SDN</label>
-                        </div>
-                        <div className="form-group">
-                            <label>Monto Beca</label>
-                            <input type="number" name="montoBeca" value={formData.montoBeca} onChange={handleChange} className="form-input" min="0" step="0.01" />
-                        </div>
-
-                        <h3 className="form-section-title">Apto Médico</h3>
-                        <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
-                            <input type="checkbox" name="presentoAptoMedico" checked={formData.presentoAptoMedico} onChange={handleChange} id="apto" />
-                            <label htmlFor="apto" style={{ marginBottom: 0 }}>Presentó Apto Médico</label>
-                        </div>
 
                         {user?.role === 'FEDERACION' && (
                             <div className="form-group">
@@ -372,7 +376,7 @@ const ClubEntrenadoresForm = () => {
                     </div>
 
                     <div className="form-actions">
-                        <Button type="button" variant="secondary" onClick={() => navigate('/club/entrenadores')}>Cancelar</Button>
+                        <Button type="button" variant="secondary" onClick={handleNavigateBack}>Cancelar</Button>
                         <Button type="submit" variant="primary" isLoading={loading}>
                             <Save size={18} /> {id ? 'Actualizar' : 'Guardar'} Entrenador
                         </Button>

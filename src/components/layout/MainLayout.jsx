@@ -6,10 +6,15 @@ import './MainLayout.css';
 
 const MainLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const location = useLocation();
 
     // Ocultar Sidebar y Navbar si estamos en la raíz del Dashboard de Federación
     const isDashboardRoot = location.pathname === '/dashboard';
+
+    const toggleSidebarCollapse = () => {
+        setSidebarCollapsed(!sidebarCollapsed);
+    };
 
     return (
         <div className={`app-container ${isDashboardRoot ? 'no-nav' : ''}`}>
@@ -17,11 +22,13 @@ const MainLayout = () => {
                 <div className="sidebar-wrapper">
                     <Sidebar
                         isOpen={sidebarOpen}
+                        isCollapsed={sidebarCollapsed}
                         closeMobile={() => setSidebarOpen(false)}
+                        toggleSidebar={toggleSidebarCollapse}
                     />
                 </div>
             )}
-            <div className={`main-content ${isDashboardRoot ? 'full-width' : ''}`}>
+            <div className={`main-content ${isDashboardRoot ? 'full-width' : ''} ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
                 <Navbar
                     toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
                 />

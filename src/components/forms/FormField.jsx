@@ -20,8 +20,8 @@ const FormField = ({
     const getInputStyles = () => {
         const baseStyles = {
             width: '100%',
-            paddingLeft: Icon ? '2.75rem' : '1rem',
             padding: '0.75rem 1rem',
+            paddingLeft: Icon ? '2.75rem' : '1rem',
             background: 'var(--input-bg, rgba(255, 255, 255, 0.05))',
             border: '1px solid var(--input-border, rgba(255, 255, 255, 0.1))',
             borderRadius: '8px',

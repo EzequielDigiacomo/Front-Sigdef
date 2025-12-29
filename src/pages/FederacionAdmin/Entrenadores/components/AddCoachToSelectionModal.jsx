@@ -61,22 +61,23 @@ const AddCoachToSelectionModal = ({ isOpen, onClose, onSuccess }) => {
                 clubMap[club.idClub] = club.nombre;
             });
 
-            // Filter coaches NOT in selection
-            const available = (coachesData || []).filter(c => !c.perteneceSeleccion);
+            // Filter coaches NOT in selection (robust check)
+            const available = (coachesData || []).filter(c => !(c.perteneceSeleccion === true || c.PerteneceSeleccion === true));
 
             // Enrich coaches with persona data
             const enriched = available.map(coach => {
-                const persona = (personasData || []).find(p => p.idPersona === coach.idPersona);
+                const persona = (personasData || []).find(p => p.idPersona === coach.idPersona || p.IdPersona === coach.idPersona);
+                const coachIdClub = coach.idClub || coach.IdClub;
 
                 return {
                     ...coach,
                     nombrePersona: persona?.nombre && persona?.apellido
                         ? `${persona.nombre} ${persona.apellido}`
                         : coach.nombrePersona,
-                    documento: persona?.documento || coach.documento || '-',
-                    email: persona?.email || coach.email || '-',
+                    documento: persona?.documento || persona?.Documento || coach.documento || '-',
+                    email: persona?.email || persona?.Email || coach.email || '-',
                     nombreClub: coach.club?.nombre ||
-                        (coach.idClub ? clubMap[coach.idClub] : null) ||
+                        (coachIdClub ? clubMap[coachIdClub] : null) ||
                         'Sin Club'
                 };
             });

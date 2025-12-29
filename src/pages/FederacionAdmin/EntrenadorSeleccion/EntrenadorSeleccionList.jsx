@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import { Users, Award, ChevronRight, User, Plus } from 'lucide-react';
+import { createIcons, baby } from 'lucide';
 import { CATEGORIA_MAP } from '../../../utils/enums';
 import './EntrenadorSeleccion.css?v=2';
 
@@ -23,17 +24,19 @@ const EntrenadorSeleccionList = () => {
                 api.get('/Atleta').catch(() => [])
             ]);
 
-            const selectionAthletes = (athletesData || []).filter(a => a.perteneceSeleccion);
+            const selectionAthletes = (athletesData || []).filter(a => a.perteneceSeleccion || a.PerteneceSeleccion);
 
             const categoryStats = Object.keys(CATEGORIA_MAP).map(key => {
                 const categoryId = parseInt(key);
                 const categoryLabel = CATEGORIA_MAP[key];
 
-                // Get ALL coaches for this category
-                const coaches = (coachesData || []).filter(c => parseInt(c.categoriaSeleccion) === categoryId);
-                const coachNames = coaches.map(c => c.nombrePersona || `${c.nombre} ${c.apellido}`);
+                // Get ALL coaches for this category (robust check)
+                const coaches = (coachesData || []).filter(c =>
+                    parseInt(c.categoriaSeleccion || c.CategoriaSeleccion) === categoryId
+                );
+                const coachNames = coaches.map(c => c.nombrePersona || `${c.nombre || ''} ${c.apellido || ''}`);
 
-                const athleteCount = selectionAthletes.filter(a => a.categoria === categoryId).length;
+                const athleteCount = selectionAthletes.filter(a => (a.categoria || a.Categoria) === categoryId).length;
 
                 return {
                     id: categoryId,

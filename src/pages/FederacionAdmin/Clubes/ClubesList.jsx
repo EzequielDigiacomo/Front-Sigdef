@@ -23,7 +23,10 @@ const ClubesList = () => {
         try {
             // Solo 1 petición - el backend calcula todo
             const clubesData = await api.get('/Club');
-            setClubes(clubesData);
+
+            // Ordenar por ID descendente (más recientes primero)
+            const sortedClubes = (clubesData || []).sort((a, b) => (b.idClub || b.IdClub) - (a.idClub || a.IdClub));
+            setClubes(sortedClubes);
         } catch (error) {
             console.error('❌ Error cargando datos:', error);
         } finally {

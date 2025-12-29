@@ -57,20 +57,31 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
     const fetchData = async () => {
         setLoading(true);
         try {
+            // Si estamos en modo selección, pedir el endpoint específico que ya filtra
+            const coachEndpoint = viewMode === 'seleccion' ? '/Entrenador/seleccion' : '/Entrenador';
+
             const [entrenadoresData, clubesData, personasData] = await Promise.all([
-                api.get('/Entrenador'),
+                api.get(coachEndpoint),
                 api.get('/Club'),
                 api.get('/Persona')
             ]);
 
             // Join entrenador with persona
             const enrichedEntrenadores = (entrenadoresData || []).map(ent => {
-                const persona = (personasData || []).find(p => p.idPersona === ent.idPersona);
+                const entIdPersona = ent.idPersona || ent.IdPersona;
+                const persona = (personasData || []).find(p => (p.idPersona || p.IdPersona) === entIdPersona);
+
                 return {
                     ...ent,
                     ...persona,
-                    id: ent.idPersona
+                    id: entIdPersona || (persona ? (persona.idPersona || persona.IdPersona) : null)
                 };
+            });
+            // Ordenar por ID descendente (más recientes primero)
+            enrichedEntrenadores.sort((a, b) => {
+                const idA = a.id || 0;
+                const idB = b.id || 0;
+                return idB - idA;
             });
 
             setEntrenadores(enrichedEntrenadores);
@@ -89,20 +100,32 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
 
     const filteredData = entrenadores.filter(item => {
         const searchTerm = filters.search.toLowerCase();
-        const nombreCompleto = (item.nombrePersona || `${item.nombre || ''} ${item.apellido || ''}`).toLowerCase();
 
-        const matchesSearch = nombreCompleto.includes(searchTerm) ||
-            (item.documento && item.documento.includes(searchTerm));
+        // Soporte robusto para nombres (pueden venir de persona o entrenador)
+        const nombre = item.nombre || item.Nombre || '';
+        const apellido = item.apellido || item.Apellido || '';
+        const nombrePersona = item.nombrePersona || item.NombrePersona || `${nombre} ${apellido}`.trim();
+
+        const nombreCompleto = nombrePersona.toLowerCase();
+        const documento = (item.documento || item.Documento || '').toString().toLowerCase();
+
+        const matchesSearch = nombreCompleto.includes(searchTerm) || documento.includes(searchTerm);
 
         let matchesContext = true;
+
+        // Extraer IDs y flags con soporte para PascalCase y tipos variados (1/true)
+        const itemIdClub = item.idClub || item.IdClub;
+        const belongsToSelection = !!(item.perteneceSeleccion || item.PerteneceSeleccion);
+
         if (viewMode === 'club') {
             // Modo Club: Debe tener club. Filtro de club opcional aplica.
-            const hasClub = item.idClub && item.idClub !== 0;
-            const matchesClubFilter = filters.club ? item.idClub == filters.club : true;
+            const hasClub = itemIdClub && itemIdClub !== 0;
+            const matchesClubFilter = filters.club ? itemIdClub == filters.club : true;
             matchesContext = hasClub && matchesClubFilter;
         } else if (viewMode === 'seleccion') {
-            // Modo Selección: Debe ser de selección.
-            matchesContext = item.perteneceSeleccion === true;
+            // Modo Selección: Si usamos el endpoint /seleccion, asumimos que son de selección
+            // pero mantenemos el flag por si se cargaron de la lista general
+            matchesContext = belongsToSelection || viewMode === 'seleccion';
         }
 
         return matchesSearch && matchesContext;

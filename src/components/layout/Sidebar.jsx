@@ -8,16 +8,16 @@ const Sidebar = ({ isOpen, closeMobile, isCollapsed, toggleSidebar }) => {
     const navigate = useNavigate();
 
     const navItems = [
-        { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-        { icon: Shield, label: 'Clubes', path: '/clubes' },
-        { icon: Users, label: 'Atletas', path: '/atletas' },
-        { icon: Award, label: 'Entrenadores Club', path: '/entrenadores' },
-        { icon: Award, label: 'Entrenadores Selección', path: '/entrenadores-seleccion' },
-        //        { icon: Calendar, label: 'Eventos', path: '/eventos' },
-        //        { icon: ClipboardList, label: 'Inscripciones', path: '/inscripciones' },
-        { icon: Briefcase, label: 'Delegados Club', path: '/delegados' },
-        { icon: UserCheck, label: 'Tutores', path: '/tutores' },
-        { icon: DollarSign, label: 'Pagos', path: '/pagos' },
+        { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+        { icon: Shield, label: 'Clubes', path: '/dashboard/clubes' },
+        { icon: Users, label: 'Atletas', path: '/dashboard/atletas' },
+        { icon: Award, label: 'Entrenadores Club', path: '/dashboard/entrenadores' },
+        { icon: Award, label: 'Entrenadores Selección', path: '/dashboard/entrenadores-seleccion' },
+        //        { icon: Calendar, label: 'Eventos', path: '/dashboard/eventos' },
+        //        { icon: ClipboardList, label: 'Inscripciones', path: '/dashboard/inscripciones' },
+        { icon: Briefcase, label: 'Delegados Club', path: '/dashboard/delegados' },
+        { icon: UserCheck, label: 'Tutores', path: '/dashboard/tutores' },
+        { icon: DollarSign, label: 'Pagos', path: '/dashboard/pagos' },
         { icon: Trophy, label: 'Federación', path: '/dashboard/federacion' },
     ];
 

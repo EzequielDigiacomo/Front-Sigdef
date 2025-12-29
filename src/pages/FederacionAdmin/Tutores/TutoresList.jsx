@@ -213,6 +213,9 @@ const TutoresList = () => {
                 };
             });
 
+            // Ordenar por ID descendente (más recientes primero)
+            tutoresEnriquecidos.sort((a, b) => (b.idPersona || b.IdPersona) - (a.idPersona || a.IdPersona));
+
             setTutores(tutoresEnriquecidos);
             setAtletas(atletasEnriquecidos);
             setAtletaTutorRelaciones(relacionesRes);
