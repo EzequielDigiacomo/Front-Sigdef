@@ -99,8 +99,29 @@
     flex: 1 1 auto;
     /* permite que el modal-expanda el contenido hasta max-height */
     box-sizing: border-box;
-    overflow: hidden;
-    /* evita overflow en el container principal */
+    overflow-y: auto;
+    /* permite scroll vertical si el contenido excede el max-height */
+}
+
+@media (max-width: 768px) {
+    .modal-container {
+        max-height: 85vh;
+        width: 95%;
+        margin: 1rem;
+    }
+
+    .modal-header,
+    .modal-footer {
+        padding: 1rem;
+    }
+
+    .modal-title {
+        font-size: 1.1rem;
+    }
+
+    .modal-content-default {
+        padding: 1rem;
+    }
 }
 
 

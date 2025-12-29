@@ -30,7 +30,6 @@ const ClubAtletasForm = () => {
         montoBeca: 0,
         presentoAptoMedico: false,
         estadoPago: 0,
-        estadoPago: 0,
         perteneceSeleccion: false,
         sexo: 1, // Default Masculino or force user to select
     });
@@ -97,7 +96,6 @@ const ClubAtletasForm = () => {
                 becadoSdn: data.becadoSdn || false,
                 montoBeca: data.montoBeca || 0,
                 presentoAptoMedico: data.presentoAptoMedico || false,
-                estadoPago: data.estadoPago || 0,
                 estadoPago: data.estadoPago || 0,
                 perteneceSeleccion: data.perteneceSeleccion || false,
                 sexo: data.persona?.sexo || 1,

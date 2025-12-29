@@ -259,3 +259,21 @@ body {
 .data-table td .flex {
     flex-wrap: nowrap;
 }
+
+/* Atleta Detail Modal Grid */
+.atleta-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+@media (max-width: 600px) {
+    .atleta-detail-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+
+.atleta-detail-header {
+    grid-column: 1 / -1;
+}

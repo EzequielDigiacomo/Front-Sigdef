@@ -68,7 +68,7 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
                         {athlete.edad < 18 && !tutorInfo && !loadingTutor && (
                             <>
                                 <Button
-                                    variant="warning"
+                                    variant="secondary"
                                     onClick={() => {
                                         onClose();
                                         navigate(`/dashboard/atletas/editar/${athlete.idPersona}`, {
@@ -101,8 +101,8 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
                     </div>
                 }
             >
-                <div id="modal-content-export" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', padding: '1rem', backgroundColor: 'var(--bg-secondary)' }}>
-                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+                <div id="modal-content-export" className="atleta-detail-grid" style={{ padding: '1rem', backgroundColor: 'var(--bg-secondary)' }}>
+                    <div className="atleta-detail-header" style={{ textAlign: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
                         <h2 style={{ margin: 0, color: 'var(--primary)' }}>Ficha del Atleta</h2>
                         <p style={{ margin: 0, color: 'var(--text-secondary)' }}>SIGDEF - Sistema de Gestión Deportiva</p>
                     </div>

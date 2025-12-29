@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import { Users, Award, ChevronRight, User, Plus } from 'lucide-react';
-import { createIcons, baby } from 'lucide';
 import { CATEGORIA_MAP } from '../../../utils/enums';
 import './EntrenadorSeleccion.css?v=2';
 
