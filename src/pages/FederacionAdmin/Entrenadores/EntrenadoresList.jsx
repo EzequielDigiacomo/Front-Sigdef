@@ -221,7 +221,6 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
             }
         ] : [
             // Columnas específicas de modo Club
-            { label: 'Licencia', key: 'licencia' },
             { label: 'Teléfono', key: 'telefono' },
             {
                 label: 'Documentación',

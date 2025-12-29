@@ -242,7 +242,7 @@ const AtletasForm = () => {
 
             const emailFinal = emailInput === "" ? null : emailInput;
             const telefonoFinal = telefonoInput === "" ? null : telefonoInput;
-            const direccionFinal = formData.direccion === "" ? null : formData.direccion;
+            const direccionFinal = formData.direccion || "";
 
             const fechaNacimientoISO = formData.fechaNacimiento ? new Date(formData.fechaNacimiento).toISOString() : new Date().toISOString();
 

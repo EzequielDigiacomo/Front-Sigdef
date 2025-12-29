@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { LogOut, User, Menu, LayoutDashboard, Shield, Users, Award, Calendar, ClipboardList, UserCheck, DollarSign, Trophy, Lock, Briefcase } from 'lucide-react';
 import Button from '../common/Button';
 import ThemeToggle from '../common/ThemeToggle';
@@ -8,6 +8,8 @@ import './Navbar.css';
 
 const Navbar = ({ toggleSidebar }) => {
     const { user, logout } = useAuth();
+    const location = useLocation();
+    const isDashboardRoot = location.pathname === '/dashboard';
 
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -31,43 +33,47 @@ const Navbar = ({ toggleSidebar }) => {
     return (
         <nav className="navbar glass-panel">
             <div className="navbar-left">
-                <button className="menu-toggle" onClick={toggleSidebar}>
-                    <Menu size={24} color="var(--text-secondary)" />
-                </button>
+                {!isDashboardRoot && (
+                    <button className="menu-toggle" onClick={toggleSidebar}>
+                        <Menu size={24} color="var(--text-secondary)" />
+                    </button>
+                )}
                 <h1 className="brand-logo text-gradient">SIGDEF</h1>
             </div>
 
-            <div className="navbar-center desktop-only">
-                <div className="nav-row">
-                    {navItems.slice(0, 8).map((item) => (
-                        <NavLink
-                            key={item.path}
-                            to={item.path}
-                            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                            title={item.label}
-                        >
-                            <span className="nav-label">{item.label}</span>
-                        </NavLink>
-                    ))}
+            {!isDashboardRoot && (
+                <div className="navbar-center desktop-only">
+                    <div className="nav-row">
+                        {navItems.slice(0, 8).map((item) => (
+                            <NavLink
+                                key={item.path}
+                                to={item.path}
+                                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                                title={item.label}
+                            >
+                                <span className="nav-label">{item.label}</span>
+                            </NavLink>
+                        ))}
+                    </div>
+                    <div className="nav-row">
+                        {navItems.slice(8).map((item) => (
+                            <NavLink
+                                key={item.path}
+                                to={item.path}
+                                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                                title={item.label}
+                            >
+                                <span className="nav-label">{item.label}</span>
+                            </NavLink>
+                        ))}
+                    </div>
                 </div>
-                <div className="nav-row">
-                    {navItems.slice(8).map((item) => (
-                        <NavLink
-                            key={item.path}
-                            to={item.path}
-                            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                            title={item.label}
-                        >
-                            <span className="nav-label">{item.label}</span>
-                        </NavLink>
-                    ))}
-                </div>
-            </div>
+            )}
 
             <div className="navbar-right">
                 <ThemeToggle />
                 <div className="user-info">
-                    <span className="user-name">{user?.nombre || 'Usuario'}</span>
+                    <span className="user-name">{user?.nombreCompleto || user?.nombre || 'Usuario'}</span>
                     <div className="avatar">
                         <User size={20} />
                     </div>

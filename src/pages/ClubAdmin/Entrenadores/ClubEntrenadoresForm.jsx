@@ -26,15 +26,17 @@ const ClubEntrenadoresForm = () => {
         telefono: '',
         direccion: '',
 
-        licencia: '',
         perteneceSeleccion: false,
         categoriaSeleccion: '',
         becadoEnard: false,
         becadoSdn: false,
         montoBeca: 0,
         presentoAptoMedico: false,
-        sexo: 1
+        sexo: 1,
+        idClub: ''
     });
+
+    const [clubes, setClubes] = useState([]);
 
     const [modalConfig, setModalConfig] = useState({
         isOpen: false,
@@ -62,8 +64,25 @@ const ClubEntrenadoresForm = () => {
     };
 
     useEffect(() => {
-        if (id) loadEntrenador();
-    }, [id]);
+        if (id) {
+            loadEntrenador();
+        } else if (user?.role === 'FEDERACION') {
+            loadClubes();
+            // Pre-seleccionar si viene del estado de navegación
+            if (location.state?.clubId) {
+                setFormData(prev => ({ ...prev, idClub: location.state.clubId }));
+            }
+        }
+    }, [id, user]);
+
+    const loadClubes = async () => {
+        try {
+            const data = await api.get('/Club');
+            setClubes(data || []);
+        } catch (error) {
+            console.error('Error cargando clubes:', error);
+        }
+    };
 
     const loadEntrenador = async () => {
         try {
@@ -79,14 +98,18 @@ const ClubEntrenadoresForm = () => {
                 telefono: persona.telefono || '',
                 direccion: persona.direccion || '',
                 sexo: persona.sexo || 1,
-                licencia: data.licencia || '',
                 perteneceSeleccion: data.perteneceSeleccion || false,
                 categoriaSeleccion: data.categoriaSeleccion || '',
                 becadoEnard: data.becadoEnard || false,
                 becadoSdn: data.becadoSdn || false,
                 montoBeca: data.montoBeca || 0,
-                presentoAptoMedico: data.presentoAptoMedico || false
+                presentoAptoMedico: data.presentoAptoMedico || false,
+                idClub: data.idClub || ''
             });
+
+            if (user?.role === 'FEDERACION') {
+                loadClubes();
+            }
         } catch (error) {
             console.error('Error cargando entrenador:', error);
             setModalConfig({
@@ -111,10 +134,24 @@ const ClubEntrenadoresForm = () => {
         e.preventDefault();
         setLoading(true);
 
-        const targetClubId = location.state?.clubId || user.clubId;
-        // Verify we have a club ID if creating new
-        if (!id && !targetClubId) {
-            alert('Error: No se ha especificado un Club para este entrenador.');
+        // Lógica para determinar el Club
+        let targetClubId = null;
+
+        if (user?.role === 'CLUB') {
+            // Si es Club Admin, usamos su propio club automáticamente
+            targetClubId = user.idClub || user.IdClub;
+        } else {
+            // Si es Federación, usamos el club seleccionado en el formulario o en el estado
+            targetClubId = formData.idClub || location.state?.clubId;
+        }
+
+        if (!targetClubId) {
+            setModalConfig({
+                isOpen: true,
+                title: 'Error',
+                message: 'No se ha especificado un Club para este entrenador.',
+                type: 'danger'
+            });
             setLoading(false);
             return;
         }
@@ -123,14 +160,14 @@ const ClubEntrenadoresForm = () => {
             let idPersona = null;
 
             const personaPayload = {
-                nombre: formData.nombre,
-                apellido: formData.apellido,
-                documento: formData.documento,
-                fechaNacimiento: formData.fechaNacimiento ? new Date(formData.fechaNacimiento).toISOString() : new Date().toISOString(),
-                email: formData.email || "",
-                telefono: formData.telefono || "",
-                direccion: formData.direccion || "",
-                sexo: parseInt(formData.sexo)
+                Nombre: formData.nombre,
+                Apellido: formData.apellido,
+                Documento: formData.documento,
+                FechaNacimiento: formData.fechaNacimiento ? new Date(formData.fechaNacimiento).toISOString() : new Date().toISOString(),
+                Email: formData.email || "",
+                Telefono: formData.telefono || "",
+                Direccion: formData.direccion || "",
+                Sexo: parseInt(formData.sexo)
             };
 
             if (id) {
@@ -139,21 +176,15 @@ const ClubEntrenadoresForm = () => {
                 idPersona = parseInt(id);
 
                 const entrenadorPayload = {
-                    idPersona: idPersona,
-                    idClub: targetClubId, // Use determined clubId
-                    licencia: formData.licencia,
-                    perteneceSeleccion: formData.perteneceSeleccion,
-                    categoriaSeleccion: formData.categoriaSeleccion || "",
-                    becadoEnard: formData.becadoEnard,
-                    becadoSdn: formData.becadoSdn,
-                    montoBeca: parseFloat(formData.montoBeca) || 0,
-                    presentoAptoMedico: formData.presentoAptoMedico
+                    IdPersona: idPersona,
+                    IdClub: parseInt(targetClubId),
+                    PerteneceSeleccion: formData.perteneceSeleccion,
+                    CategoriaSeleccion: formData.categoriaSeleccion || "",
+                    BecadoEnard: formData.becadoEnard,
+                    BecadoSdn: formData.becadoSdn,
+                    MontoBeca: parseFloat(formData.montoBeca) || 0,
+                    PresentoAptoMedico: formData.presentoAptoMedico
                 };
-
-                // Note: Updating Club ID might not be desired on edit unless explicitly intended. 
-                // But for now we treat it as "current context determines club".
-                // Ideally backend ignores idClub on update if not meant to change, or we fetch the existing one.
-                // However, logic here re-sends it.
 
                 await api.put(`/Entrenador/${id}`, entrenadorPayload);
             } else {
@@ -174,15 +205,14 @@ const ClubEntrenadoresForm = () => {
                 }
 
                 const entrenadorPayload = {
-                    idPersona: idPersona,
-                    idClub: targetClubId,
-                    licencia: formData.licencia,
-                    perteneceSeleccion: formData.perteneceSeleccion,
-                    categoriaSeleccion: formData.categoriaSeleccion || "",
-                    becadoEnard: formData.becadoEnard,
-                    becadoSdn: formData.becadoSdn,
-                    montoBeca: parseFloat(formData.montoBeca) || 0,
-                    presentoAptoMedico: formData.presentoAptoMedico
+                    IdPersona: idPersona,
+                    IdClub: parseInt(targetClubId),
+                    PerteneceSeleccion: formData.perteneceSeleccion,
+                    CategoriaSeleccion: formData.categoriaSeleccion || "",
+                    BecadoEnard: formData.becadoEnard,
+                    BecadoSdn: formData.becadoSdn,
+                    MontoBeca: parseFloat(formData.montoBeca) || 0,
+                    PresentoAptoMedico: formData.presentoAptoMedico
                 };
 
                 await api.post('/Entrenador', entrenadorPayload);
@@ -279,10 +309,6 @@ const ClubEntrenadoresForm = () => {
                         </div>
 
                         <h3 className="form-section-title">Datos del Entrenador</h3>
-                        <div className="form-group">
-                            <label>Licencia *</label>
-                            <input name="licencia" value={formData.licencia} onChange={handleChange} className="form-input" maxLength={50} required />
-                        </div>
                         <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
                             <input type="checkbox" name="perteneceSeleccion" checked={formData.perteneceSeleccion} onChange={handleChange} id="seleccion" />
                             <label htmlFor="seleccion" style={{ marginBottom: 0 }}>Pertenece a Selección</label>
@@ -323,6 +349,26 @@ const ClubEntrenadoresForm = () => {
                             <input type="checkbox" name="presentoAptoMedico" checked={formData.presentoAptoMedico} onChange={handleChange} id="apto" />
                             <label htmlFor="apto" style={{ marginBottom: 0 }}>Presentó Apto Médico</label>
                         </div>
+
+                        {user?.role === 'FEDERACION' && (
+                            <div className="form-group">
+                                <label>Club Asignado *</label>
+                                <select
+                                    name="idClub"
+                                    value={formData.idClub}
+                                    onChange={handleChange}
+                                    className="form-input"
+                                    required
+                                >
+                                    <option value="">Seleccione un Club</option>
+                                    {clubes.map(club => (
+                                        <option key={club.idClub} value={club.idClub}>
+                                            {club.nombre}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                     </div>
 
                     <div className="form-actions">

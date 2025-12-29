@@ -22,11 +22,9 @@ const MainLayout = () => {
                 </div>
             )}
             <div className={`main-content ${isDashboardRoot ? 'full-width' : ''}`}>
-                {!isDashboardRoot && (
-                    <Navbar
-                        toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-                    />
-                )}
+                <Navbar
+                    toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+                />
                 <main className="page-content container">
                     <Outlet />
                 </main>

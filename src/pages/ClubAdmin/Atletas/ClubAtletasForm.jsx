@@ -268,29 +268,27 @@ const ClubAtletasForm = () => {
             const fechaNacimientoISO = formData.fechaNacimiento ? new Date(formData.fechaNacimiento).toISOString() : new Date().toISOString();
 
             const personaPayload = {
-                nombre: formData.nombre,
-                apellido: formData.apellido,
-                documento: formData.documento,
-                fechaNacimiento: fechaNacimientoISO,
-                email: emailFinal || "",
-                telefono: telefonoFinal || "",
-                direccion: direccionFinal || "",
-                telefono: telefonoFinal || "",
-                direccion: direccionFinal || "",
-                sexo: parseInt(formData.sexo)
+                Nombre: formData.nombre,
+                Apellido: formData.apellido,
+                Documento: formData.documento,
+                FechaNacimiento: fechaNacimientoISO,
+                Email: emailFinal || "",
+                Telefono: telefonoFinal || "",
+                Direccion: direccionFinal || "",
+                Sexo: parseInt(formData.sexo)
             };
 
             const getAtletaPayload = (idPersona) => ({
-                idPersona: idPersona,
-                idClub: user.clubId,
-                categoria: parseInt(formData.categoria) || 0,
-                becadoEnard: formData.becadoEnard,
-                becadoSdn: formData.becadoSdn,
-                montoBeca: parseFloat(formData.montoBeca) || 0,
-                presentoAptoMedico: formData.presentoAptoMedico,
-                estadoPago: 0,
-                perteneceSeleccion: false,
-                fechaAptoMedico: null
+                IdPersona: idPersona,
+                IdClub: user.idClub || user.clubId || user.IdClub,
+                Categoria: parseInt(formData.categoria) || 0,
+                BecadoEnard: formData.becadoEnard,
+                BecadoSdn: formData.becadoSdn,
+                MontoBeca: parseFloat(formData.montoBeca) || 0,
+                PresentoAptoMedico: formData.presentoAptoMedico,
+                EstadoPago: 0,
+                PerteneceSeleccion: false,
+                FechaAptoMedico: null
             });
 
             if (id) {
@@ -334,8 +332,7 @@ const ClubAtletasForm = () => {
                 }
 
                 try {
-
-                    await api.get(`/Atleta/${idPersona}`);
+                    await api.get(`/Atleta/${idPersona}`, { silentErrors: true });
                     console.log('⚠️ Esta persona ya es atleta.');
 
                     await api.put(`/Atleta/${idPersona}`, getAtletaPayload(idPersona));

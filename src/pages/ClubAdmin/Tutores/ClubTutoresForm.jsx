@@ -151,21 +151,19 @@ const ClubTutoresForm = () => {
                 : new Date().toISOString();
 
             const personaPayload = {
-                nombre: formData.nombre,
-                apellido: formData.apellido,
-                documento: formData.documento,
-                fechaNacimiento: fechaNacimientoISO,
-                email: formData.email || "",
-                telefono: formData.telefono || "",
-                direccion: formData.direccion || "",
-                telefono: formData.telefono || "",
-                direccion: formData.direccion || "",
-                sexo: parseInt(formData.sexo)
+                Nombre: formData.nombre,
+                Apellido: formData.apellido,
+                Documento: formData.documento,
+                Sexo: parseInt(formData.sexo),
+                FechaNacimiento: fechaNacimientoISO,
+                Email: formData.email || "",
+                Telefono: formData.telefono || "",
+                Direccion: formData.direccion || ""
             };
 
             const tutorPayload = {
-                idPersona: 0,
-                tipoTutor: PARENTESCO_MAP[formData.tipoTutor] || 'Padre'
+                IdPersona: 0, // Will be overwritten
+                TipoTutor: PARENTESCO_MAP[formData.tipoTutor] || 'Padre'
             };
 
             let idPersona = null;
@@ -173,7 +171,7 @@ const ClubTutoresForm = () => {
             if (id) {
 
                 await api.put(`/Persona/${id}`, personaPayload);
-                await api.put(`/Tutor/${id}`, { ...tutorPayload, idPersona: parseInt(id) });
+                await api.put(`/Tutor/${id}`, { ...tutorPayload, IdPersona: parseInt(id) });
                 idPersona = parseInt(id);
 
             } else {
@@ -191,13 +189,13 @@ const ClubTutoresForm = () => {
                         console.log('✅ Persona encontrada con ID:', idPersona);
 
                         try {
-                            const tutorExistente = await api.get(`/Tutor/${idPersona}`);
+                            const tutorExistente = await api.get(`/Tutor/${idPersona}`, { silentErrors: true });
                             console.log('⚠️ Persona ya es tutor, actualizando...');
 
                             await api.put(`/Persona/${idPersona}`, personaPayload);
                             await api.put(`/Tutor/${idPersona}`, {
                                 ...tutorPayload,
-                                idPersona: idPersona
+                                IdPersona: idPersona
                             });
 
                         } catch (tutorError) {
@@ -210,7 +208,7 @@ const ClubTutoresForm = () => {
                             await api.put(`/Persona/${idPersona}`, personaPayload);
                             await api.post('/Tutor', {
                                 ...tutorPayload,
-                                idPersona: idPersona
+                                IdPersona: idPersona
                             });
                         }
                     }
@@ -228,7 +226,7 @@ const ClubTutoresForm = () => {
                     console.log('➕ Creando tutor...');
                     await api.post('/Tutor', {
                         ...tutorPayload,
-                        idPersona: idPersona
+                        IdPersona: idPersona
                     });
                 }
             }

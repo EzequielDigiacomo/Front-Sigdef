@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
 
-        const storedUser = localStorage.getItem('user');
+        const storedUser = sessionStorage.getItem('user');
 
         if (storedUser) {
             try {
@@ -44,11 +44,11 @@ export const AuthProvider = ({ children }) => {
                 } else {
 
                     console.log('Token expirado o inválido, limpiando sesión');
-                    localStorage.removeItem('user');
+                    sessionStorage.removeItem('user');
                 }
             } catch (error) {
                 console.error('Error al parsear usuario almacenado:', error);
-                localStorage.removeItem('user');
+                sessionStorage.removeItem('user');
             }
         }
 
@@ -91,7 +91,7 @@ export const AuthProvider = ({ children }) => {
                 idClub: idClub
             };
             setUser(loggedUser);
-            localStorage.setItem('user', JSON.stringify(loggedUser));
+            sessionStorage.setItem('user', JSON.stringify(loggedUser));
 
             return true;
         } catch (error) {
@@ -103,7 +103,7 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         console.log('Cerrando sesión...');
         setUser(null);
-        localStorage.removeItem('user');
+        sessionStorage.removeItem('user');
 
     };
 

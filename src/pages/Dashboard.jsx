@@ -169,9 +169,10 @@ const Dashboard = () => {
     const navCards = [
         { label: 'Clubes', icon: Shield, path: '/dashboard/clubes', color: '#3b82f6', description: 'Gestión de clubes y sedes' },
         { label: 'Atletas', icon: Users, path: '/dashboard/atletas', color: '#10b981', description: 'Listado y registro de atletas' },
-        { label: 'Entrenadores', icon: Award, path: '/dashboard/entrenadores', color: '#f59e0b', description: 'Gestión de técnicos de clubes' },
-        { label: 'Selecciones', icon: Trophy, path: '/dashboard/selecciones', color: '#8b5cf6', description: 'Selecciones nacionales por categoría' },
-        { label: 'Delegados', icon: Briefcase, path: '/dashboard/delegados', color: '#ef4444', description: 'Representantes de clubes' },
+        { label: 'Entrenadores Club', icon: Award, path: '/dashboard/entrenadores', color: '#f59e0b', description: 'Gestión de técnicos de clubes' },
+        { label: 'Entrenadores Selección', icon: Briefcase, path: '/dashboard/entrenadores-seleccion', color: '#8b5cf6', description: 'Gestión de técnicos de selección' },
+        { label: 'Selecciones', icon: Trophy, path: '/dashboard/selecciones', color: '#ef4444', description: 'Selecciones nacionales por categoría' },
+        { label: 'Delegados', icon: Briefcase, path: '/dashboard/delegados', color: '#64748b', description: 'Representantes de clubes' },
         { label: 'Tutores', icon: UserCheck, path: '/dashboard/tutores', color: '#ec4899', description: 'Tutoría de atletas menores' },
         { label: 'Pagos', icon: DollarSign, path: '/dashboard/pagos', color: '#06b6d4', description: 'Control de cuotas y transacciones' },
         { label: 'Federación', icon: Shield, path: '/dashboard/federacion', color: '#64748b', description: 'Información institucional' },

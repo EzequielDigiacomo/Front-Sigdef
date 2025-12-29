@@ -44,7 +44,7 @@ const handleResponse = async (response, options = {}) => {
 export const api = {
     get: async (endpoint, options = {}) => {
         const { silentErrors = false } = options;
-        const token = JSON.parse(localStorage.getItem('user'))?.token;
+        const token = JSON.parse(sessionStorage.getItem('user'))?.token;
         const headers = { ...defaultHeaders };
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -66,7 +66,7 @@ export const api = {
 
     post: async (endpoint, data, options = {}) => {
         const { silentErrors = false } = options;
-        const token = JSON.parse(localStorage.getItem('user'))?.token;
+        const token = JSON.parse(sessionStorage.getItem('user'))?.token;
         const headers = { ...defaultHeaders };
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -89,7 +89,7 @@ export const api = {
 
     put: async (endpoint, data, options = {}) => {
         const { silentErrors = false } = options;
-        const token = JSON.parse(localStorage.getItem('user'))?.token;
+        const token = JSON.parse(sessionStorage.getItem('user'))?.token;
         const headers = { ...defaultHeaders };
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -112,7 +112,7 @@ export const api = {
 
     delete: async (endpoint, options = {}) => {
         const { silentErrors = false } = options;
-        const token = JSON.parse(localStorage.getItem('user'))?.token;
+        const token = JSON.parse(sessionStorage.getItem('user'))?.token;
         const headers = { ...defaultHeaders };
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -134,7 +134,7 @@ export const api = {
 
     upload: async (endpoint, formData, options = {}) => {
         const { silentErrors = false } = options;
-        const token = JSON.parse(localStorage.getItem('user'))?.token;
+        const token = JSON.parse(sessionStorage.getItem('user'))?.token;
         // Do NOT set Content-Type header for FormData, browser does it automatically with boundary
         const headers = {};
         if (token) headers['Authorization'] = `Bearer ${token}`;

@@ -28,6 +28,9 @@ const Modal = ({ isOpen, onClose, title, children, footer, size = 'medium', vari
             <div className={`modal-container modal-${size} modal-variant-${variant}`} onClick={e => e.stopPropagation()}>
                 <div className={`modal-header modal-header-${variant}`}>
                     <h3 className={`modal-title modal-title-${variant}`}>{title}</h3>
+                    <button className="modal-close" onClick={onClose} title="Cerrar">
+                        <X size={20} />
+                    </button>
                 </div>
                 <div className={`modal-content modal-content-${variant}`}>
                     {children}

@@ -27,7 +27,6 @@ const RegisterPersonForm = ({ onUserCreated }) => {
         estaActivo: true,
 
         // Datos Específicos
-        licencia: '',
         idFederacion: 1 // Default
     });
 
@@ -208,8 +207,7 @@ const RegisterPersonForm = ({ onUserCreated }) => {
                 console.log("🧢 Registrando Entrenador...");
                 await api.post('/Entrenador', {
                     idPersona: currentIdPersona,
-                    idClub: clubIdInt > 0 ? clubIdInt : null,
-                    licencia: formData.licencia || "N/A"
+                    idClub: clubIdInt > 0 ? clubIdInt : null
                 });
             }
 
@@ -224,7 +222,7 @@ const RegisterPersonForm = ({ onUserCreated }) => {
             setFormData({
                 nombre: '', apellido: '', documento: '', sexo: 1, fechaNacimiento: '',
                 email: '', telefono: '', direccion: '', username: '', password: '',
-                confirmPassword: '', rol: '', idClub: 0, estaActivo: true, licencia: '', idFederacion: 1
+                confirmPassword: '', rol: '', idClub: 0, estaActivo: true, idFederacion: 1
             });
             setPersonaExists(false);
             setIdPersona(0);
@@ -350,13 +348,9 @@ const RegisterPersonForm = ({ onUserCreated }) => {
                     </div>
                 </section>
 
-                {(formData.rol === 'Entrenador' || formData.rol === 'Atleta') && (
+                {(formData.rol === 'Atleta') && (
                     <section className="form-section">
                         <h4 className="section-subtitle">Datos de {formData.rol}</h4>
-                        <div className="form-group">
-                            <label>Licencia</label>
-                            <input name="licencia" value={formData.licencia} onChange={handleChange} className="form-input" />
-                        </div>
                     </section>
                 )}
 

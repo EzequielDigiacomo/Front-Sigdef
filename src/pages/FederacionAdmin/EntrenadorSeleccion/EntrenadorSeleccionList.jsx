@@ -93,14 +93,6 @@ const EntrenadorSeleccionList = () => {
                     </h1>
                     <p className="dashboard-subtitle">Vista general de categorías y cuerpo técnico</p>
                 </div>
-                <button
-                    className="btn-primary"
-                    onClick={() => navigate('/dashboard/entrenadores-seleccion/nuevo')}
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                >
-                    <Plus size={20} />
-                    Crear Entrenador
-                </button>
             </div>
 
             {loading ? (
