@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import Card from '../components/common/Card';
-import { Users, Shield, DollarSign, Calendar, LayoutDashboard, Award, Trophy, ClipboardList, Briefcase, UserCheck, Lock, Trash2 } from 'lucide-react';
+import { Users, Shield, DollarSign, Calendar, LayoutDashboard, Award, Trophy, ClipboardList, Briefcase, UserCheck, Lock, Trash2, UserX } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import './Dashboard.css';
 
@@ -174,6 +174,7 @@ const Dashboard = () => {
         { label: 'Selecciones', icon: Trophy, path: '/dashboard/selecciones', color: '#ef4444', description: 'Selecciones nacionales por categoría' },
         { label: 'Delegados', icon: Briefcase, path: '/dashboard/delegados', color: '#64748b', description: 'Representantes de clubes' },
         { label: 'Tutores', icon: UserCheck, path: '/dashboard/tutores', color: '#ec4899', description: 'Tutoría de atletas menores' },
+        { label: 'Agentes Libres', icon: UserX, path: '/dashboard/agentes-libres', color: '#f43f5e', description: 'Atletas sin club asignado' },
         { label: 'Pagos', icon: DollarSign, path: '/dashboard/pagos', color: '#06b6d4', description: 'Control de cuotas y transacciones' },
         { label: 'Federación', icon: Shield, path: '/dashboard/federacion', color: '#64748b', description: 'Información institucional' },
     ];

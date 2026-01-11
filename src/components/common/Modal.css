@@ -16,7 +16,8 @@
 
 .modal-container {
     background-color: var(--bg-secondary);
-    border-radius: 16px;
+    border-radius: 12px;
+    /* Reducido de 16px */
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     overflow: hidden;
     border: 1px solid var(--border-color);
@@ -52,7 +53,8 @@
 
 
 .modal-header {
-    padding: 1.5rem;
+    padding: 1rem;
+    /* Reducido de 1.5rem */
     border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
@@ -62,7 +64,8 @@
 }
 
 .modal-title {
-    font-size: 1.25rem;
+    font-size: 1.15rem;
+    /* Ligeramente reducido de 1.25rem */
     font-weight: 600;
     color: var(--text-primary);
     margin: 0;
@@ -71,7 +74,8 @@
 
 .modal-close {
     position: absolute;
-    right: 1.5rem;
+    right: 1rem;
+    /* Ajustado */
     background: none;
     border: none;
     color: var(--text-secondary);
@@ -112,21 +116,22 @@
 
     .modal-header,
     .modal-footer {
-        padding: 1rem;
+        padding: 0.75rem;
     }
 
     .modal-title {
-        font-size: 1.1rem;
+        font-size: 1rem;
     }
 
     .modal-content-default {
-        padding: 1rem;
+        padding: 0.75rem;
     }
 }
 
 
 .modal-footer {
-    padding: 1.5rem;
+    padding: 1rem;
+    /* Reducido de 1.5rem */
     border-top: 1px solid var(--border-color);
     display: flex;
     justify-content: center;
@@ -162,12 +167,12 @@
 .modal-variant-document .modal-header {
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark, #1e40af) 100%);
     color: white;
-    padding: 1.25rem 2rem;
+    padding: 1rem 1.5rem;
 }
 
 .modal-variant-document .modal-title {
     color: white;
-    font-size: 1.35rem;
+    font-size: 1.25rem;
 }
 
 .modal-variant-document .modal-content {
@@ -182,7 +187,8 @@
 }
 
 .modal-variant-form .modal-content {
-    padding: 2rem;
+    padding: 1.5rem;
+    /* Reducido de 2rem */
 }
 
 .modal-variant-form .modal-footer {
@@ -195,5 +201,6 @@
 }
 
 .modal-variant-default .modal-content {
-    padding: 1.5rem;
+    padding: 1rem;
+    /* Reducido de 1.5rem */
 }

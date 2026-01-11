@@ -62,7 +62,7 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
                 title="Detalle del Atleta"
                 size="large"
                 footer={
-                    <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap', width: '100%' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap', width: '100%' }}>
                         <Button variant="secondary" onClick={onClose}>Cerrar</Button>
 
                         {athlete.edad < 18 && !tutorInfo && !loadingTutor && (
@@ -101,10 +101,10 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
                     </div>
                 }
             >
-                <div id="modal-content-export" className="atleta-detail-grid" style={{ padding: '1rem', backgroundColor: 'var(--bg-secondary)' }}>
-                    <div className="atleta-detail-header" style={{ textAlign: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-                        <h2 style={{ margin: 0, color: 'var(--primary)' }}>Ficha del Atleta</h2>
-                        <p style={{ margin: 0, color: 'var(--text-secondary)' }}>SIGDEF - Sistema de Gestión Deportiva</p>
+                <div id="modal-content-export" className="atleta-detail-grid" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                    <div className="atleta-detail-header" style={{ textAlign: 'center', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.2rem' }}>
+                        <h2 style={{ margin: 0, color: 'var(--primary)', fontSize: '1.15rem' }}>Ficha del Atleta</h2>
+                        <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>SIGDEF - Sistema de Gestión Deportiva</p>
                     </div>
 
                     <div>

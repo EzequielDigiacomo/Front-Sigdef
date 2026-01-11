@@ -28,6 +28,7 @@ import SeleccionCategoriaDetalle from './pages/FederacionAdmin/EntrenadorSelecci
 import EntrenadoresList from './pages/FederacionAdmin/Entrenadores/EntrenadoresList';
 import UserManagement from './pages/FederacionAdmin/Usuarios/UserManagement';
 import FederacionDetalles from './pages/FederacionAdmin/Federacion/FederacionDetalles';
+import AgentesLibresList from './pages/FederacionAdmin/AgentesLibres/AgentesLibresList';
 
 import ClubDashboard from './pages/ClubAdmin/Dashboard/ClubDashboard';
 import ClubInfo from './pages/ClubAdmin/Info/ClubInfo';
@@ -167,6 +168,7 @@ function App() {
 
               { }
               <Route path="pagos" element={<div>Página de Pagos (En construcción)</div>} />
+              <Route path="agentes-libres" element={<AgentesLibresList />} />
               <Route path="federacion" element={<FederacionDetalles />} />
               <Route path="usuarios" element={<UserManagement />} />
             </Route>

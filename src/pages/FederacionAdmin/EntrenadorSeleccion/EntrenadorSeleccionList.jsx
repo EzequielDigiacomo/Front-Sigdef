@@ -2,9 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
-import { Users, Award, ChevronRight, User, Plus } from 'lucide-react';
+import {
+    Users, Award, ChevronRight, User, Plus,
+    Star, Rocket, Medal, Target, Zap,
+    Flame, Trophy, Crown, Gem
+} from 'lucide-react';
 import { CATEGORIA_MAP } from '../../../utils/enums';
 import './EntrenadorSeleccion.css?v=2';
+
+const CATEGORY_ICONS = {
+    1: Star,   // Preinfantil
+    2: Rocket, // Infantil
+    3: Medal,  // Menores
+    4: Target, // Cadete
+    5: Zap,    // Junior
+    6: Flame,  // Sub21
+    7: Trophy, // Sub23
+    8: Crown,  // Senior
+    9: Gem     // Master A
+};
 
 const EntrenadorSeleccionList = () => {
     const [stats, setStats] = useState([]);
@@ -112,7 +128,10 @@ const EntrenadorSeleccionList = () => {
                             {/* Columna Izquierda: Icono y Título */}
                             <div className="card-col-left">
                                 <div className="category-icon-wrapper">
-                                    <Award size={48} />
+                                    {(() => {
+                                        const IconComponent = CATEGORY_ICONS[stat.id] || Award;
+                                        return <IconComponent size={48} />;
+                                    })()}
                                 </div>
                                 <h3 className="category-title">{stat.label}</h3>
                             </div>

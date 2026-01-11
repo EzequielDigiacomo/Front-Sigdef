@@ -53,7 +53,10 @@ const ClubDetalles = () => {
             ]);
 
             // Ahora los endpoints ya nos devuelven la data filtrada y enriquecida (NombrePersona, etc)
-            setClub(clubData);
+            setClub({
+                ...clubData,
+                membresiaAlDia: localStorage.getItem(`club_membresia_${id}`) === 'false' ? false : true
+            });
             setAtletas(atletasData);
             setEntrenadores(entrenadoresData);
             setDelegados(delegadosData);
@@ -70,6 +73,20 @@ const ClubDetalles = () => {
             console.error('Error cargando detalles del club:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleUpdateMembresia = async (nuevoEstado) => {
+        try {
+            // Persistir localmente ya que el backend no tiene la propiedad
+            localStorage.setItem(`club_membresia_${id}`, nuevoEstado);
+
+            setClub(prev => ({
+                ...prev,
+                membresiaAlDia: nuevoEstado
+            }));
+        } catch (error) {
+            console.error('Error actualizando membresía:', error);
         }
     };
 
@@ -145,6 +162,39 @@ const ClubDetalles = () => {
                         <div>
                             <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Dirección</label>
                             <div style={{ fontSize: '1rem', fontWeight: '500' }}>{club.direccion || '-'}</div>
+                        </div>
+                        <div style={{ borderTop: '1px solid var(--border-color)', gridColumn: '1 / -1', paddingTop: '1rem', marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div>
+                                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Estado de Membresía</label>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                    <span className={`badge badge-${club.membresiaAlDia ? 'success' : 'warning'}`} style={{ fontSize: '0.9rem', padding: '0.4rem 0.8rem' }}>
+                                        {club.membresiaAlDia ? (
+                                            <><CheckCircle size={16} className="mr-1" /> Al Día</>
+                                        ) : (
+                                            <><AlertTriangle size={16} className="mr-1" /> Pendiente</>
+                                        )}
+                                    </span>
+                                </div>
+                            </div>
+                            {!club.membresiaAlDia && (
+                                <Button
+                                    variant="success"
+                                    size="sm"
+                                    onClick={() => handleUpdateMembresia(true)}
+                                >
+                                    <CheckCircle size={16} className="mr-2" /> Marcar como Al Día
+                                </Button>
+                            )}
+                            {club.membresiaAlDia && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleUpdateMembresia(false)}
+                                    style={{ color: 'var(--text-secondary)' }}
+                                >
+                                    <XCircle size={16} className="mr-2" /> Marcar como Pendiente
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </Card>

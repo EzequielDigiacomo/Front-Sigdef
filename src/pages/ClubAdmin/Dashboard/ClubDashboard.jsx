@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { api } from '../../../services/api';
-import { Users, Calendar, Trophy, TrendingUp } from 'lucide-react';
+import { Users, Calendar, Trophy, TrendingUp, AlertTriangle, CheckCircle, Target, Briefcase } from 'lucide-react';
 import './ClubDashboard.css';
 
 const getTimeAgo = (fecha) => {
@@ -33,6 +33,7 @@ const ClubDashboard = () => {
     const [actividadReciente, setActividadReciente] = useState([]);
     const [proximosEventos, setProximosEventos] = useState([]);
     const [clubNombre, setClubNombre] = useState('...');
+    const [membresiaAlDia, setMembresiaAlDia] = useState(true);
 
     useEffect(() => {
         if (user.idClub) {
@@ -48,27 +49,28 @@ const ClubDashboard = () => {
             try {
                 const clubData = await api.get(`/Club/${user.idClub}`);
                 setClubNombre(clubData.nombre || clubData.Nombre || 'Mi Club');
+                setMembresiaAlDia(localStorage.getItem(`club_membresia_${user.idClub}`) === 'false' ? false : true);
             } catch (err) {
-                console.error('Error fetching club name:', err);
+                console.error('Error fetching club info:', err);
                 setClubNombre('Mi Club');
+                setMembresiaAlDia(true);
             }
 
-            // 2. Obtener estadísticas optimizadas
-            const [atletas, eventos, inscripciones] = await Promise.all([
-                api.get('/Atleta'),
-                api.get('/Evento'),
+            // 2. Obtener estadísticas optimizadas desde los endpoints del club (con nombres)
+            const [atletasDelClub, entrenadoresDelClub, delegadosDelClub, eventosDelClub, inscripciones] = await Promise.all([
+                api.get(`/Club/${user.idClub}/Atletas`),
+                api.get(`/Club/${user.idClub}/Entrenadores`),
+                api.get(`/Club/${user.idClub}/Delegados`),
+                api.get(`/Club/${user.idClub}/Eventos`),
                 api.get('/Inscripcion')
             ]);
-
-            const atletasDelClub = atletas.filter(a => (a.idClub || a.IdClub) == user.idClub);
-            const eventosDelClub = eventos.filter(e => (e.idClub || e.IdClub) == user.idClub);
 
             // Filtramos inscripciones de atletas de este club
             const atletaIds = new Set(atletasDelClub.map(a => a.idPersona || a.IdPersona));
             const inscripcionesDelClub = inscripciones.filter(i => atletaIds.has(i.idAtleta || i.IdAtleta));
 
             const hoy = new Date();
-            const eventosProximos = eventos.filter(e => {
+            const eventosProximos = eventosDelClub.filter(e => {
                 const fechaEvento = new Date(e.fechaInicio || e.FechaInicio);
                 return fechaEvento >= hoy;
             });
@@ -90,9 +92,34 @@ const ClubDashboard = () => {
                 .forEach(atleta => {
                     actividades.push({
                         tipo: 'atleta',
-                        titulo: `Atleta registrado: ${atleta.nombrePersona || atleta.NombrePersona || 'Sin nombre'}`,
+                        titulo: `Atleta: ${atleta.nombrePersona || atleta.NombrePersona || 'Sin nombre'}`,
                         subtitulo: `Estado: Activo`,
                         fecha: atleta.fechaCreacion || atleta.FechaCreacion || new Date().toISOString()
+                    });
+                });
+
+            // Entrenadores recientes
+            entrenadoresDelClub
+                .sort((a, b) => new Date(b.fechaCreacion || b.FechaCreacion || 0) - new Date(a.fechaCreacion || a.FechaCreacion || 0))
+                .slice(0, 2)
+                .forEach(entrenador => {
+                    actividades.push({
+                        tipo: 'entrenador',
+                        titulo: `Entrenador: ${entrenador.nombrePersona || entrenador.NombrePersona || 'Sin nombre'}`,
+                        subtitulo: entrenador.licencia || 'Sin licencia',
+                        fecha: entrenador.fechaCreacion || entrenador.FechaCreacion || new Date().toISOString()
+                    });
+                });
+
+            // Delegados recientes
+            delegadosDelClub
+                .sort((a, b) => new Date(b.fechaCreacion || b.FechaCreacion || 0) - new Date(a.fechaCreacion || a.FechaCreacion || 0))
+                .slice(0, 2)
+                .forEach(delegado => {
+                    actividades.push({
+                        tipo: 'delegado',
+                        titulo: `Delegado: ${delegado.nombrePersona || delegado.NombrePersona || 'Sin nombre'}`,
+                        fecha: delegado.fechaCreacion || delegado.FechaCreacion || new Date().toISOString()
                     });
                 });
 
@@ -108,7 +135,7 @@ const ClubDashboard = () => {
                     });
                 });
 
-            setActividadReciente(actividades.sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 5));
+            setActividadReciente(actividades.sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 8));
             setProximosEventos(eventosProximos.sort((a, b) => new Date(a.fechaInicio || a.FechaInicio) - new Date(b.fechaInicio || b.FechaInicio)).slice(0, 5));
 
         } catch (error) {
@@ -170,6 +197,41 @@ const ClubDashboard = () => {
                 <p className="dashboard-subtitle">Panel de gestión de <strong>{clubNombre}</strong></p>
             </div>
 
+            {!membresiaAlDia && (
+                <div className="glass-panel" style={{
+                    borderLeft: '4px solid var(--warning)',
+                    padding: '1rem 1.5rem',
+                    marginBottom: '2rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    backgroundColor: 'rgba(251, 146, 60, 0.05)'
+                }}>
+                    <div style={{
+                        backgroundColor: 'rgba(251, 146, 60, 0.15)',
+                        padding: '0.75rem',
+                        borderRadius: '12px',
+                        color: 'var(--warning)'
+                    }}>
+                        <AlertTriangle size={24} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                        <h4 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.1rem' }}>Membresía Pendiente</h4>
+                        <p style={{ margin: '0.25rem 0 0 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                            Tu membresía anual se encuentra pendiente de pago. Por favor, regulariza tu situación para mantener todas las funciones habilitadas.
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {membresiaAlDia && (
+                <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
+                    <span className="badge badge-success" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}>
+                        <CheckCircle size={14} /> Membresía al Día
+                    </span>
+                </div>
+            )}
+
             <div className="stats-grid">
                 {statCards.map((stat, index) => (
                     <div key={index} className="stat-card glass-panel">
@@ -196,7 +258,15 @@ const ClubDashboard = () => {
                             actividadReciente.map((actividad, index) => (
                                 <div key={index} className="activity-item">
                                     <div className="activity-icon">
-                                        {actividad.tipo === 'atleta' ? <Users size={18} /> : <Calendar size={18} />}
+                                        {(() => {
+                                            switch (actividad.tipo) {
+                                                case 'atleta': return <Users size={18} />;
+                                                case 'entrenador': return <Target size={18} />;
+                                                case 'delegado': return <Briefcase size={18} />;
+                                                case 'evento': return <Calendar size={18} />;
+                                                default: return <TrendingUp size={18} />;
+                                            }
+                                        })()}
                                     </div>
                                     <div className="activity-details">
                                         <p className="activity-title">{actividad.titulo}</p>
@@ -219,7 +289,7 @@ const ClubDashboard = () => {
                 <div className="dashboard-section glass-panel">
                     ... (contenido de próximos eventos) ...
                 </div>
-*/}
+                */}
             </div>
         </div>
     );

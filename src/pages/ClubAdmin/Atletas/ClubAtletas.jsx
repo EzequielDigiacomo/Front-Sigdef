@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { api } from '../../../services/api';
 import { useNavigate } from 'react-router-dom';
-import { Users, Plus, Search, Edit, Trash2, Phone, Mail, MapPin, User, Calendar, Award, DollarSign } from 'lucide-react';
+import { Users, Plus, Search, Edit, Trash2, Phone, Mail, MapPin, User, Calendar, Award, DollarSign, Eye } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import Button from '../../../components/common/Button';
 import Card from '../../../components/common/Card';
@@ -10,6 +10,8 @@ import FormField from '../../../components/forms/FormField';
 import Modal from '../../../components/common/Modal';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import DataTable from '../../../components/common/DataTable';
+import DocumentUploadModal from '../../../components/common/DocumentUploadModal';
+import DocumentViewerModal from '../../../components/common/DocumentViewerModal';
 import './ClubAtletas.css';
 
 const ClubAtletas = () => {
@@ -25,6 +27,12 @@ const ClubAtletas = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [atletaToDelete, setAtletaToDelete] = useState(null);
     const [feedbackModal, setFeedbackModal] = useState({ isOpen: false, title: '', message: '', type: 'info' });
+
+    // Documentation States
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [showViewerModal, setShowViewerModal] = useState(false);
+    const [selectedAthleteForDocs, setSelectedAthleteForDocs] = useState(null);
+    const [existingDocuments, setExistingDocuments] = useState([]);
 
     // Payment State
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -179,10 +187,11 @@ const ClubAtletas = () => {
 
             // 3. Map Athletes with Persona Data
             const enrichedData = (data || []).map(atleta => {
-                const persona = personasMap.get(atleta.idPersona);
+                const personaId = atleta.idPersona || atleta.IdPersona;
+                const persona = personasMap.get(personaId);
                 return {
                     ...atleta,
-                    // Use persona data if available, otherwise fallback or empty
+                    idPersona: personaId,
                     nombrePersona: persona ? `${persona.nombre} ${persona.apellido}` : (atleta.nombrePersona || '-'),
                     documento: persona ? persona.documento : (atleta.documento || '-')
                 };
@@ -492,10 +501,41 @@ const ClubAtletas = () => {
                             key: 'presentoAptoMedico',
                             label: 'Apto Médico',
                             render: (value) => value ? '✅ Presentado' : '❌ Pendiente'
+                        },
+                        {
+                            key: 'documentacion',
+                            label: 'Documentación',
+                            render: (_, atleta) => (
+                                <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        icon={Plus}
+                                        onClick={() => {
+                                            setSelectedAthleteForDocs(atleta);
+                                            setShowUploadModal(true);
+                                        }}
+                                        title="Subir Documentación"
+                                        className="h-auto p-1 text-primary"
+                                    />
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        icon={Eye}
+                                        onClick={() => {
+                                            setSelectedAthleteForDocs(atleta);
+                                            setShowViewerModal(true);
+                                        }}
+                                        title="Ver Documentación"
+                                        className="h-auto p-1 text-primary"
+                                    />
+                                </div>
+                            )
                         }
                     ]}
                     data={filteredAtletas}
                     loading={loading}
+                    keyField="idPersona"
                     onRowClick={handleCardClick}
                     actions={(atleta) => (
                         <div className="flex gap-2">
@@ -795,17 +835,47 @@ const ClubAtletas = () => {
                 type="danger"
             />
 
+            {/* Modal de Carga de Documentación */}
+            {showUploadModal && selectedAthleteForDocs && (
+                <DocumentUploadModal
+                    isOpen={showUploadModal}
+                    onClose={() => {
+                        setShowUploadModal(false);
+                        setSelectedAthleteForDocs(null);
+                    }}
+                    personName={selectedAthleteForDocs.nombrePersona}
+                    personId={selectedAthleteForDocs.idPersona}
+                    onSuccess={() => {
+                        fetchAtletas(user?.IdClub || user?.idClub);
+                    }}
+                />
+            )}
+
+            {/* Modal de Visualización de Documentación */}
+            {showViewerModal && selectedAthleteForDocs && (
+                <DocumentViewerModal
+                    isOpen={showViewerModal}
+                    onClose={() => {
+                        setShowViewerModal(false);
+                        setSelectedAthleteForDocs(null);
+                    }}
+                    personName={selectedAthleteForDocs.nombrePersona}
+                    personId={selectedAthleteForDocs.idPersona}
+                />
+            )}
+
+            {/* Modal de Feedback (General) */}
             <ConfirmationModal
                 isOpen={feedbackModal.isOpen}
                 onClose={() => setFeedbackModal({ ...feedbackModal, isOpen: false })}
                 onConfirm={() => setFeedbackModal({ ...feedbackModal, isOpen: false })}
                 title={feedbackModal.title}
                 message={feedbackModal.message}
+                type={feedbackModal.type || 'info'}
                 confirmText="Entendido"
                 showCancel={false}
-                type={feedbackModal.type || 'info'}
             />
-        </div >
+        </div>
     );
 };
 

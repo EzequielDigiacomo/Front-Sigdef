@@ -16,7 +16,8 @@ const ClubesForm = () => {
         nombre: '',
         direccion: '',
         telefono: '',
-        siglas: ''
+        siglas: '',
+        membresiaAlDia: true
     });
 
     useEffect(() => {
@@ -51,7 +52,11 @@ const ClubesForm = () => {
     };
 
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value, type, checked } = e.target;
+        setFormData({
+            ...formData,
+            [name]: type === 'checkbox' ? checked : value
+        });
     };
 
     return (
@@ -83,6 +88,18 @@ const ClubesForm = () => {
                         <div className="form-group">
                             <label>Teléfono</label>
                             <input name="telefono" value={formData.telefono} onChange={handleChange} className="form-input" />
+                        </div>
+                        <div className="form-group checkbox-group" style={{ gridColumn: '1 / -1', marginTop: '1rem' }}>
+                            <input
+                                type="checkbox"
+                                name="membresiaAlDia"
+                                id="membresiaAlDia"
+                                checked={formData.membresiaAlDia}
+                                onChange={handleChange}
+                            />
+                            <label htmlFor="membresiaAlDia" style={{ cursor: 'pointer', fontWeight: 'bold' }}>
+                                Membresía al Día (Habilitado)
+                            </label>
                         </div>
                     </div>
 

@@ -436,7 +436,7 @@ const TutoresList = () => {
                                                     >
                                                         <UserPlus size={18} />
                                                     </Button>
-                                                    <Button variant="ghost" size="sm" onClick={() => navigate(`/tutores/${tutor.idPersona}/edit`)}>
+                                                    <Button variant="ghost" size="sm" onClick={() => navigate(`/dashboard/tutores/${tutor.idPersona}/edit`)}>
                                                         <Edit size={18} />
                                                     </Button>
                                                     <Button variant="ghost" size="sm" className="text-danger" onClick={() => handleDeleteClick(tutor)}>
@@ -493,6 +493,7 @@ const TutoresList = () => {
                     }}
                     tutor={selectedTutorForLink}
                     atletas={atletas}
+                    atletaTutorRelaciones={atletaTutorRelaciones}
                     onSuccess={() => {
                         loadTutores();
                         setShowLinkAthleteModal(false);
@@ -527,7 +528,7 @@ const TutoresList = () => {
                                 variant="primary"
                                 onClick={() => {
                                     setShowDetailsModal(false);
-                                    navigate(`/tutores/${selectedTutorForDetails.idPersona}/edit`);
+                                    navigate(`/dashboard/tutores/${selectedTutorForDetails.idPersona}/edit`);
                                 }}
                             >
                                 <Edit size={18} /> Editar Tutor
@@ -758,7 +759,7 @@ const TutoresList = () => {
 };
 
 // Link Athlete Modal Component
-const LinkAthleteModal = ({ isOpen, onClose, tutor, atletas, onSuccess }) => {
+const LinkAthleteModal = ({ isOpen, onClose, tutor, atletas, atletaTutorRelaciones, onSuccess }) => {
     const [selectedAtleta, setSelectedAtleta] = useState('');
     const [parentesco, setParentesco] = useState('0');
     const [loading, setLoading] = useState(false);
@@ -827,11 +828,24 @@ const LinkAthleteModal = ({ isOpen, onClose, tutor, atletas, onSuccess }) => {
                 }
             }
 
-            // 2. Crear el enlace
+            // 2. Verificar si ya tiene un tutor y desvincularlo para asegurar el nuevo enlace
+            const existingRel = Array.isArray(atletaTutorRelaciones)
+                ? atletaTutorRelaciones.find(r => (r.idAtleta || r.IdAtleta) === idAtleta)
+                : null;
+
+            if (existingRel) {
+                const idRel = existingRel.idAtletaTutor || existingRel.IdAtletaTutor || existingRel.id;
+                console.log(`Borrando relación previa del atleta ${idAtleta} (idRel: ${idRel})...`);
+                if (idRel) {
+                    await api.delete(`/AtletaTutor/${idRel}`);
+                }
+            }
+
+            // 3. Crear el enlace
             const payload = {
                 idAtleta: idAtleta,
                 idTutor: tutor.idPersona,
-                parentesco: parseInt(parentesco)
+                idParentesco: parseInt(parentesco)
             };
 
             await api.post('/AtletaTutor', payload);

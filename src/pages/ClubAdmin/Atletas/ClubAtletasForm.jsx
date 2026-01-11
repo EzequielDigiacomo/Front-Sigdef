@@ -5,7 +5,7 @@ import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, UserX } from 'lucide-react';
 import { CATEGORIA_MAP, PARENTESCO_MAP } from '../../../utils/enums';
 import './ClubAtletas.css';
 
@@ -52,6 +52,7 @@ const ClubAtletasForm = () => {
         type: 'info',
         shouldNavigate: false
     });
+    const [showDejarLibreConfirm, setShowDejarLibreConfirm] = useState(false);
 
     const handleModalClose = () => {
         setModalConfig(prev => ({ ...prev, isOpen: false }));
@@ -144,6 +145,47 @@ const ClubAtletasForm = () => {
                 type: 'danger',
                 shouldNavigate: true
             });
+        }
+    };
+
+    const handleDejarLibre = async () => {
+        setLoading(true);
+        try {
+            const data = await api.get(`/Atleta/${id}`);
+            const athletePayload = {
+                IdPersona: parseInt(id),
+                IdClub: null, // Liberar al atleta
+                Categoria: data.categoria || 0,
+                BecadoEnard: data.becadoEnard,
+                BecadoSdn: data.becadoSdn,
+                MontoBeca: data.montoBeca || 0,
+                PresentoAptoMedico: data.presentoAptoMedico,
+                EstadoPago: data.estadoPago,
+                PerteneceSeleccion: data.perteneceSeleccion,
+                FechaAptoMedico: data.fechaAptoMedico
+            };
+
+            await api.put(`/Atleta/${id}`, athletePayload);
+
+            setModalConfig({
+                isOpen: true,
+                title: 'Atleta Liberado',
+                message: 'El atleta ha sido desvinculado del club y ahora figura como Agente Libre.',
+                type: 'success',
+                shouldNavigate: true
+            });
+        } catch (error) {
+            console.error('Error al dejar libre:', error);
+            setModalConfig({
+                isOpen: true,
+                title: 'Error',
+                message: 'No se pudo liberar al atleta. Intente nuevamente.',
+                type: 'danger',
+                shouldNavigate: false
+            });
+        } finally {
+            setLoading(false);
+            setShowDejarLibreConfirm(false);
         }
     };
 
@@ -488,12 +530,26 @@ const ClubAtletasForm = () => {
                         <h3 className="form-section-title">Datos Deportivos</h3>
                         <div className="form-group">
                             <label>Club</label>
-                            <input
-                                value={user.clubNombre || `Club ID: ${user.clubId}`}
-                                className="form-input"
-                                disabled
-                            />
-                            <small>El atleta se registrará automáticamente en tu club</small>
+                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                <input
+                                    value={user.clubNombre || `Club ID: ${user.clubId}`}
+                                    className="form-input"
+                                    disabled
+                                    style={{ flex: 1 }}
+                                />
+                                {id && (
+                                    <Button
+                                        type="button"
+                                        variant="danger"
+                                        size="sm"
+                                        onClick={() => setShowDejarLibreConfirm(true)}
+                                        title="Dejar Libre al Atleta"
+                                    >
+                                        <UserX size={18} /> Dejar Libre
+                                    </Button>
+                                )}
+                            </div>
+                            <small>El atleta se registrará automáticamente en tu club. Si lo dejas libre, ya no pertenecerá a ningún club.</small>
                         </div>
                         <div className="form-group">
                             <label>Categoría</label>
@@ -540,6 +596,17 @@ const ClubAtletasForm = () => {
                 confirmText={modalConfig.type === 'danger' ? 'Entendido' : 'Aceptar'}
                 showCancel={false}
                 type={modalConfig.type}
+            />
+
+            <ConfirmationModal
+                isOpen={showDejarLibreConfirm}
+                onClose={() => setShowDejarLibreConfirm(false)}
+                onConfirm={handleDejarLibre}
+                title="¿Confirmar desvinculación?"
+                message={`¿Estás seguro que deseas dejar libre a ${formData.nombre} ${formData.apellido}? Esta acción lo transformará en un Agente Libre y dejará de pertenecer a tu club.`}
+                confirmText="Sí, Dejar Libre"
+                cancelText="Cancelar"
+                type="danger"
             />
         </div>
     );

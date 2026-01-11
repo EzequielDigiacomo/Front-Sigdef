@@ -4,7 +4,7 @@ import { api } from '../../../services/api';
 import Button from '../../../components/common/Button';
 import Card from '../../../components/common/Card';
 import FormField from '../../../components/forms/FormField';
-import { Plus, Edit, Trash2, Search, Users, Target, Briefcase } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Users, Target, Briefcase, CheckCircle, AlertTriangle } from 'lucide-react';
 import { getCategoriaLabel } from '../../../utils/enums';
 import { seedDatabase } from '../../../utils/seeder';
 import './Clubes.css';
@@ -24,8 +24,13 @@ const ClubesList = () => {
             // Solo 1 petición - el backend calcula todo
             const clubesData = await api.get('/Club');
 
-            // Ordenar por ID descendente (más recientes primero)
-            const sortedClubes = (clubesData || []).sort((a, b) => (b.idClub || b.IdClub) - (a.idClub || a.IdClub));
+            // Ordenar por ID descendente y enriquecer con membresía de localStorage
+            const sortedClubes = (clubesData || [])
+                .sort((a, b) => (b.idClub || b.IdClub) - (a.idClub || a.IdClub))
+                .map(club => ({
+                    ...club,
+                    membresiaAlDia: localStorage.getItem(`club_membresia_${club.idClub || club.IdClub}`) === 'false' ? false : true
+                }));
             setClubes(sortedClubes);
         } catch (error) {
             console.error('❌ Error cargando datos:', error);
@@ -112,6 +117,9 @@ const ClubesList = () => {
                                             <h3 className="club-card-title">{club.nombre}</h3>
                                             <span className="club-card-siglas">
                                                 {club.siglas}
+                                            </span>
+                                            <span className={`badge badge-${club.membresiaAlDia ? 'success' : 'warning'}`} style={{ marginLeft: '1rem', fontSize: '0.75rem' }}>
+                                                {club.membresiaAlDia ? 'Al Día' : 'Pendiente'}
                                             </span>
                                         </div>
                                         <div className="club-card-actions">

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { NavLink, useLocation } from 'react-router-dom';
-import { LogOut, User, Menu, LayoutDashboard, Shield, Users, Award, Calendar, ClipboardList, UserCheck, DollarSign, Trophy, Lock, Briefcase } from 'lucide-react';
+import { LogOut, User, Menu, LayoutDashboard, Shield, Users, Award, Calendar, ClipboardList, UserCheck, DollarSign, Trophy, Lock, Briefcase, UserX } from 'lucide-react';
 import Button from '../common/Button';
 import ThemeToggle from '../common/ThemeToggle';
 import './Navbar.css';
@@ -15,6 +15,7 @@ const Navbar = ({ toggleSidebar }) => {
         { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
         { icon: Shield, label: 'Clubes', path: '/dashboard/clubes' },
         { icon: Users, label: 'Atletas', path: '/dashboard/atletas' },
+        { icon: UserX, label: 'Agentes Libres', path: '/dashboard/agentes-libres' },
         { icon: Award, label: 'Entrenadores Club', path: '/dashboard/entrenadores' },
         { icon: Award, label: 'Entrenadores Selección', path: '/dashboard/entrenadores-seleccion' },
         { icon: Trophy, label: 'Selecciones', path: '/dashboard/selecciones' },
