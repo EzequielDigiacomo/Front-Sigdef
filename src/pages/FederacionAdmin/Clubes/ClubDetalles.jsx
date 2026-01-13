@@ -5,6 +5,7 @@ import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import { ArrowLeft, Users, Target, Calendar, ClipboardList, Edit, Plus, CheckCircle, AlertTriangle, XCircle, Info } from 'lucide-react';
 import Modal from '../../../components/common/Modal';
+import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import AtletaDetailModal from '../Atletas/components/AtletaDetailModal';
 import { getCategoriaLabel } from '../../../utils/enums';
 
@@ -27,7 +28,18 @@ const ClubDetalles = () => {
 
     // Delegado Modal State
     const [showAddDelegadoModal, setShowAddDelegadoModal] = useState(false);
-    const [availableDelegados, setAvailableDelegados] = useState([]);
+    const [updatingBulk, setUpdatingBulk] = useState(false);
+    const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
+
+    const [bulkModalConfig, setBulkModalConfig] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'success',
+        onConfirm: null,
+        showCancel: true,
+        confirmText: 'Confirmar'
+    });
 
     // Confirmation & Feedback States
     const [confirmModalState, setConfirmModalState] = useState({
@@ -87,6 +99,83 @@ const ClubDetalles = () => {
             }));
         } catch (error) {
             console.error('Error actualizando membresía:', error);
+        }
+    };
+
+    const handleMarkAllPaid = async () => {
+        if (!atletas || atletas.length === 0) {
+            setBulkModalConfig({
+                isOpen: true,
+                title: 'Atención',
+                message: 'No hay atletas en este club para actualizar.',
+                type: 'info',
+                showCancel: false,
+                confirmText: 'Cerrar',
+                onConfirm: () => setBulkModalConfig(prev => ({ ...prev, isOpen: false }))
+            });
+            return;
+        }
+
+        setBulkModalConfig({
+            isOpen: true,
+            title: '¿Confirmar Pago Masivo?',
+            message: `Vas a marcar a los ${atletas.length} atletas de este club como 'PAGADO'. ¿Deseas continuar?`,
+            type: 'success',
+            confirmText: 'Sí, Marcar Pagados',
+            onConfirm: () => {
+                setBulkModalConfig(prev => ({ ...prev, isOpen: false }));
+                executeBulkMarkPaid();
+            }
+        });
+    };
+
+    const executeBulkMarkPaid = async () => {
+        setUpdatingBulk(true);
+        setBulkProgress({ current: 0, total: atletas.length });
+
+        try {
+            for (let i = 0; i < atletas.length; i++) {
+                const atleta = atletas[i];
+                const idAtleta = atleta.idPersona || atleta.IdPersona;
+
+                try {
+                    const fullAtleta = await api.get(`/Atleta/${idAtleta}`);
+                    const payload = {
+                        ...fullAtleta,
+                        estadoPago: 1 // Pagado
+                    };
+                    await api.put(`/Atleta/${idAtleta}`, payload);
+                } catch (err) {
+                    console.error(`Error actualizando atleta ${idAtleta}:`, err);
+                }
+
+                setBulkProgress(prev => ({ ...prev, current: i + 1 }));
+            }
+
+            setBulkModalConfig({
+                isOpen: true,
+                title: '¡Operación Exitosa!',
+                message: 'Todos los atletas de este club han sido marcados como pagados.',
+                type: 'success',
+                showCancel: false,
+                confirmText: 'Entendido',
+                onConfirm: () => setBulkModalConfig(prev => ({ ...prev, isOpen: false }))
+            });
+            loadClubDetalles();
+        } catch (error) {
+            console.error('Error en la actualización masiva:', error);
+            setBulkModalConfig({
+                isOpen: true,
+                title: 'Error',
+                message: 'Hubo un error al procesar la actualización masiva.',
+                type: 'danger',
+                showCancel: false,
+                confirmText: 'Cerrar',
+                onConfirm: () => setBulkModalConfig(prev => ({ ...prev, isOpen: false }))
+            });
+        } finally {
+            setUpdatingBulk(false);
+            setBulkProgress({ current: 0, total: 0 });
         }
     };
 
@@ -187,10 +276,9 @@ const ClubDetalles = () => {
                             )}
                             {club.membresiaAlDia && (
                                 <Button
-                                    variant="ghost"
+                                    variant="warning"
                                     size="sm"
                                     onClick={() => handleUpdateMembresia(false)}
-                                    style={{ color: 'var(--text-secondary)' }}
                                 >
                                     <XCircle size={16} className="mr-2" /> Marcar como Pendiente
                                 </Button>
@@ -464,7 +552,7 @@ const ClubDetalles = () => {
                             <Users size={20} />
                             Atletas ({atletasClub.length})
                         </h3>
-                        <div style={{ display: 'flex', gap: '1rem' }}>
+                        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
                             <Button
                                 variant="primary"
                                 size="sm"
@@ -499,6 +587,7 @@ const ClubDetalles = () => {
                                                 // En este contexto asumimos que viene o el endpoint /Atleta devolvió DTOs completos
                                                 // Si falta info, podríamos buscar Persona, pero sería muy lento para TODOS.
                                                 // Asumimos que el DTO de lista trae info básica.
+                                                // (Sigue el código previo...)
                                             }
                                             return {
                                                 ...a,
@@ -515,7 +604,32 @@ const ClubDetalles = () => {
                             >
                                 <Users size={16} className="mr-2" /> Agregar Existente
                             </Button>
+                            <Button
+                                variant="success"
+                                size="sm"
+                                onClick={handleMarkAllPaid}
+                                isLoading={updatingBulk}
+                                disabled={updatingBulk}
+                            >
+                                <CheckCircle size={16} className="mr-2" /> Marcar Atletas Pagados
+                            </Button>
                         </div>
+                        {updatingBulk && (
+                            <div style={{ width: '100%', maxWidth: '400px', marginTop: '0.5rem' }}>
+                                <div style={{ fontSize: '0.8rem', marginBottom: '0.2rem', display: 'flex', justifyContent: 'space-between' }}>
+                                    <span>Actualizando atletas...</span>
+                                    <span>{bulkProgress.current} / {bulkProgress.total}</span>
+                                </div>
+                                <div style={{ width: '100%', height: '4px', backgroundColor: 'var(--border-color)', borderRadius: '2px', overflow: 'hidden' }}>
+                                    <div style={{
+                                        width: `${(bulkProgress.current / bulkProgress.total) * 100}%`,
+                                        height: '100%',
+                                        backgroundColor: 'var(--success)',
+                                        transition: 'width 0.2s ease'
+                                    }}></div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                     {atletasClub.length > 0 ? (
                         <div className="table-responsive">
@@ -976,7 +1090,19 @@ const ClubDetalles = () => {
                     returnPath={`/dashboard/clubes/detalles/${id}`}
                 />
             )}
-        </div >
+
+            <ConfirmationModal
+                isOpen={bulkModalConfig.isOpen}
+                onClose={() => !updatingBulk && setBulkModalConfig(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={bulkModalConfig.onConfirm}
+                title={bulkModalConfig.title}
+                message={bulkModalConfig.message}
+                type={bulkModalConfig.type}
+                confirmText={bulkModalConfig.confirmText}
+                showCancel={bulkModalConfig.showCancel}
+                isLoading={updatingBulk}
+            />
+        </div>
     );
 };
 

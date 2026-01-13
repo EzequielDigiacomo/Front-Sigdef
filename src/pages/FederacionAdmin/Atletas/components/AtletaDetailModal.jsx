@@ -12,6 +12,7 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
     const [tutorInfo, setTutorInfo] = useState(athlete?.tutorInfo || null);
     const [loadingTutor, setLoadingTutor] = useState(false);
     const [showAssignTutorModal, setShowAssignTutorModal] = useState(false);
+    const [updatingPago, setUpdatingPago] = useState(false);
 
     // Fetch tutor info if not provided and athlete is minor
     useEffect(() => {
@@ -52,6 +53,28 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
     const handleAssignSuccess = () => {
         fetchTutorInfo();
         if (onRefresh) onRefresh();
+    };
+
+    const handleUpdatePago = async (nuevoEstado) => {
+        setUpdatingPago(true);
+        try {
+            // Obtener el atleta completo para no perder datos en el PUT
+            const fullAtleta = await api.get(`/Atleta/${athlete.idPersona}`);
+
+            const payload = {
+                ...fullAtleta,
+                estadoPago: parseInt(nuevoEstado)
+            };
+
+            await api.put(`/Atleta/${athlete.idPersona}`, payload);
+
+            if (onRefresh) onRefresh();
+        } catch (error) {
+            console.error('Error actualizando estado de pago:', error);
+            alert('Error al actualizar el estado de pago');
+        } finally {
+            setUpdatingPago(false);
+        }
     };
 
     return (
@@ -154,12 +177,28 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
                         </div>
                     </div>
 
-                    <div>
+                    <div style={{ textAlign: 'center' }}>
                         <label className="detail-label">Estado de Pago</label>
-                        <div>
-                            <span className={`badge badge-${getEstadoPagoColor(athlete.estadoPago)}`}>
-                                {getEstadoPagoLabel(athlete.estadoPago)}
-                            </span>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                            <select
+                                className="form-input"
+                                style={{
+                                    padding: '0.25rem 0.5rem',
+                                    fontSize: '0.875rem',
+                                    width: 'auto',
+                                    backgroundColor: `var(--bg-secondary)`,
+                                    border: `1px solid var(--border-color)`
+                                }}
+                                value={athlete.estadoPago}
+                                onChange={(e) => handleUpdatePago(e.target.value)}
+                                disabled={updatingPago}
+                            >
+                                <option value={0}>Pendiente</option>
+                                <option value={1}>Pagado</option>
+                                <option value={2}>Vencido</option>
+                                <option value={3}>Parcial</option>
+                            </select>
+                            {updatingPago && <span className="spinner" style={{ width: '1rem', height: '1rem' }}></span>}
                         </div>
                     </div>
 

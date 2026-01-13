@@ -55,6 +55,26 @@
     background-color: rgba(255, 255, 255, 0.05);
 }
 
+.btn-success {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.btn-success:hover:not(:disabled) {
+    background-color: rgba(16, 185, 129, 0.2);
+}
+
+.btn-warning {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.btn-warning:hover:not(:disabled) {
+    background-color: rgba(245, 158, 11, 0.2);
+}
+
 .btn-sm {
     padding: 0.25rem 0.75rem;
     font-size: 0.875rem;

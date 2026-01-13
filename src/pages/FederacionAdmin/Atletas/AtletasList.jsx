@@ -7,7 +7,7 @@ import FormField from '../../../components/forms/FormField';
 import Pagination from '../../../components/common/Pagination';
 import DocumentUploadModal from '../../../components/common/DocumentUploadModal';
 import DocumentViewerModal from '../../../components/common/DocumentViewerModal';
-import { Plus, Edit, Trash2, Search, FileText, Eye } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, FileText, Eye, ChevronUp, ChevronDown } from 'lucide-react';
 import { getCategoriaLabel, getEstadoPagoLabel, getEstadoPagoColor } from '../../../utils/enums';
 import './Atletas.css';
 import Modal from '../../../components/common/Modal';
@@ -32,6 +32,7 @@ const AtletasList = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(6);
+    const [sortConfig, setSortConfig] = useState({ key: 'idPersona', direction: 'desc' });
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -151,6 +152,19 @@ const AtletasList = () => {
         setSelectedAtleta(null);
     };
 
+    const requestSort = (key) => {
+        let direction = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const getSortIcon = (key) => {
+        if (sortConfig.key !== key) return null;
+        return sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />;
+    };
+
     const exportToExcel = () => {
         const dataToExport = currentAtletas.map(atleta => ({
             'Nombre Completo': atleta.nombrePersona,
@@ -183,11 +197,37 @@ const AtletasList = () => {
         );
     });
 
+    // Ordenar atletas
+    const sortedAtletas = [...filteredAtletas].sort((a, b) => {
+        const { key, direction } = sortConfig;
+
+        let valA = a[key];
+        let valB = b[key];
+
+        // Manejo especial para strings (ignorar mayúsculas)
+        if (typeof valA === 'string') {
+            valA = valA.toLowerCase();
+            valB = (valB || '').toLowerCase();
+        }
+
+        // Manejo de valores nulos
+        if (valA === null || valA === undefined) return 1;
+        if (valB === null || valB === undefined) return -1;
+
+        if (valA < valB) {
+            return direction === 'asc' ? -1 : 1;
+        }
+        if (valA > valB) {
+            return direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+    });
+
     // Paginación
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentAtletas = filteredAtletas.slice(indexOfFirstItem, indexOfLastItem);
-    const totalPages = Math.ceil(filteredAtletas.length / itemsPerPage);
+    const currentAtletas = sortedAtletas.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(sortedAtletas.length / itemsPerPage);
 
     const handlePageChange = (pageNumber) => {
         setCurrentPage(pageNumber);
@@ -218,10 +258,22 @@ const AtletasList = () => {
                     <table className="data-table">
                         <thead>
                             <tr>
-                                <th>Nombre Completo</th>
+                                <th onClick={() => requestSort('nombrePersona')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        Nombre Completo {getSortIcon('nombrePersona')}
+                                    </div>
+                                </th>
                                 <th>DNI</th>
-                                <th>Edad</th>
-                                <th>Club</th>
+                                <th onClick={() => requestSort('edad')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        Edad {getSortIcon('edad')}
+                                    </div>
+                                </th>
+                                <th onClick={() => requestSort('nombreClub')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        Club {getSortIcon('nombreClub')}
+                                    </div>
+                                </th>
                                 <th>Categoría</th>
                                 <th>Fecha Alta</th>
                                 <th>Tutor</th>
@@ -283,7 +335,9 @@ const AtletasList = () => {
                                             )}
                                         </td>
                                         <td className="text-center">
-                                            -
+                                            <span className={`badge badge-${getEstadoPagoColor(atleta.estadoPago)}`}>
+                                                {getEstadoPagoLabel(atleta.estadoPago)}
+                                            </span>
                                         </td>
                                         <td>
                                             <div className="flex items-center justify-center gap-2">
