@@ -43,7 +43,11 @@ const Login = () => {
             <div className={`login-card glass-panel ${isNative ? 'mobile-card' : ''}`}>
                 <div className="login-header">
                     <div className="login-logo">
-                        {isNative ? <Smartphone size={40} color="#1e293b" /> : <Shield size={32} color="var(--primary)" />}
+                        <img 
+                            src={isNative ? "/logo_icon.png" : "/logo_full.png"} 
+                            alt="Logo" 
+                            className={isNative ? "mobile-logo-img" : "web-logo-img"} 
+                        />
                     </div>
                     <h2 className="text-gradient">{isNative ? 'SIGDEF Mobile' : 'Bienvenido a SIGDEF'}</h2>
                     <p className="login-subtitle">

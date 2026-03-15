@@ -293,6 +293,7 @@ const TutoresList = () => {
                                     actions={
                                         <div className="flex gap-2">
                                             <Button variant="ghost" size="sm" icon={Edit} onClick={(e) => { e.stopPropagation(); navigate(`/tutores/${tutor.idPersona}/edit`); }} />
+                                            <Button variant="ghost" size="sm" icon={Plus} onClick={(e) => { e.stopPropagation(); setSelectedTutorForDocs(tutor); loadDocuments(tutor.idPersona); setShowUploadModal(true); }} />
                                             <Button variant="ghost" size="sm" icon={Eye} onClick={(e) => { e.stopPropagation(); setSelectedTutorForDocs(tutor); setShowViewerModal(true); }} />
                                         </div>
                                     }

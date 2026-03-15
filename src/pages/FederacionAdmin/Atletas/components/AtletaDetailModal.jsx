@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Edit, Plus, FileText, XCircle } from 'lucide-react';
+import { Edit, Plus, FileText, XCircle, Eye } from 'lucide-react';
 import { api } from '../../../../services/api';
 import Modal from '../../../../components/common/Modal';
 import Button from '../../../../components/common/Button';
 import ConfirmationModal from '../../../../components/common/ConfirmationModal';
+import DocumentUploadModal from '../../../../components/common/DocumentUploadModal';
+import DocumentViewerModal from '../../../../components/common/DocumentViewerModal';
 import { getCategoriaLabel, getEstadoPagoLabel, getEstadoPagoColor } from '../../../../utils/enums';
 import AssignTutorModal from './AssignTutorModal';
 
@@ -13,6 +15,11 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
     const [tutores, setTutores] = useState([]);
     const [loadingTutor, setLoadingTutor] = useState(false);
     const [showAssignTutorModal, setShowAssignTutorModal] = useState(false);
+    
+    // Documentation State
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [showViewerModal, setShowViewerModal] = useState(false);
+    const [existingDocuments, setExistingDocuments] = useState([]);
     
     // Confirmation Modal States
     const [confirmModal, setConfirmModal] = useState({
@@ -126,6 +133,15 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
                 showCancel: false,
                 onConfirm: () => setConfirmModal(prev => ({ ...prev, isOpen: false }))
             });
+        }
+    };
+
+    const loadDocuments = async () => {
+        try {
+            const docs = await api.get(`/Documentacion/persona/${athlete.idPersona}`);
+            setExistingDocuments(docs || []);
+        } catch (error) {
+            console.error('Error cargando documentos:', error);
         }
     };
 
@@ -302,8 +318,61 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
                             </div>
                         </div>
                     )}
+
+                    <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem' }}>
+                        <label className="detail-label" style={{ fontSize: '0.7rem', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <FileText size={14} /> Documentación del Atleta
+                        </label>
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                icon={Eye}
+                                onClick={() => setShowViewerModal(true)}
+                                style={{ flex: 1, fontSize: '0.75rem' }}
+                            >
+                                Ver / Gestionar
+                            </Button>
+                            <Button
+                                variant="primary"
+                                size="sm"
+                                icon={Plus}
+                                onClick={() => {
+                                    loadDocuments();
+                                    setShowUploadModal(true);
+                                }}
+                                style={{ flex: 1, fontSize: '0.75rem' }}
+                            >
+                                Subir Nueva
+                            </Button>
+                        </div>
+                    </div>
                 </div>
             </Modal>
+
+            {/* Modales de Documentación */}
+            {showUploadModal && (
+                <DocumentUploadModal
+                    isOpen={showUploadModal}
+                    onClose={() => setShowUploadModal(false)}
+                    onSuccess={() => {
+                        if (onRefresh) onRefresh();
+                        loadDocuments();
+                    }}
+                    personName={athlete.nombrePersona || `${athlete.nombre} ${athlete.apellido}`}
+                    personId={athlete.idPersona}
+                    existingDocuments={existingDocuments}
+                />
+            )}
+
+            {showViewerModal && (
+                <DocumentViewerModal
+                    isOpen={showViewerModal}
+                    onClose={() => setShowViewerModal(false)}
+                    personName={athlete.nombrePersona || `${athlete.nombre} ${athlete.apellido}`}
+                    personId={athlete.idPersona}
+                />
+            )}
 
             {showAssignTutorModal && (
                 <AssignTutorModal

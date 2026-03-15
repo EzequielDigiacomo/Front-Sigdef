@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { api } from '../../../services/api';
 import { useNavigate } from 'react-router-dom';
-import { Users, Plus, Search, Edit, Trash2, Phone, Mail, MapPin, User, Calendar, Award, DollarSign } from 'lucide-react';
+import { Users, Plus, Search, Edit, Trash2, Phone, Mail, MapPin, User, Calendar, Award, DollarSign, Eye, FileText } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import Button from '../../../components/common/Button';
 import Card from '../../../components/common/Card';
@@ -12,6 +12,8 @@ import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import DataTable from '../../../components/common/DataTable';
 import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
+import DocumentUploadModal from '../../../components/common/DocumentUploadModal';
+import DocumentViewerModal from '../../../components/common/DocumentViewerModal';
 import { getEstadoPagoLabel, getEstadoPagoColor, getCategoriaLabel, CATEGORIA_MAP, PARENTESCO_MAP } from '../../../utils/enums';
 import { getCategoryByAge } from '../../../utils/categoryConfig';
 import './ClubAtletas.css';
@@ -31,6 +33,11 @@ const ClubAtletas = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [atletaToDelete, setAtletaToDelete] = useState(null);
     const [feedbackModal, setFeedbackModal] = useState({ isOpen: false, title: '', message: '', type: 'info' });
+
+    // Documentation State
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [showViewerModal, setShowViewerModal] = useState(false);
+    const [selectedAtletaForDocs, setSelectedAtletaForDocs] = useState(null);
 
     // Payment State
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -391,6 +398,36 @@ const ClubAtletas = () => {
                         </div>
 
                         <div className="detail-section">
+                            <h4><FileText size={18} /> Documentación</h4>
+                            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    icon={Eye}
+                                    onClick={() => {
+                                        setSelectedAtletaForDocs(atletaDetails);
+                                        setShowViewerModal(true);
+                                    }}
+                                    style={{ flex: 1 }}
+                                >
+                                    Ver Documentos
+                                </Button>
+                                <Button
+                                    variant="primary"
+                                    size="sm"
+                                    icon={Plus}
+                                    onClick={() => {
+                                        setSelectedAtletaForDocs(atletaDetails);
+                                        setShowUploadModal(true);
+                                    }}
+                                    style={{ flex: 1 }}
+                                >
+                                    Subir Nuevo
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div className="detail-section">
                             <h4 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span><Users size={18} /> Tutor</span>
                                 {atletaDetails.tutor && (
@@ -561,6 +598,35 @@ const ClubAtletas = () => {
                 showCancel={false}
                 type={feedbackModal.type || 'info'}
             />
+
+            {/* Modales de Documentación */}
+            {showUploadModal && selectedAtletaForDocs && (
+                <DocumentUploadModal
+                    isOpen={showUploadModal}
+                    onClose={() => {
+                        setShowUploadModal(false);
+                        setSelectedAtletaForDocs(null);
+                    }}
+                    onSuccess={() => {
+                        const clubId = user?.IdClub || user?.idClub || user?.club?.id;
+                        if (clubId) fetchAtletas(clubId);
+                    }}
+                    personName={selectedAtletaForDocs.nombrePersona}
+                    personId={selectedAtletaForDocs.idPersona}
+                />
+            )}
+
+            {showViewerModal && selectedAtletaForDocs && (
+                <DocumentViewerModal
+                    isOpen={showViewerModal}
+                    onClose={() => {
+                        setShowViewerModal(false);
+                        setSelectedAtletaForDocs(null);
+                    }}
+                    personName={selectedAtletaForDocs.nombrePersona}
+                    personId={selectedAtletaForDocs.idPersona}
+                />
+            )}
         </div >
     );
 };

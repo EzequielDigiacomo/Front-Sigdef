@@ -39,6 +39,17 @@
     margin-right: 0.5rem;
 }
 
+.brand-logo-img {
+    height: 45px;
+    width: auto;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+}
+
+.brand-logo-img:hover {
+    transform: scale(1.05);
+}
+
 .menu-toggle {
     display: none;
     background: none;

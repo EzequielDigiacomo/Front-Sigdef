@@ -36,7 +36,7 @@ const Navbar = ({ toggleSidebar, hideSidebarToggle }) => {
                         <Menu size={24} color="var(--text-secondary)" />
                     </button>
                 )}
-                <h1 className="brand-logo text-gradient">SIGDEF</h1>
+                <img src="/logo_full.png" alt="SIGDEF Logo" className="brand-logo-img" />
             </div>
 
             <div className="navbar-center desktop-only">

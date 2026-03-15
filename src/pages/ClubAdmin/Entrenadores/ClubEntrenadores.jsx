@@ -127,12 +127,13 @@ const ClubEntrenadores = () => {
                                     { label: 'DNI', value: entrenador.documento || '-' },
                                     { label: 'Tel', value: entrenador.telefono || '-' }
                                 ]}
-                                actions={
-                                    <div className="flex gap-2">
-                                        <Button variant="ghost" size="sm" icon={Edit} onClick={() => navigate(`/club/entrenadores/editar/${entrenador.idPersona}`)} />
-                                        <Button variant="ghost" size="sm" icon={Eye} onClick={() => { setSelectedEntrenadorForDocs(entrenador); setShowViewerModal(true); }} />
-                                    </div>
-                                }
+                                    actions={
+                                        <div className="flex gap-2">
+                                            <Button variant="ghost" size="sm" icon={Edit} onClick={() => navigate(`/club/entrenadores/editar/${entrenador.idPersona}`)} />
+                                            <Button variant="ghost" size="sm" icon={Plus} onClick={() => { setSelectedEntrenadorForDocs(entrenador); loadDocuments(entrenador.idPersona); setShowUploadModal(true); }} />
+                                            <Button variant="ghost" size="sm" icon={Eye} onClick={() => { setSelectedEntrenadorForDocs(entrenador); setShowViewerModal(true); }} />
+                                        </div>
+                                    }
                             />
                         ))
                     )}

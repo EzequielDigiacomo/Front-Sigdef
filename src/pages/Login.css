@@ -34,11 +34,21 @@
 .login-logo {
     margin-bottom: 0.5rem;
     display: inline-flex;
-    padding: 0.5rem;
-    background: #f3f4f6;
-    border-radius: 50%;
-    border: 1px solid #e5e7eb;
+    padding: 0.25rem;
+    border-radius: 0.5rem;
     color: #4b5563;
+}
+
+.web-logo-img {
+    height: 100px;
+    width: auto;
+    object-fit: contain;
+}
+
+.mobile-logo-img {
+    height: 120px;
+    width: auto;
+    object-fit: contain;
 }
 
 .login-header h2 {
@@ -159,14 +169,16 @@ button[type="submit"]:hover {
     background: #0f172a; /* Fondo oscuro (slate-900) */
     padding: 0;
     align-items: flex-end;
+    height: 100vh;
+    overflow: hidden; /* Evita scroll global */
 }
 
 .login-card.mobile-card {
     max-width: none;
     width: 100%;
-    min-height: 85vh; /* Ocupa el 85% de la pantalla */
+    min-height: 80vh; /* Ajustado para evitar scroll innecesario */
     margin: 0;
-    padding: 3rem 1.5rem;
+    padding: 2rem 1.5rem; /* Reducido un poco el padding superior */
     border-radius: 2.5rem 2.5rem 0 0;
     box-shadow: 0 -10px 25px rgba(0,0,0,0.2);
     background: #ffffff;
@@ -174,6 +186,7 @@ button[type="submit"]:hover {
     animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     display: flex;
     flex-direction: column;
+    overflow: hidden; /* Asegura que el contenido se ajuste */
 }
 
 @keyframes slideUp {
@@ -187,10 +200,10 @@ button[type="submit"]:hover {
 }
 
 .is-native .login-logo {
-    background: var(--bg-secondary);
-    padding: 1rem;
-    transform: scale(1.2);
-    margin-bottom: 1.5rem;
+    background: transparent;
+    padding: 0;
+    border: none;
+    margin-bottom: 1rem; /* Reducido para ganar espacio vertical */
 }
 
 .is-native .form-input {

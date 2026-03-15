@@ -300,14 +300,39 @@ const AtletasList = () => {
                                     )}
                                 ]}
                                 actions={
-                                    <>
+                                    <div className="flex gap-2">
                                         <Button variant="ghost" size="sm" onClick={(e) => {
                                             e.stopPropagation();
                                             navigate(`/dashboard/atletas/editar/${atleta.idPersona}`);
                                         }}>
                                             <Edit size={18} />
                                         </Button>
-                                    </>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            title="Subir documentos"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedAthleteForUpload(atleta);
+                                                loadDocuments(atleta.idPersona);
+                                                setShowUploadModal(true);
+                                            }}
+                                        >
+                                            <Plus size={18} className="text-primary" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            title="Ver documentos"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedAthleteForViewer(atleta);
+                                                setShowViewerModal(true);
+                                            }}
+                                        >
+                                            <Eye size={18} className="text-primary" />
+                                        </Button>
+                                    </div>
                                 }
                                 onClick={() => handleRowClick(atleta)}
                             />
