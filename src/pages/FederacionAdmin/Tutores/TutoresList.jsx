@@ -6,13 +6,17 @@ import Button from '../../../components/common/Button';
 import FormField from '../../../components/forms/FormField';
 import DocumentUploadModal from '../../../components/common/DocumentUploadModal';
 import DocumentViewerModal from '../../../components/common/DocumentViewerModal';
-import { Plus, Edit, Trash2, Search, UserCheck, Eye, UserPlus, FileText } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, UserCheck, Eye, UserPlus, FileText, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { useSort } from '../../../hooks/useSort';
 import Modal from '../../../components/common/Modal';
 import * as XLSX from 'xlsx';
+import { useDevice } from '../../../hooks/useDevice';
+import MobileCard from '../../../components/common/MobileCard';
 import '../Atletas/Atletas.css';
 import { PARENTESCO_MAP } from '../../../utils/enums';
 
 const TutoresList = () => {
+    const { isNative } = useDevice();
     const [tutores, setTutores] = useState([]);
     const [atletas, setAtletas] = useState([]);
     const [atletaTutorRelaciones, setAtletaTutorRelaciones] = useState([]);
@@ -41,45 +45,32 @@ const TutoresList = () => {
 
     const loadPersonasDisponibles = async () => {
         try {
-            // Traemos Personas y Tutores actuales para filtrar
             const [personasData, tutoresData] = await Promise.all([
                 api.get('/Persona'),
                 api.get('/Tutor')
             ]);
-
             const tutorPersonaIds = new Set(tutoresData.map(t => t.idPersona));
-
             const disponibles = personasData.filter(p => {
-                // Excluir si ya es tutor
                 if (tutorPersonaIds.has(p.idPersona)) return false;
-
-                // Calcular edad (Filtrar solo mayores de 18)
                 if (!p.fechaNacimiento) return false;
                 const nacimiento = new Date(p.fechaNacimiento);
                 const hoy = new Date();
                 let edad = hoy.getFullYear() - nacimiento.getFullYear();
                 const mes = hoy.getMonth() - nacimiento.getMonth();
                 if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) edad--;
-
                 return edad >= 18;
             });
-
             setPersonasDisponibles(disponibles);
         } catch (err) {
             console.error('Error cargando personas disponibles:', err);
         }
     };
 
-    // Confirm Add Existing Tutor Modal State
     const [showConfirmAddModal, setShowConfirmAddModal] = useState(false);
     const [selectedPersonToAdd, setSelectedPersonToAdd] = useState(null);
     const [selectedTutorType, setSelectedTutorType] = useState('0');
-
-    // Confirm Delete Modal State
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [tutorToDelete, setTutorToDelete] = useState(null);
-
-    // Success Modal State
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
 
@@ -99,7 +90,6 @@ const TutoresList = () => {
             setShowConfirmAddModal(false);
             setShowAddExistingModal(false);
             loadTutores();
-
             setSuccessMessage('Tutor vinculado exitosamente.');
             setShowSuccessModal(true);
         } catch (err) {
@@ -116,39 +106,22 @@ const TutoresList = () => {
     const confirmDelete = async () => {
         if (!tutorToDelete) return;
         try {
-            // 1. Buscar y eliminar relaciones Atleta-Tutor existentes
             const relaciones = atletaTutorRelaciones.filter(r => r.idTutor === tutorToDelete.idPersona);
-
             if (relaciones.length > 0) {
-                console.log(`Eliminando ${relaciones.length} relaciones de atletas para el tutor...`, relaciones);
-
                 await Promise.all(relaciones.map(async r => {
                     const idRelacion = r.id || r.idAtletaTutor;
-
                     try {
-                        if (idRelacion) {
-                            await api.delete(`/AtletaTutor/${idRelacion}`);
-                        } else {
-                            // Sin ID simple, intentar borrado por claves compuestas
-                            await api.delete(`/AtletaTutor/${r.idAtleta}/${r.idTutor}`);
-                        }
+                        if (idRelacion) await api.delete(`/AtletaTutor/${idRelacion}`);
+                        else await api.delete(`/AtletaTutor/${r.idAtleta}/${r.idTutor}`);
                     } catch (err) {
                         console.warn('Fallo al borrar relación, intentando estrategia alternativa...', err);
-                        // Si falló con ID simple (ej 404), intentar compuesto como fallback
                         if (idRelacion && err.response?.status === 404) {
                             await api.delete(`/AtletaTutor/${r.idAtleta}/${r.idTutor}`);
-                        } else {
-                            // Si falla esto tambien, lo dejamos pasar y que falle el delete del Tutor si es constraint
-                            // O lanzamos error si queremos ser estrictos. 
-                            // Lo dejamos pasar para ver si el backend tiene OnDelete Cascade
                         }
                     }
                 }));
             }
-
-            // 2. Eliminar el Tutor
             await api.delete(`/Tutor/${tutorToDelete.idPersona}`);
-
             setShowDeleteModal(false);
             setTutorToDelete(null);
             loadTutores();
@@ -156,23 +129,12 @@ const TutoresList = () => {
             setShowSuccessModal(true);
         } catch (error) {
             console.error('Error eliminando tutor:', error);
-            const status = error.response?.status;
-            let msg = error.response?.data?.message || error.response?.data?.title || error.message;
-
-            if (status === 404) {
-                msg = "No se encontró el recurso a eliminar. Verifica que la relación o el tutor existan.";
-            } else if (status === 409 || status === 500) {
-                msg = "Conflicto de dependencia: No se pudo desvincular a los atletas asociados.";
-            }
-
-            alert(`Error al eliminar: ${msg}`);
+            alert('Error al eliminar tutor.');
         }
     };
 
     useEffect(() => {
-        if (showAddExistingModal) {
-            loadPersonasDisponibles();
-        }
+        if (showAddExistingModal) loadPersonasDisponibles();
     }, [showAddExistingModal]);
 
     useEffect(() => {
@@ -182,27 +144,29 @@ const TutoresList = () => {
     const loadTutores = async () => {
         try {
             setLoading(true);
-
-            // Eliminamos /Persona para evitar el crash del backend por circularidad profunda
-            const [tutoresRes, relacionesRes, atletasRes, clubesRes] = await Promise.all([
+            const [tutoresRes, relacionesRes, atletasRes, clubesRes, personasRes] = await Promise.all([
                 api.get('/Tutor').catch(() => []),
                 api.get('/AtletaTutor').catch(() => []),
                 api.get('/Atleta').catch(() => []),
-                api.get('/Club').catch(() => [])
+                api.get('/Club').catch(() => []),
+                api.get('/Persona').catch(() => [])
             ]);
-
+            
+            const personasMap = new Map((personasRes || []).map(p => [p.idPersona, p]));
             const clubesMap = new Map((clubesRes || []).map(c => [c.idClub || c.IdClub, c]));
 
             const atletasEnriquecidos = (atletasRes || []).map(atleta => {
                 const club = clubesMap.get(atleta.idClub || atleta.IdClub);
+                const persona = personasMap.get(atleta.idPersona || atleta.IdPersona);
+                
                 return {
                     ...atleta,
-                    documento: atleta.documento || atleta.Documento || '-',
-                    nombrePersona: atleta.nombrePersona || atleta.NombrePersona || 'Atleta',
+                    documento: persona ? persona.documento : (atleta.documento || atleta.Documento || '-'),
+                    nombrePersona: persona ? `${persona.nombre} ${persona.apellido}` : (atleta.nombrePersona || atleta.NombrePersona || 'Atleta'),
+                    fechaNacimiento: persona ? persona.fechaNacimiento : null,
                     nombreClub: club ? (club.nombre || club.Nombre) : (atleta.nombreClub || atleta.NombreClub || 'Agente Libre')
                 };
             });
-
             const tutoresEnriquecidos = (tutoresRes || []).map(tutor => {
                 return {
                     ...tutor,
@@ -212,7 +176,6 @@ const TutoresList = () => {
                     nombrePersona: tutor.nombrePersona || tutor.NombrePersona || 'Tutor'
                 };
             });
-
             setTutores(tutoresEnriquecidos);
             setAtletas(atletasEnriquecidos);
             setAtletaTutorRelaciones(relacionesRes);
@@ -223,30 +186,21 @@ const TutoresList = () => {
         }
     };
 
-
-
     const loadDocuments = async (personId) => {
         try {
             const docs = await api.get(`/Documentacion/persona/${personId}`);
             setExistingDocuments(docs || []);
         } catch (error) {
             console.error('Error cargando documentos:', error);
-            setExistingDocuments([]);
         }
     };
 
     const getAtletasRepresentados = (idTutor) => {
-        // Filtrar relaciones para este tutor
         const relacionesDelTutor = atletaTutorRelaciones.filter(rel => rel.idTutor === idTutor);
-
-        // Obtener los IDs de los atletas
         const atletasIds = relacionesDelTutor.map(rel => rel.idAtleta);
-
-        // Filtrar y retornar los atletas completos
         return atletas.filter(atleta => atletasIds.includes(atleta.idPersona));
     };
 
-    // Filtrar tutores por término de búsqueda
     const tutoresFiltrados = tutores.filter(tutor => {
         if (!searchTerm) return true;
         const search = searchTerm.toLowerCase();
@@ -254,18 +208,16 @@ const TutoresList = () => {
             tutor.nombrePersona?.toLowerCase().includes(search) ||
             tutor.documento?.toLowerCase().includes(search) ||
             tutor.telefono?.toLowerCase().includes(search) ||
-            tutor.email?.toLowerCase().includes(search) ||
-            tutor.persona?.nombre?.toLowerCase().includes(search) ||
-            tutor.persona?.apellido?.toLowerCase().includes(search)
+            tutor.email?.toLowerCase().includes(search)
         );
     });
+
+    const { items: sortedTutores, requestSort, sortConfig } = useSort(tutoresFiltrados);
 
     const exportTutorToExcel = (tutor) => {
         if (!tutor) return;
         try {
             const atletasRepresentados = getAtletasRepresentados(tutor.idPersona);
-
-            // Estructura de la ficha
             const rows = [
                 ['SISTEMA SIGDEF - FICHA DE TUTOR'],
                 [''],
@@ -278,177 +230,153 @@ const TutoresList = () => {
                 ['ATLETAS REPRESENTADOS'],
                 ['Nombre del Atleta', 'DNI / Documento', 'Club / Entidad']
             ];
-
-            if (atletasRepresentados.length > 0) {
-                atletasRepresentados.forEach(atleta => {
-                    rows.push([
-                        atleta.nombrePersona || 'Sin Nombre',
-                        atleta.documento || '-',
-                        atleta.nombreClub || 'Agente Libre'
-                    ]);
-                });
-            } else {
-                rows.push(['No tiene atletas vinculados', '', '']);
-            }
-
+            atletasRepresentados.forEach(atleta => {
+                rows.push([atleta.nombrePersona, atleta.documento, atleta.nombreClub]);
+            });
             const ws = XLSX.utils.aoa_to_sheet(rows);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Ficha");
-
-            // Generar el archivo como un array de bytes (Uint8Array)
-            const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-            const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-
-            // Crear el link de descarga manualmente para evitar que Browser Link interfiera
-            const url = window.URL.createObjectURL(data);
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `Ficha_Tutor_${tutor.documento || 'Detalle'}.xlsx`);
-            document.body.appendChild(link);
-            link.click();
-
-            // Limpieza
-            setTimeout(() => {
-                document.body.removeChild(link);
-                window.URL.revokeObjectURL(url);
-            }, 100);
-
+            XLSX.writeFile(wb, `Ficha_Tutor_${tutor.documento}.xlsx`);
         } catch (err) {
             console.error('Error al exportar Excel:', err);
-            alert('No se pudo generar el archivo Excel.');
         }
     };
 
     return (
-        <div className="page-container">
+        <div className={`page-container ${isNative ? 'mobile-view' : ''}`}>
             <div className="page-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <UserCheck size={28} />
-                    <h2 className="page-title">Gestión de Tutores</h2>
+                    <UserCheck size={isNative ? 24 : 28} />
+                    <h2 className="page-title">{isNative ? 'Tutores' : 'Gestión de Tutores'}</h2>
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                    <Button variant="secondary" onClick={() => setShowAddExistingModal(true)}>
-                        <UserPlus size={20} /> Vincular Existente
-                    </Button>
-                    <Button onClick={() => navigate('/dashboard/tutores/new')}>
-                        <Plus size={20} /> Nuevo Tutor
+                <div className="flex gap-2">
+                    {!isNative && (
+                        <Button variant="secondary" onClick={() => setShowAddExistingModal(true)}>
+                            <UserPlus size={20} /> Vincular
+                        </Button>
+                    )}
+                    <Button onClick={() => navigate('/dashboard/tutores/new')} icon={Plus}>
+                        {isNative ? 'Nuevo' : 'Nuevo Tutor'}
                     </Button>
                 </div>
             </div>
 
-            <Card>
+            <Card className="mb-4">
                 <div className="filters-bar">
-                    <FormField icon={Search} placeholder="Buscar por nombre, DNI, teléfono o email..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                    <FormField icon={Search} placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} variant="dark-focused" />
                 </div>
+            </Card>
 
+            {loading ? (
+                <div className="text-center p-8"><div className="spinner"></div></div>
+            ) : isNative ? (
+                <div className="mobile-list-container">
+                    {tutoresFiltrados.length === 0 ? (
+                        <p className="text-center">No hay tutores registrados</p>
+                    ) : (
+                        tutoresFiltrados.map(tutor => {
+                            const atletasRep = getAtletasRepresentados(tutor.idPersona);
+                            return (
+                                <MobileCard
+                                    key={tutor.idPersona}
+                                    title={tutor.nombrePersona}
+                                    subtitle={tutor.email}
+                                    badge={atletasRep.length > 0 ? <span className="badge badge-primary">{atletasRep.length} Atleta(s)</span> : null}
+                                    details={[
+                                        { label: 'DNI', value: tutor.documento || '-' },
+                                        { label: 'Tel', value: tutor.telefono || '-' }
+                                    ]}
+                                    onClick={() => {
+                                        setSelectedTutorForDetails(tutor);
+                                        setShowDetailsModal(true);
+                                    }}
+                                    actions={
+                                        <div className="flex gap-2">
+                                            <Button variant="ghost" size="sm" icon={Edit} onClick={(e) => { e.stopPropagation(); navigate(`/tutores/${tutor.idPersona}/edit`); }} />
+                                            <Button variant="ghost" size="sm" icon={Eye} onClick={(e) => { e.stopPropagation(); setSelectedTutorForDocs(tutor); setShowViewerModal(true); }} />
+                                        </div>
+                                    }
+                                />
+                            );
+                        })
+                    )}
+                </div>
+            ) : (
                 <div className="table-responsive">
                     <table className="data-table">
                         <thead>
                             <tr>
-                                <th>Nombre Completo</th>
-                                <th>DNI</th>
-                                <th>Teléfono</th>
-                                <th>Email</th>
+                                <th className="sortable-header" onClick={() => requestSort('nombrePersona')}>
+                                    <div className="header-content">
+                                        Nombre Completo
+                                        {sortConfig.key === 'nombrePersona' ? (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />) : <ChevronsUpDown size={14} className="opacity-30" />}
+                                    </div>
+                                </th>
+                                <th className="sortable-header" onClick={() => requestSort('documento')}>
+                                    <div className="header-content">
+                                        DNI
+                                        {sortConfig.key === 'documento' ? (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />) : <ChevronsUpDown size={14} className="opacity-30" />}
+                                    </div>
+                                </th>
+                                <th className="sortable-header" onClick={() => requestSort('telefono')}>
+                                    <div className="header-content">
+                                        Teléfono
+                                        {sortConfig.key === 'telefono' ? (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />) : <ChevronsUpDown size={14} className="opacity-30" />}
+                                    </div>
+                                </th>
+                                <th className="sortable-header" onClick={() => requestSort('email')}>
+                                    <div className="header-content">
+                                        Email
+                                        {sortConfig.key === 'email' ? (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />) : <ChevronsUpDown size={14} className="opacity-30" />}
+                                    </div>
+                                </th>
                                 <th>Atletas Representados</th>
                                 <th>Documentación</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {loading ? (
-                                <tr><td colSpan="7" className="text-center">Cargando...</td></tr>
-                            ) : tutores.length === 0 ? (
-                                <tr><td colSpan="7" className="text-center">No hay tutores registrados</td></tr>
-                            ) : (
-                                tutoresFiltrados.map((tutor) => {
-                                    const atletasRepresentados = getAtletasRepresentados(tutor.idPersona);
-                                    return (
-                                        <tr
-                                            key={tutor.idPersona}
-                                            onClick={() => {
-                                                setSelectedTutorForDetails(tutor);
-                                                setShowDetailsModal(true);
-                                            }}
-                                            style={{ cursor: 'pointer' }}
-                                            className="hover:bg-gray-50"
-                                        >
-                                            <td>{tutor.nombrePersona || `${tutor.persona?.nombre} ${tutor.persona?.apellido}` || '-'}</td>
-                                            <td>{tutor.documento || tutor.persona?.documento || '-'}</td>
-                                            <td>{tutor.telefono || tutor.persona?.telefono || '-'}</td>
-                                            <td>{tutor.email || tutor.persona?.email || '-'}</td>
-                                            <td>
-                                                {atletasRepresentados.length > 0 ? (
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                                        {atletasRepresentados.map((atleta, idx) => (
-                                                            <div key={idx} style={{ fontSize: '0.875rem' }}>
-                                                                <strong>{atleta.nombrePersona}</strong> - DNI: {atleta.documento}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <span style={{ color: 'var(--text-secondary)' }}>Sin atletas</span>
-                                                )}
-                                            </td>
-                                            <td>
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="p-1 h-auto"
-                                                        title="Subir documentos"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setSelectedTutorForDocs(tutor);
-                                                            loadDocuments(tutor.idPersona);
-                                                            setShowUploadModal(true);
-                                                        }}
-                                                    >
-                                                        <Plus size={18} className="text-primary" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="p-1 h-auto"
-                                                        title="Ver documentos"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setSelectedTutorForDocs(tutor);
-                                                            setShowViewerModal(true);
-                                                        }}
-                                                    >
-                                                        <Eye size={18} className="text-primary" />
-                                                    </Button>
+                            {sortedTutores.map((tutor) => {
+                                const atletasRepresentados = getAtletasRepresentados(tutor.idPersona);
+                                return (
+                                    <tr key={tutor.idPersona} onClick={() => { setSelectedTutorForDetails(tutor); setShowDetailsModal(true); }} style={{ cursor: 'pointer' }} className="hover:bg-gray-50">
+                                        <td>{tutor.nombrePersona}</td>
+                                        <td>{tutor.documento}</td>
+                                        <td>{tutor.telefono}</td>
+                                        <td>{tutor.email}</td>
+                                        <td>
+                                            {atletasRepresentados.length > 0 ? (
+                                                <div className="flex flex-col gap-1">
+                                                    {atletasRepresentados.map((atleta, idx) => (
+                                                        <div key={idx} className="text-sm">
+                                                            <strong>{atleta.nombrePersona}</strong> - DNI: {atleta.documento}
+                                                        </div>
+                                                    ))}
                                                 </div>
-                                            </td>
-                                            <td>
-                                                <div className="actions-cell" onClick={(e) => e.stopPropagation()}>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => {
-                                                            setSelectedTutorForLink(tutor);
-                                                            setShowLinkAthleteModal(true);
-                                                        }}
-                                                        title="Enlazar atleta menor"
-                                                    >
-                                                        <UserPlus size={18} />
-                                                    </Button>
-                                                    <Button variant="ghost" size="sm" onClick={() => navigate(`/tutores/${tutor.idPersona}/edit`)}>
-                                                        <Edit size={18} />
-                                                    </Button>
-                                                    <Button variant="ghost" size="sm" className="text-danger" onClick={() => handleDeleteClick(tutor)}>
-                                                        <Trash2 size={18} />
-                                                    </Button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })
-                            )}
+                                            ) : (
+                                                <span className="text-secondary">Sin atletas</span>
+                                            )}
+                                        </td>
+                                        <td>
+                                            <div className="flex items-center justify-center gap-2">
+                                                <Button variant="ghost" size="sm" className="p-1 h-auto" title="Subir" onClick={(e) => { e.stopPropagation(); setSelectedTutorForDocs(tutor); loadDocuments(tutor.idPersona); setShowUploadModal(true); }}><Plus size={18} className="text-primary" /></Button>
+                                                <Button variant="ghost" size="sm" className="p-1 h-auto" title="Ver" onClick={(e) => { e.stopPropagation(); setSelectedTutorForDocs(tutor); setShowViewerModal(true); }}><Eye size={18} className="text-primary" /></Button>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div className="actions-cell" onClick={(e) => e.stopPropagation()}>
+                                                <Button variant="ghost" size="sm" onClick={() => { setSelectedTutorForLink(tutor); setShowLinkAthleteModal(true); }} title="Enlazar"><UserPlus size={18} /></Button>
+                                                <Button variant="ghost" size="sm" onClick={() => navigate(`/tutores/${tutor.idPersona}/edit`)}><Edit size={18} /></Button>
+                                                <Button variant="ghost" size="sm" className="text-danger" onClick={() => handleDeleteClick(tutor)}><Trash2 size={18} /></Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
-            </Card>
+            )}
 
             {/* Document Upload Modal */}
             {showUploadModal && selectedTutorForDocs && (

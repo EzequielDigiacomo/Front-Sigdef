@@ -61,3 +61,20 @@
         padding: 0 1rem !important;
     }
 }
+
+/* App Mobile specific tweaks */
+.app-container.is-mobile .main-content {
+    padding-bottom: 70px; /* Space for MobileNavBar */
+}
+
+.app-container.is-mobile .container {
+    padding: 0 1rem;
+    max-width: 100%;
+}
+
+.app-container.is-mobile .navbar {
+    border-radius: 0;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+}

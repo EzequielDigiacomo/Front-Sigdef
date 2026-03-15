@@ -7,6 +7,7 @@ import Button from '../../../components/common/Button';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import { ArrowLeft, Save } from 'lucide-react';
 import { CATEGORIA_MAP, PARENTESCO_MAP } from '../../../utils/enums';
+import { getCategoryByAge } from '../../../utils/categoryConfig';
 import './ClubAtletas.css';
 
 const ClubAtletasForm = () => {
@@ -29,7 +30,6 @@ const ClubAtletasForm = () => {
         becadoSdn: false,
         montoBeca: 0,
         presentoAptoMedico: false,
-        estadoPago: 0,
         estadoPago: 0,
         perteneceSeleccion: false,
         sexo: 1, // Default Masculino or force user to select
@@ -69,6 +69,10 @@ const ClubAtletasForm = () => {
         if (formData.fechaNacimiento) {
             const edad = calcularEdad(formData.fechaNacimiento);
             setEsMenor(edad < 18);
+            
+            // Auto-assign category
+            const autoCategory = getCategoryByAge(edad);
+            setFormData(prev => ({ ...prev, categoria: autoCategory }));
         }
     }, [formData.fechaNacimiento]);
 
@@ -97,7 +101,6 @@ const ClubAtletasForm = () => {
                 becadoSdn: data.becadoSdn || false,
                 montoBeca: data.montoBeca || 0,
                 presentoAptoMedico: data.presentoAptoMedico || false,
-                estadoPago: data.estadoPago || 0,
                 estadoPago: data.estadoPago || 0,
                 perteneceSeleccion: data.perteneceSeleccion || false,
                 sexo: data.persona?.sexo || 1,
@@ -273,8 +276,6 @@ const ClubAtletasForm = () => {
                 documento: formData.documento,
                 fechaNacimiento: fechaNacimientoISO,
                 email: emailFinal || "",
-                telefono: telefonoFinal || "",
-                direccion: direccionFinal || "",
                 telefono: telefonoFinal || "",
                 direccion: direccionFinal || "",
                 sexo: parseInt(formData.sexo)

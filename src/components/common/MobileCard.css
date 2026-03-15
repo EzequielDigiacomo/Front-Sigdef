@@ -1,0 +1,89 @@
+.mobile-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 12px;
+    border: var(--glass-border);
+    transition: var(--transition);
+    animation: fadeIn 0.3s ease-out;
+}
+
+.mobile-card:active {
+    transform: scale(0.98);
+    background: var(--border-color);
+}
+
+.mobile-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.mobile-card-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.mobile-card-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.mobile-card-badge {
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.mobile-card-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding: 10px 0;
+    border-top: 1px dashed var(--border-color);
+}
+
+.mobile-card-detail {
+    display: flex;
+    flex-direction: column;
+}
+
+.detail-label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.detail-value {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.mobile-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border-color);
+    padding-top: 12px;
+}
+
+.mobile-card-actions {
+    display: flex;
+    gap: 15px;
+}
+
+.mobile-card-arrow {
+    color: var(--text-secondary);
+    opacity: 0.5;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}

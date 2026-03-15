@@ -153,3 +153,62 @@ button[type="submit"]:hover {
 .password-toggle-btn:focus {
     outline: none;
 }
+
+/* Estilos para Mobile App (is-native) */
+.login-container.is-native {
+    background: #0f172a; /* Fondo oscuro (slate-900) */
+    padding: 0;
+    align-items: flex-end;
+}
+
+.login-card.mobile-card {
+    max-width: none;
+    width: 100%;
+    min-height: 85vh; /* Ocupa el 85% de la pantalla */
+    margin: 0;
+    padding: 3rem 1.5rem;
+    border-radius: 2.5rem 2.5rem 0 0;
+    box-shadow: 0 -10px 25px rgba(0,0,0,0.2);
+    background: #ffffff;
+    border: none;
+    animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+.is-native .login-header h2 {
+    font-size: 1.75rem;
+    color: #1e293b; /* Color oscuro para el título sobre fondo blanco */
+}
+
+.is-native .login-logo {
+    background: var(--bg-secondary);
+    padding: 1rem;
+    transform: scale(1.2);
+    margin-bottom: 1.5rem;
+}
+
+.is-native .form-input {
+    padding: 0.85rem 1rem;
+    font-size: 1rem;
+    border-radius: 0.75rem;
+}
+
+.is-native button[type="submit"] {
+    padding: 1rem;
+    font-size: 1.1rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    margin-top: 0.5rem;
+}
+
+.is-native .login-info {
+    background: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: 0.75rem;
+}

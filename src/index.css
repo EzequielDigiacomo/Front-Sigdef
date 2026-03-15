@@ -173,3 +173,37 @@ button {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-secondary);
 }
+
+/* Global Sorting Styles */
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.sortable-header:hover {
+  background-color: var(--border-color);
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sort-icon {
+  color: var(--primary);
+}
+
+.sort-icon-placeholder {
+  color: var(--text-secondary);
+  opacity: 0.3;
+}
+
+.sortable-header:hover .sort-icon-placeholder {
+  opacity: 0.7;
+}
+
+.opacity-30 {
+  opacity: 0.3;
+}

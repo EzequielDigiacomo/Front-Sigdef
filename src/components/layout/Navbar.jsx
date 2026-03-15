@@ -6,7 +6,7 @@ import Button from '../common/Button';
 import ThemeToggle from '../common/ThemeToggle';
 import './Navbar.css';
 
-const Navbar = ({ toggleSidebar }) => {
+const Navbar = ({ toggleSidebar, hideSidebarToggle }) => {
     const { user, logout } = useAuth();
 
     const navItems = [
@@ -31,9 +31,11 @@ const Navbar = ({ toggleSidebar }) => {
     return (
         <nav className="navbar glass-panel">
             <div className="navbar-left">
-                <button className="menu-toggle" onClick={toggleSidebar}>
-                    <Menu size={24} color="var(--text-secondary)" />
-                </button>
+                {!hideSidebarToggle && (
+                    <button className="menu-toggle" onClick={toggleSidebar}>
+                        <Menu size={24} color="var(--text-secondary)" />
+                    </button>
+                )}
                 <h1 className="brand-logo text-gradient">SIGDEF</h1>
             </div>
 

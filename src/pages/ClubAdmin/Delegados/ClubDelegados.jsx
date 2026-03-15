@@ -8,9 +8,12 @@ import FormField from '../../../components/forms/FormField';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import { Plus, Edit, Trash2, Search, Shield } from 'lucide-react';
 import DataTable from '../../../components/common/DataTable';
+import { useDevice } from '../../../hooks/useDevice';
+import MobileCard from '../../../components/common/MobileCard';
 import '../Atletas/ClubAtletas.css';
 
 const ClubDelegados = () => {
+    const { isNative } = useDevice();
     const { user } = useAuth();
     const navigate = useNavigate();
     const [delegados, setDelegados] = useState([]);
@@ -27,27 +30,15 @@ const ClubDelegados = () => {
     const fetchDelegados = async () => {
         try {
             setLoading(true);
-            // El backend retorna IdClub en PascalCase y el contexto usa idClub
             const clubIdActual = user.idClub;
-
-            // Traemos todos los delegados y filtramos por el club del usuario logueado
             const data = await api.get('/DelegadoClub');
-
-            console.log('Filtrando delegados para el club:', clubIdActual);
-
             const delegadosFiltrados = data.filter(d => {
                 const idClubDelegado = d.idClub || d.IdClub || d.clubId || d.ClubId;
                 return parseInt(idClubDelegado) === parseInt(clubIdActual);
             });
-
             setDelegados(delegadosFiltrados);
         } catch (error) {
             console.error('Error cargando delegados:', error);
-            setErrorModal({
-                isOpen: true,
-                title: 'Error',
-                message: 'No se pudieron cargar los delegados de tu club.'
-            });
         } finally {
             setLoading(false);
         }
@@ -60,22 +51,13 @@ const ClubDelegados = () => {
 
     const handleConfirmDelete = async () => {
         if (!delegadoToDelete) return;
-
         const id = delegadoToDelete.idPersona || delegadoToDelete.IdPersona;
-
         try {
             await api.delete(`/DelegadoClub/${id}`);
             setDelegados(delegados.filter(d => (d.idPersona || d.IdPersona) !== id));
             setShowDeleteModal(false);
-            setDelegadoToDelete(null);
         } catch (error) {
-            console.error('Error eliminando delegado:', error);
-            setShowDeleteModal(false);
-            setErrorModal({
-                isOpen: true,
-                title: 'Error al eliminar',
-                message: 'Hubo un problema al intentar eliminar el delegado.'
-            });
+            console.error('Error eliminando:', error);
         }
     };
 
@@ -83,81 +65,72 @@ const ClubDelegados = () => {
         delegado.nombrePersona?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    if (loading) {
-        return (
-            <div className="loading-container">
-                <div className="spinner"></div>
-                <p>Cargando delegados...</p>
-            </div>
-        );
-    }
+    if (loading) return <div className="loading-container"><div className="spinner"></div></div>;
 
     return (
-        <div className="club-atletas">
+        <div className={`club-atletas ${isNative ? 'mobile-view' : ''}`}>
             <div className="page-header">
-                <h2 className="page-title">Mis Delegados</h2>
-                <Button onClick={() => navigate('/club/delegados/nuevo')}>
-                    <Plus size={20} /> Nuevo Delegado
+                <h2 className="page-title">{isNative ? 'Delegados' : 'Mis Delegados'}</h2>
+                <Button onClick={() => navigate('/club/delegados/nuevo')} variant="primary" icon={Plus}>
+                    {isNative ? 'Nuevo' : 'Nuevo Delegado'}
                 </Button>
             </div>
 
             <Card>
                 <div className="filters-bar">
-                    <FormField icon={Search} placeholder="Buscar por nombre..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} variant="dark-focused" />
+                    <FormField icon={Search} placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} variant="dark-focused" />
                 </div>
 
-                <DataTable
-                    columns={[
-                        {
-                            key: 'nombrePersona',
-                            label: 'Nombre',
-                            render: (_, row) => <strong>{row.nombrePersona || row.NombrePersona || 'Sin nombre'}</strong>
-                        },
-                        {
-                            key: 'documento',
-                            label: 'DNI',
-                            render: (_, row) => row.documento || row.Documento || '-'
-                        },
-                        {
-                            key: 'email',
-                            label: 'Email',
-                            render: (_, row) => row.email || row.Email || '-'
-                        },
-                        {
-                            key: 'telefono',
-                            label: 'Teléfono',
-                            render: (_, row) => row.telefono || row.Telefono || '-'
-                        },
-                        {
-                            key: 'nombreFederacion',
-                            label: 'Federación',
-                            render: (_, row) => row.nombreFederacion || row.NombreFederacion || '-'
-                        }
-                    ]}
-                    data={filteredDelegados}
-                    loading={loading}
-                    keyField="idPersona"
-                    emptyMessage="No hay delegados registrados para tu club"
-                    actions={(delegado) => (
-                        <div className="actions-cell">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => navigate(`/club/delegados/editar/${delegado.idPersona || delegado.IdPersona}`)}
-                            >
-                                <Edit size={18} />
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-danger"
-                                onClick={() => handleDeleteClick(delegado)}
-                            >
-                                <Trash2 size={18} />
-                            </Button>
-                        </div>
-                    )}
-                />
+                {isNative ? (
+                    <div className="mobile-list-container">
+                        {filteredDelegados.length === 0 ? (
+                            <p className="text-center">No hay delegados registrados</p>
+                        ) : (
+                            filteredDelegados.map(delegado => (
+                                <MobileCard 
+                                    key={delegado.idPersona || delegado.IdPersona}
+                                    title={delegado.nombrePersona || delegado.NombrePersona || 'Sin nombre'}
+                                    subtitle={delegado.nombreFederacion || delegado.NombreFederacion || '-'}
+                                    details={[
+                                        { label: 'DNI', value: delegado.documento || delegado.Documento || '-' },
+                                        { label: 'Email', value: delegado.email || delegado.Email || '-' },
+                                        { label: 'Tel', value: delegado.telefono || delegado.Telefono || '-' }
+                                    ]}
+                                    actions={
+                                        <div className="flex gap-2">
+                                            <Button variant="ghost" size="sm" icon={Edit} onClick={() => navigate(`/club/delegados/editar/${delegado.idPersona || delegado.IdPersona}`)} />
+                                            <Button variant="ghost" size="sm" icon={Trash2} className="text-danger" onClick={() => handleDeleteClick(delegado)} />
+                                        </div>
+                                    }
+                                />
+                            ))
+                        )}
+                    </div>
+                ) : (
+                    <DataTable
+                        columns={[
+                            { key: 'nombrePersona', label: 'Nombre', render: (_, row) => <strong>{row.nombrePersona || row.NombrePersona || 'Sin nombre'}</strong> },
+                            { key: 'documento', label: 'DNI', render: (_, row) => row.documento || row.Documento || '-' },
+                            { key: 'email', label: 'Email', render: (_, row) => row.email || row.Email || '-' },
+                            { key: 'telefono', label: 'Teléfono', render: (_, row) => row.telefono || row.Telefono || '-' },
+                            { key: 'nombreFederacion', label: 'Federación', render: (_, row) => row.nombreFederacion || row.NombreFederacion || '-' }
+                        ]}
+                        data={filteredDelegados}
+                        loading={loading}
+                        keyField="idPersona"
+                        emptyMessage="No hay delegados registrados para tu club"
+                        actions={(delegado) => (
+                            <div className="actions-cell">
+                                <Button variant="ghost" size="sm" onClick={() => navigate(`/club/delegados/editar/${delegado.idPersona || delegado.IdPersona}`)}>
+                                    <Edit size={18} />
+                                </Button>
+                                <Button variant="ghost" size="sm" className="text-danger" onClick={() => handleDeleteClick(delegado)}>
+                                    <Trash2 size={18} />
+                                </Button>
+                            </div>
+                        )}
+                    />
+                )}
             </Card>
 
             <ConfirmationModal

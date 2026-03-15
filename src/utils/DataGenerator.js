@@ -1,4 +1,5 @@
 import { api } from '../services/api';
+import { getCategoryByAge } from './categoryConfig';
 
 export class DataGenerator {
     static async createRandomClub() {
@@ -34,23 +35,33 @@ export class DataGenerator {
         const apellido = apellidos[Math.floor(Math.random() * apellidos.length)];
         const documento = (Math.floor(Math.random() * 90000000) + 10000000).toString();
 
+        // Rango de fechas más amplio: desde 1950 hasta 2018 para cubrir todas las categorías
+        const currentYear = new Date().getFullYear();
+        const startYear = currentYear - 70; // Atletas de hasta 70 años
+        const endYear = currentYear - 6;    // Atletas desde 6 años
+        const birthYear = startYear + Math.floor(Math.random() * (endYear - startYear));
+
         const personaPayload = {
             Nombre: nombre,
             Apellido: apellido,
             Documento: documento,
             Sexo: Math.floor(Math.random() * 2) + 1,
-            FechaNacimiento: new Date(1975 + Math.floor(Math.random() * 40), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28)).toISOString(),
+            FechaNacimiento: new Date(birthYear, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28)).toISOString(),
             Email: `${nombre.toLowerCase()}.${apellido.toLowerCase()}${Math.floor(Math.random() * 10000)}@test.com`,
             Telefono: "11-" + Math.floor(Math.random() * 9000000 + 1000000),
             Direccion: "Calle Falsa " + Math.floor(Math.random() * 1000)
         };
 
         const res = await api.post('/Persona', personaPayload);
+        const birthDate = new Date(personaPayload.FechaNacimiento);
+        const age = currentYear - birthDate.getFullYear();
+
         return {
             idPersona: res.idPersona || res.IdPersona,
             nombre,
             apellido,
-            documento
+            documento,
+            edad: age
         };
     }
 
@@ -66,7 +77,7 @@ export class DataGenerator {
         const atletaPayload = {
             IdPersona: persona.idPersona,
             IdClub: idClub ? parseInt(idClub) : null,
-            Categoria: Math.floor(Math.random() * 8) + 1,
+            Categoria: getCategoryByAge(persona.edad),
             BecadoEnard: Math.random() > 0.8,
             BecadoSdn: Math.random() > 0.8,
             MontoBeca: 0,

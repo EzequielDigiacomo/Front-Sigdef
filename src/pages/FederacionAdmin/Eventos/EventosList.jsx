@@ -5,7 +5,8 @@ import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import FormField from '../../../components/forms/FormField';
 import Modal from '../../../components/common/Modal'; // Importar Modal
-import { Plus, Edit, Trash2, Search, AlertTriangle } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, AlertTriangle, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { useSort } from '../../../hooks/useSort';
 import '../Atletas/Atletas.css';
 import './Evento.css';
 
@@ -128,6 +129,8 @@ const EventosList = () => {
         evento.nombre?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const { items: sortedEventos, requestSort, sortConfig } = useSort(eventosFiltrados);
+
     // Helpers para el modal
     const isInscripcionAbierta = eventoToDelete && eventoToDelete.fechaFinInscripciones
         ? new Date(eventoToDelete.fechaFinInscripciones) >= new Date()
@@ -151,16 +154,31 @@ const EventosList = () => {
                     <table className="data-table">
                         <thead>
                             <tr>
-                                <th>Nombre</th>
-                                <th>Fechas del Evento</th>
-                                <th>Período Inscripción</th>
+                                <th className="sortable-header" onClick={() => requestSort('nombre')}>
+                                    <div className="header-content">
+                                        Nombre
+                                        {sortConfig.key === 'nombre' ? (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />) : <ChevronsUpDown size={14} className="opacity-30" />}
+                                    </div>
+                                </th>
+                                <th className="sortable-header" onClick={() => requestSort('fechaInicio')}>
+                                    <div className="header-content">
+                                        Fechas del Evento
+                                        {sortConfig.key === 'fechaInicio' ? (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />) : <ChevronsUpDown size={14} className="opacity-30" />}
+                                    </div>
+                                </th>
+                                <th className="sortable-header" onClick={() => requestSort('fechaInicioInscripciones')}>
+                                    <div className="header-content">
+                                        Período Inscripción
+                                        {sortConfig.key === 'fechaInicioInscripciones' ? (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />) : <ChevronsUpDown size={14} className="opacity-30" />}
+                                    </div>
+                                </th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
                                 <tr><td colSpan="4" className="text-center">Cargando...</td></tr>
-                            ) : eventosFiltrados.map((evento) => {
+                            ) : sortedEventos.map((evento) => {
                                 const isPast = new Date(evento.fechaFin) < new Date();
                                 return (
                                     <tr

@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/common/Button';
-import { Shield, Eye, EyeOff } from 'lucide-react';
+import { Shield, Eye, EyeOff, Smartphone } from 'lucide-react';
+import { useDevice } from '../hooks/useDevice';
 import './Login.css';
 
 const Login = () => {
+    const { isNative } = useDevice();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -37,14 +39,16 @@ const Login = () => {
     };
 
     return (
-        <div className="login-container">
-            <div className="login-card glass-panel">
+        <div className={`login-container ${isNative ? 'is-native' : ''}`}>
+            <div className={`login-card glass-panel ${isNative ? 'mobile-card' : ''}`}>
                 <div className="login-header">
                     <div className="login-logo">
-                        <Shield size={32} color="var(--primary)" />
+                        {isNative ? <Smartphone size={40} color="#1e293b" /> : <Shield size={32} color="var(--primary)" />}
                     </div>
-                    <h2 className="text-gradient">Bienvenido a SIGDEF</h2>
-                    <p className="login-subtitle">Sistema de Gestión Deportiva</p>
+                    <h2 className="text-gradient">{isNative ? 'SIGDEF Mobile' : 'Bienvenido a SIGDEF'}</h2>
+                    <p className="login-subtitle">
+                        {isNative ? 'Tu deporte, en tu bolsillo' : 'Sistema de Gestión Deportiva'}
+                    </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="login-form">

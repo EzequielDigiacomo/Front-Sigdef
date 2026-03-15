@@ -87,6 +87,12 @@ const DocumentUploadModal = ({ isOpen, onClose, onSuccess, personId, personName 
             formData.append('PersonaId', personId.toString()); // 'PersonaId' con P mayúscula
             formData.append('TipoDocumento', tipoDocumento.toString()); // 'TipoDocumento' con T mayúscula
 
+            console.log('📤 Subiendo documento:', {
+                tipo: tipoDocumento,
+                tipoLabel: TIPO_DOCUMENTO_MAP[tipoDocumento],
+                personaId: personId
+            });
+
             console.log('📤 Enviando FormData:');
             for (let pair of formData.entries()) {
                 console.log(`${pair[0]}:`, pair[1]);

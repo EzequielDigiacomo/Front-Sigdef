@@ -259,3 +259,30 @@ body {
 .data-table td .flex {
     flex-wrap: nowrap;
 }
+
+/* Mobile Specific Styles */
+.page-container.mobile-view {
+    padding: 0;
+}
+
+.page-container.mobile-view .page-header {
+    padding: 15px 20px;
+    margin-bottom: 10px;
+}
+
+.mobile-list-container {
+    padding: 0 15px 100px 15px; /* Extra bottom padding for MobileNavBar */
+}
+
+.mobile-search {
+    margin-bottom: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg-primary);
+    padding: 10px 0;
+}
+
+.mobile-search .search-input {
+    border-radius: 12px;
+}

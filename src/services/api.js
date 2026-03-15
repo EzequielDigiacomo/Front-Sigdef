@@ -1,4 +1,8 @@
-const API_URL = 'https://localhost:7112/api';
+// --- PRODUCCIÓN (Descomentar para subir a la nube) ---
+const API_URL = 'https://sigdef-v7.onrender.com/api'; 
+
+// --- DESARROLLO LOCAL (Comentar para subir a la nube) ---
+// const API_URL = 'http://localhost:5078/api'; 
 
 const defaultHeaders = {
     'Content-Type': 'application/json',
@@ -10,6 +14,16 @@ const handleResponse = async (response, options = {}) => {
     if (response.status === 204) {
         console.log('✅ 204 No Content - Operación exitosa');
         return null;
+    }
+
+    if (response.status === 401) {
+        console.warn('⚠️ 401 Unauthorized - Token expirado o inválido');
+        // Limpiamos la sesión
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        // Redirigimos al usuario silenciosamente al login
+        window.location.href = '/login';
+        throw new Error('Su sesión ha expirado');
     }
 
     const responseText = await response.text();

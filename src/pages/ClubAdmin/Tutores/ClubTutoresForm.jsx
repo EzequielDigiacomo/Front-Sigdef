@@ -158,8 +158,6 @@ const ClubTutoresForm = () => {
                 email: formData.email || "",
                 telefono: formData.telefono || "",
                 direccion: formData.direccion || "",
-                telefono: formData.telefono || "",
-                direccion: formData.direccion || "",
                 sexo: parseInt(formData.sexo)
             };
 

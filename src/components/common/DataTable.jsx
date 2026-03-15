@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import './DataTable.css';
+import { useSort } from '../../hooks/useSort';
+import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 
 /**
  * DataTable - Componente de tabla genérico y reutilizable
  * 
- * @param {Array} columns - Definición de columnas: [{ key, label, render?, className? }]
+ * @param {Array} columns - Definición de columnas: [{ key, label, render?, className?, sortable? }]
  * @param {Array} data - Array de objetos con los datos
  * @param {Function} onRowClick - Callback opcional cuando se hace click en una fila
  * @param {Boolean} loading - Estado de carga
@@ -22,6 +24,8 @@ const DataTable = ({
     keyField = 'id',
     className = ''
 }) => {
+    const { items: sortedData, requestSort, sortConfig } = useSort(data);
+
     const handleRowClick = (row) => {
         if (onRowClick) {
             onRowClick(row);
@@ -37,6 +41,18 @@ const DataTable = ({
         return row[column.key] ?? '-';
     };
 
+    const renderSortIcon = (column) => {
+        if (column.sortable === false) return null;
+        
+        if (sortConfig.key !== column.key) {
+            return <ChevronsUpDown size={14} className="sort-icon-placeholder" />;
+        }
+
+        return sortConfig.direction === 'asc' 
+            ? <ChevronUp size={14} className="sort-icon active" /> 
+            : <ChevronDown size={14} className="sort-icon active" />;
+    };
+
     return (
         <div className="table-responsive">
             <table className={`data-table ${className}`}>
@@ -45,9 +61,13 @@ const DataTable = ({
                         {columns.map((column) => (
                             <th
                                 key={column.key}
-                                className={column.headerClassName || ''}
+                                className={`${column.headerClassName || ''} ${column.sortable !== false ? 'sortable-header' : ''}`}
+                                onClick={() => column.sortable !== false && requestSort(column.key)}
                             >
-                                {column.label}
+                                <div className="header-content">
+                                    {column.label}
+                                    {renderSortIcon(column)}
+                                </div>
                             </th>
                         ))}
                         {actions && <th>Acciones</th>}
@@ -60,14 +80,14 @@ const DataTable = ({
                                 Cargando...
                             </td>
                         </tr>
-                    ) : data.length === 0 ? (
+                    ) : sortedData.length === 0 ? (
                         <tr>
                             <td colSpan={columns.length + (actions ? 1 : 0)} className="text-center">
                                 {emptyMessage}
                             </td>
                         </tr>
                     ) : (
-                        data.map((row, index) => (
+                        sortedData.map((row, index) => (
                             <tr
                                 key={row[keyField] || index}
                                 onClick={() => handleRowClick(row)}

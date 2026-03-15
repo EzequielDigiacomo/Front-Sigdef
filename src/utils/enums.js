@@ -11,8 +11,6 @@ export const CATEGORIA_MAP = {
     9: 'Master A'
 };
 
-// Start of new user-requested Enums
-
 export const TIPO_BOTE_MAP = {
     0: 'K1',
     1: 'K2',
@@ -24,13 +22,14 @@ export const TIPO_BOTE_MAP = {
 
 export const CATEGORIA_EDAD_MAP = {
     1: 'Preinfantil (6-9 años)',
-    2: 'Infantil (10-12 años)',
-    3: 'Cadete (13-14 años)',
-    4: 'Junior (15-17 años)',
-    5: 'Sub21 (18-20 años)',
-    6: 'Sub23 (18-22 años)',
-    7: 'Senior (18-35 años)',
-    8: 'Master (35+ años)'
+    2: 'Infantil (10-11 años)',
+    3: 'Menores (12-13 años)',
+    4: 'Cadete (14-16 años)',
+    5: 'Junior (17-18 años)',
+    6: 'Sub21 (18-20 años)',
+    7: 'Sub23 (18-22 años)',
+    8: 'Senior (18-35 años)',
+    9: 'Master A (35+ años)'
 };
 
 export const DISTANCIA_REGATA_MAP = {

@@ -1,0 +1,8 @@
+{
+  "appId": "com.sigdef.app",
+  "appName": "SIGDEF",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "http"
+  }
+}

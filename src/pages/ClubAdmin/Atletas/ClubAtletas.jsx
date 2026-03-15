@@ -10,10 +10,16 @@ import FormField from '../../../components/forms/FormField';
 import Modal from '../../../components/common/Modal';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import DataTable from '../../../components/common/DataTable';
+import { useDevice } from '../../../hooks/useDevice';
+import MobileCard from '../../../components/common/MobileCard';
+import { getEstadoPagoLabel, getEstadoPagoColor, getCategoriaLabel, CATEGORIA_MAP, PARENTESCO_MAP } from '../../../utils/enums';
+import { getCategoryByAge } from '../../../utils/categoryConfig';
 import './ClubAtletas.css';
 
 const ClubAtletas = () => {
+    const { isNative } = useDevice();
     const { user } = useAuth();
+    // ... rest of component
     const navigate = useNavigate();
     const [atletas, setAtletas] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -76,221 +82,83 @@ const ClubAtletas = () => {
     const [selectedTutorIdToAssign, setSelectedTutorIdToAssign] = useState('');
     const [loadingTutores, setLoadingTutores] = useState(false);
 
-    // DEBUG: Verificar estructura del usuario
     useEffect(() => {
-        console.log('🔍 DEBUG - Estructura del usuario:');
-        if (user) {
-            console.log('👤 Usuario completo:', JSON.stringify(user, null, 2));
-            console.log('📋 Campos disponibles:', Object.keys(user));
-
-            // Buscar cualquier campo que contenga "club" o "Club"
-            Object.keys(user).forEach(key => {
-                if (key.toLowerCase().includes('club')) {
-                    console.log(`✅ Campo relacionado con club: "${key}" =`, user[key]);
-                }
-            });
-
-            // Verificar IdClub específicamente
-            if (user.IdClub !== undefined) {
-                console.log(`🎯 ¡ENCONTRADO! user.IdClub =`, user.IdClub);
-            }
-        }
-    }, [user]);
-
-    useEffect(() => {
-        console.log('🔄 useEffect ejecutándose');
-
-        // IMPORTANTE: Buscar IdClub (con I mayúscula)
-        const clubId = user?.IdClub ||
-            user?.idClub ||
-            user?.club?.id ||
-            (user && user.id && user.id.toString().includes('club') ? user.id : null);
-
-        console.log('🏢 Club ID encontrado:', clubId);
-        console.log('📋 Tipo de clubId:', typeof clubId);
-
-        if (clubId) {
-            console.log(`✅ Club ID válido encontrado: ${clubId}`);
-            fetchAtletas(clubId);
-        } else {
-            console.error('❌ No se pudo obtener el IdClub');
-            console.error('❌ User object:', user);
-
-            // Mostrar qué campos tiene el usuario
-            if (user) {
-                console.error('❌ Campos del usuario:', Object.keys(user));
-                Object.keys(user).forEach(key => {
-                    console.error(`   - ${key}:`, user[key], '(tipo:', typeof user[key], ')');
-                });
-            }
-
-            setFeedbackModal({
-                isOpen: true,
-                title: 'Error de configuración',
-                message: 'No se pudo identificar tu club. El campo IdClub no está disponible en tu perfil.',
-                type: 'danger'
-            });
-            setLoading(false);
-        }
+        const clubId = user?.IdClub || user?.idClub || user?.club?.id;
+        if (clubId) fetchAtletas(clubId);
     }, [user]);
 
     const fetchAtletas = async (clubId) => {
         try {
             setLoading(true);
-
-            // 1. Fetch Personas in parallel to be ready
             const personasPromise = api.get('/Persona');
-
             let data = [];
-            let source = '';
-
-            // Try to fetch athletes for the club
             try {
                 data = await api.get(`/Atleta/club/${clubId}`, { silentErrors: true });
-                source = 'Endpoint /Atleta/club/{id}';
             } catch (e1) {
-                try {
-                    data = await api.get(`/Club/${clubId}/Atletas`, { silentErrors: true });
-                    source = 'Endpoint /Club/{id}/Atletas';
-                } catch (e2) {
-                    const todos = await api.get('/Atleta');
-                    if (todos && todos.length > 0) {
-                        const primerAtleta = todos[0];
-                        const campoClub = Object.keys(primerAtleta).find(key =>
-                            key === 'IdClub' || key === 'idClub' || key.toLowerCase() === 'idclub'
-                        );
-
-                        if (campoClub) {
-                            data = todos.filter(a => {
-                                const clubIdAtleta = a[campoClub];
-                                return clubIdAtleta !== undefined &&
-                                    clubIdAtleta !== null &&
-                                    String(clubIdAtleta) === String(clubId);
-                            });
-                        }
-                    }
-                    source = 'Fallback Filter';
-                }
+                data = await api.get('/Atleta');
+                data = data.filter(a => String(a.idClub) === String(clubId));
             }
-
-            // 2. Await Personas
             const personas = await personasPromise;
             const personasMap = new Map(personas.map(p => [p.idPersona, p]));
-
-            // 3. Map Athletes with Persona Data
             const enrichedData = (data || []).map(atleta => {
                 const persona = personasMap.get(atleta.idPersona);
                 return {
                     ...atleta,
-                    // Use persona data if available, otherwise fallback or empty
                     nombrePersona: persona ? `${persona.nombre} ${persona.apellido}` : (atleta.nombrePersona || '-'),
                     documento: persona ? persona.documento : (atleta.documento || '-')
                 };
             });
-
-            console.log(`📊 Resultado final enriquecido (${source}): ${enrichedData.length} atletas`);
             setAtletas(enrichedData);
-
         } catch (error) {
-            console.error('❌ Error fatal en fetchAtletas:', error);
-            setFeedbackModal({
-                isOpen: true,
-                title: 'Error',
-                message: 'No se pudieron cargar los atletas. Por favor, intenta nuevamente.',
-                type: 'danger'
-            });
+            console.error('Error cargando atletas:', error);
         } finally {
             setLoading(false);
         }
     };
 
-    const fetchClubTutores = async () => {
-        try {
-            setLoadingTutores(true);
-            const clubId = user?.IdClub || user?.idClub || user?.club?.id || user?.clubId; // Reuse detection
+    const handleBulkUpdate = async () => {
+        const clubId = user?.IdClub || user?.idClub || user?.club?.id;
+        if (!clubId) return;
 
-            if (!clubId) return;
-
-            // Fetch logic similar to ClubTutores to get "My Club Tutors"
-            const [allTutores, allAtletas, allRelaciones, allPersonas] = await Promise.all([
-                api.get('/Tutor'),
-                api.get('/Atleta'),
-                api.get('/AtletaTutor'),
-                api.get('/Persona')
-            ]);
-
-            // Filter My Club Athletes
-            const myClubAtletas = allAtletas.filter(a => {
-                const aClubId = a.idClub || a.clubId || a.IdClub;
-                return aClubId && String(aClubId) === String(clubId);
-            });
-            const myClubAtletaIds = new Set(myClubAtletas.map(a => a.idPersona));
-
-            // Filter Relationships
-            const myClubRelaciones = allRelaciones.filter(r => myClubAtletaIds.has(r.idAtleta));
-            const myClubTutorIds = new Set(myClubRelaciones.map(r => r.idTutor));
-
-            // Filter Tutors
-            const personasMap = new Map(allPersonas.map(p => [p.idPersona, p]));
-
-            const tutoresDelClub = allTutores
-                .filter(t => myClubTutorIds.has(t.idPersona)) // Only show tutors already linked to club
-                .map(t => {
-                    const persona = personasMap.get(t.idPersona);
-                    return {
-                        ...t,
-                        nombreCompleto: persona ? `${persona.nombre} ${persona.apellido}` : t.nombrePersona
-                    };
-                });
-
-            setExistingTutores(tutoresDelClub);
-
-        } catch (error) {
-            console.error("Error fetching club tutors:", error);
-            setFeedbackModal({
-                isOpen: true,
-                title: 'Error',
-                message: 'Error cargando lista de tutores',
-                type: 'danger'
-            });
-        } finally {
-            setLoadingTutores(false);
-        }
+        setFeedbackModal({
+            isOpen: true,
+            title: 'Confirmar Actualización',
+            message: '¿Estás seguro de marcar a TODOS los atletas de tu club como PAGADO?',
+            type: 'info',
+            confirmText: 'Sí, Actualizar',
+            onConfirm: async () => {
+                setFeedbackModal(prev => ({ ...prev, isOpen: false }));
+                setLoading(true);
+                try {
+                    for (const atleta of atletas) {
+                        if (atleta.estadoPago !== 1) {
+                            await api.put(`/Atleta/${atleta.idPersona}`, { ...atleta, estadoPago: 1 });
+                        }
+                    }
+                    setFeedbackModal({
+                        isOpen: true,
+                        title: 'Éxito',
+                        message: 'Se han actualizado los estados de pago correctamente.',
+                        type: 'success',
+                        showCancel: false
+                    });
+                    fetchAtletas(clubId);
+                } catch (error) {
+                    console.error('Error en actualización masiva:', error);
+                    setFeedbackModal({
+                        isOpen: true,
+                        title: 'Error',
+                        message: 'No se pudieron actualizar algunos atletas.',
+                        type: 'danger',
+                        showCancel: false
+                    });
+                } finally {
+                    setLoading(false);
+                }
+            }
+        });
     };
 
-    const handleAssignTutor = async () => {
-        if (!selectedTutorIdToAssign || !atletaDetails) return;
-
-        try {
-            await api.post('/AtletaTutor', {
-                idAtleta: atletaDetails.idPersona,
-                idTutor: parseInt(selectedTutorIdToAssign),
-                parentesco: 0 // Default or ask user? usually parentesco is needed. Assume Padre/Madre (0) or ask.
-            });
-
-            // Success
-            setFeedbackModal({
-                isOpen: true,
-                title: 'Éxito',
-                message: 'Tutor asignado correctamente',
-                type: 'success'
-            });
-            setShowSelectTutorModal(false);
-            handleCloseModal(); // Close details modal too or refresh it?
-
-            // Refresh logic could go here, for now just close
-        } catch (error) {
-            console.error("Error assigning tutor:", error);
-            setFeedbackModal({
-                isOpen: true,
-                title: 'Error',
-                message: 'Error al asignar tutor: ' + error.message,
-                type: 'danger'
-            });
-        }
-    };
-
-    // Resto de las funciones se mantienen igual...
     const handleDeleteClick = (atleta) => {
         setAtletaToDelete(atleta);
         setShowDeleteModal(true);
@@ -298,50 +166,12 @@ const ClubAtletas = () => {
 
     const handleConfirmDelete = async () => {
         if (!atletaToDelete) return;
-
         try {
             await api.delete(`/Atleta/${atletaToDelete.idPersona}`);
             setAtletas(atletas.filter(a => a.idPersona !== atletaToDelete.idPersona));
             setShowDeleteModal(false);
-            setAtletaToDelete(null);
         } catch (error) {
-            console.error('Error al eliminar atleta:', error);
-            setShowDeleteModal(false);
-            setFeedbackModal({
-                isOpen: true,
-                title: 'Error al eliminar',
-                message: 'Hubo un problema al intentar eliminar el atleta.',
-                type: 'danger'
-            });
-        }
-    };
-
-    const handleUnlinkTutor = async () => {
-        if (!window.confirm("¿Seguro que deseas desvincular este tutor?")) return;
-
-        try {
-            // Fetch relation first to get ID
-            const relaciones = await api.get('/AtletaTutor');
-            const rel = relaciones.find(r => r.idAtleta === atletaDetails.idPersona);
-
-            if (rel) {
-                // Try delete. Assuming backend supports Delete by ID
-                // If ID is 'id' or 'idAtletaTutor'
-                const idRel = rel.id || rel.idAtletaTutor || rel.IdAtletaTutor;
-                if (idRel) {
-                    await api.delete(`/AtletaTutor/${idRel}`);
-                } else {
-                    // Fallback: maybe send composite key in body?
-                    // This is risky without knowing API. Assuming ID exists.
-                    throw new Error("No se pudo identificar la relación para eliminar.");
-                }
-
-                setAtletaDetails(prev => ({ ...prev, tutor: null }));
-                setFeedbackModal({ isOpen: true, title: 'Éxito', message: 'Tutor desvinculado correctamente', type: 'success' });
-            }
-        } catch (error) {
-            console.error("Error unlinking tutor:", error);
-            setFeedbackModal({ isOpen: true, title: 'Error', message: 'No se pudo desvincular al tutor.', type: 'danger' });
+            console.error('Error al eliminar:', error);
         }
     };
 
@@ -349,53 +179,9 @@ const ClubAtletas = () => {
         setSelectedAtleta(atleta);
         setShowModal(true);
         setLoadingDetails(true);
-
         try {
             const persona = await api.get(`/Persona/${atleta.idPersona}`);
-            console.log('📋 Datos completos de la persona:', persona);
-
-            let tutor = null;
-            try {
-                // Fetch relationships to find the tutor
-                const relaciones = await api.get('/AtletaTutor');
-                const relacion = relaciones.find(r => r.idAtleta === atleta.idPersona);
-
-                if (relacion) {
-                    try {
-                        tutor = await api.get(`/Tutor/${relacion.idTutor}`);
-                        // Enforce name presence
-                        if (tutor.persona) {
-                            tutor.nombre = `${tutor.persona.nombre} ${tutor.persona.apellido}`;
-                            tutor.telefono = tutor.telefono || tutor.persona.telefono;
-                            tutor.email = tutor.email || tutor.persona.email;
-                        } else if (!tutor.nombre && !tutor.nombrePersona) {
-                            // Fallback if Tutor object is bare
-                            const tutorPersona = await api.get(`/Persona/${relacion.idTutor}`);
-                            tutor.nombre = `${tutorPersona.nombre} ${tutorPersona.apellido}`;
-                            tutor.telefono = tutor.telefono || tutorPersona.telefono;
-                            tutor.email = tutor.email || tutorPersona.email;
-                        }
-                    } catch (e) {
-                        console.warn('Error fetching tutor details:', e);
-                    }
-                }
-            } catch (err) {
-                console.warn("Error checking relations:", err);
-            }
-
-            setAtletaDetails({
-                ...atleta,
-                personaCompleta: persona,
-                tutor: tutor
-            });
-        } catch (error) {
-            console.error('Error al cargar detalles del atleta:', error);
-            setFeedbackModal({
-                isOpen: true,
-                title: 'Error',
-                message: 'Error al cargar los detalles del atleta',
-                type: 'danger'
-            });
+            setAtletaDetails({ ...atleta, personaCompleta: persona });
         } finally {
             setLoadingDetails(false);
         }
@@ -408,118 +194,86 @@ const ClubAtletas = () => {
     };
 
     const getCategoriaTexto = (categoria) => {
-        const categorias = {
-            0: 'PRE-MINI',
-            1: 'MINI',
-            2: 'INFANTIL',
-            3: 'CADETE',
-            4: 'JUVENIL',
-            5: 'JUNIOR',
-            6: 'SENIOR',
-            7: 'MASTER'
-        };
-        return categorias[categoria] || `Categoría ${categoria}`;
+        return getCategoriaLabel(categoria);
     };
 
-    const filteredAtletas = atletas.filter(atleta => {
-        const nombreCompleto = (atleta.nombrePersona || '').toLowerCase();
-        return nombreCompleto.includes(searchTerm.toLowerCase());
-    });
+    const filteredAtletas = atletas.filter(atleta => (atleta.nombrePersona || '').toLowerCase().includes(searchTerm.toLowerCase()));
 
-    if (loading) {
-        return (
-            <div className="loading-container">
-                <div className="spinner"></div>
-                <p>Cargando atletas...</p>
-            </div>
-        );
-    }
+    if (loading) return <div className="loading-container"><div className="spinner"></div></div>;
 
     return (
-        <div className="club-atletas">
+        <div className={`club-atletas ${isNative ? 'mobile-view' : ''}`}>
             <div className="page-header">
                 <div>
-                    <h1 className="text-gradient">Mis Atletas</h1>
-                    <p className="page-subtitle">Gestiona los atletas de tu club</p>
-
-
+                    <h1 className="text-gradient">Atletas</h1>
                 </div>
-                <Button
-                    variant="primary"
-                    icon={Plus}
-                    onClick={() => navigate('/club/atletas/nuevo')}
-                >
-                    Agregar Atleta
-                </Button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <Button variant="secondary" onClick={handleBulkUpdate} disabled={loading}>
+                        Marcar Pagados
+                    </Button>
+                    <Button variant="primary" icon={Plus} onClick={() => navigate('/club/atletas/nuevo')}>
+                        {isNative ? 'Nuevo' : 'Agregar Atleta'}
+                    </Button>
+                </div>
             </div>
 
-            {/* Tabla de Atletas */}
             <Card>
                 <div className="filters-bar">
-                    <FormField
-                        icon={Search}
-                        placeholder="Buscar por nombre..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        variant="dark-focused"
-                    />
+                    <FormField icon={Search} placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} variant="dark-focused" />
                 </div>
 
-                <DataTable
-                    columns={[
-                        { key: 'nombrePersona', label: 'Nombre' },
-                        { key: 'documento', label: 'DNI' },
-                        {
-                            key: 'categoria',
-                            label: 'Categoría',
-                            render: (value) => getCategoriaTexto(value)
-                        },
-                        {
-                            key: 'estadoPago',
-                            label: 'Estado Pago',
-                            render: (value) => (
-                                <span className={`badge ${value === 1 ? 'badge-success' : 'badge-danger'}`}>
-                                    {value === 1 ? 'Al día' : 'Pendiente'}
-                                </span>
-                            )
-                        },
-                        {
-                            key: 'perteneceSeleccion',
-                            label: 'Selección',
-                            render: (value) => value ? '⭐ Sí' : 'No'
-                        },
-                        {
-                            key: 'presentoAptoMedico',
-                            label: 'Apto Médico',
-                            render: (value) => value ? '✅ Presentado' : '❌ Pendiente'
-                        }
-                    ]}
-                    data={filteredAtletas}
-                    loading={loading}
-                    onRowClick={handleCardClick}
-                    actions={(atleta) => (
-                        <div className="flex gap-2">
-                            <Button
-                                variant="secondary"
-                                size="sm"
-                                icon={Edit}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigate(`/club/atletas/editar/${atleta.idPersona}`);
-                                }}
-                            />
-                            <Button
-                                variant="danger"
-                                size="sm"
-                                icon={Trash2}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteClick(atleta);
-                                }}
-                            />
-                        </div>
-                    )}
-                />
+                {isNative ? (
+                    <div className="mobile-list-container">
+                        {filteredAtletas.length === 0 ? (
+                            <p className="text-center">Sin resultados</p>
+                        ) : (
+                            filteredAtletas.map(atleta => (
+                                <MobileCard 
+                                    key={atleta.idPersona}
+                                    title={atleta.nombrePersona}
+                                    subtitle={atleta.documento}
+                                    badge={<span className={`badge badge-${getEstadoPagoColor(atleta.estadoPago)}`}>
+                                        {getEstadoPagoLabel(atleta.estadoPago)}
+                                    </span>}
+                                    details={[
+                                        { label: 'Categoría', value: getCategoriaLabel(atleta.categoria) },
+                                        { label: 'Apto', value: atleta.presentoAptoMedico ? '✅' : '❌' }
+                                    ]}
+                                    actions={
+                                        <Button variant="ghost" size="sm" icon={Edit} onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/club/atletas/editar/${atleta.idPersona}`);
+                                        }} />
+                                    }
+                                    onClick={() => handleCardClick(atleta)}
+                                />
+                            ))
+                        )}
+                    </div>
+                ) : (
+                    <DataTable
+                        columns={[
+                            { key: 'nombrePersona', label: 'Nombre' },
+                            { key: 'documento', label: 'DNI' },
+                            { key: 'categoria', label: 'Categoría', render: (value) => getCategoriaTexto(value) },
+                            {
+                                key: 'estadoPago', label: 'Estado Pago',
+                                render: (value) => <span className={`badge badge-${getEstadoPagoColor(value)}`}>{getEstadoPagoLabel(value)}</span>
+                            },
+                            { key: 'perteneceSeleccion', label: 'Selección', render: (value) => value ? '⭐ Sí' : 'No' },
+                            { key: 'presentoAptoMedico', label: 'Apto Médico', render: (value) => value ? '✅ Presentado' : '❌ Pendiente' }
+                        ]}
+                        data={filteredAtletas}
+                        loading={loading}
+                        onRowClick={handleCardClick}
+                        actions={(atleta) => (
+                            <div className="flex gap-2">
+                                <Button variant="secondary" size="sm" icon={Edit} onClick={(e) => { e.stopPropagation(); navigate(`/club/atletas/editar/${atleta.idPersona}`); }} />
+                                <Button variant="danger" size="sm" icon={Trash2} onClick={(e) => { e.stopPropagation(); handleDeleteClick(atleta); }} />
+                            </div>
+                        )}
+                    />
+                )}
             </Card>
 
             {/* Modal de detalles */}
@@ -592,7 +346,9 @@ const ClubAtletas = () => {
                                 </div>
                                 <div className="detail-row">
                                     <span className="label">Estado de Pago:</span>
-                                    <span className="value">{atletaDetails.estadoPago === 1 ? '✅ Al día' : '❌ Pendiente'}</span>
+                                    <span className={`badge badge-${getEstadoPagoColor(atletaDetails.estadoPago)}`}>
+                                        {getEstadoPagoLabel(atletaDetails.estadoPago)}
+                                    </span>
                                 </div>
                                 <div className="detail-row">
                                     <span className="label">Apto Médico:</span>
@@ -605,8 +361,8 @@ const ClubAtletas = () => {
                                 <div className="detail-row" style={{ alignItems: 'center' }}>
                                     <span className="label">Cuota Anual:</span>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                        <span className="value">
-                                            {atletaDetails.estadoPago === 1 ? '✅ Pagada' : '❌ Pendiente'}
+                                        <span className={`badge badge-${getEstadoPagoColor(atletaDetails.estadoPago)}`}>
+                                            {getEstadoPagoLabel(atletaDetails.estadoPago)}
                                         </span>
                                         {atletaDetails.estadoPago !== 1 && (
                                             <Button
