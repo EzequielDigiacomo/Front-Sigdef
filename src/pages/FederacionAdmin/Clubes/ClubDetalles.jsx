@@ -18,6 +18,7 @@ const ClubDetalles = () => {
     const [eventos, setEventos] = useState([]);
     const [inscripciones, setInscripciones] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [updatingStatus, setUpdatingStatus] = useState(false);
 
     // Modal states
     const [showAddAtletaModal, setShowAddAtletaModal] = useState(false);
@@ -70,6 +71,32 @@ const ClubDetalles = () => {
             console.error('Error cargando detalles del club:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleUpdateClubStatus = async (newStatus) => {
+        setUpdatingStatus(true);
+        try {
+            const payload = {
+                nombre: club.nombre,
+                direccion: club.direccion,
+                telefono: club.telefono,
+                siglas: club.siglas,
+                email: club.email || "",
+                estadoMatricula: newStatus
+            };
+
+            await api.put(`/Club/${club.idClub}`, payload);
+            
+            // Actualizar estado local
+            setClub(prev => ({ ...prev, estadoMatricula: newStatus }));
+            
+            // Mostrar feedback opcional si se desea
+        } catch (error) {
+            console.error('Error actualizando matrícula:', error);
+            // Revertir o mostrar error
+        } finally {
+            setUpdatingStatus(false);
         }
     };
 
@@ -145,6 +172,35 @@ const ClubDetalles = () => {
                         <div>
                             <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Dirección</label>
                             <div style={{ fontSize: '1rem', fontWeight: '500' }}>{club.direccion || '-'}</div>
+                        </div>
+                        <div>
+                            <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Estado de Matrícula</label>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <select 
+                                    value={club.estadoMatricula ?? 0}
+                                    onChange={(e) => handleUpdateClubStatus(parseInt(e.target.value))}
+                                    disabled={updatingStatus}
+                                    className={`badge badge-${getEstadoPagoColor(club.estadoMatricula)}`}
+                                    style={{ 
+                                        fontSize: '0.85rem', 
+                                        padding: '4px 24px 4px 12px', 
+                                        border: 'none', 
+                                        cursor: updatingStatus ? 'not-allowed' : 'pointer',
+                                        appearance: 'none',
+                                        opacity: updatingStatus ? 0.7 : 1,
+                                        backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'white\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")',
+                                        backgroundRepeat: 'no-repeat',
+                                        backgroundPosition: 'right 8px center',
+                                        backgroundSize: '14px'
+                                    }}
+                                >
+                                    <option value={0} style={{ backgroundColor: '#4b5563', color: 'white' }}>Pendiente</option>
+                                    <option value={1} style={{ backgroundColor: '#059669', color: 'white' }}>Pagado</option>
+                                    <option value={2} style={{ backgroundColor: '#dc2626', color: 'white' }}>Vencido</option>
+                                    <option value={3} style={{ backgroundColor: '#d97706', color: 'white' }}>Parcial</option>
+                                </select>
+                                {updatingStatus && <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Guardando...</span>}
+                            </div>
                         </div>
                     </div>
                 </Card>
@@ -501,8 +557,8 @@ const ClubDetalles = () => {
                                                 )}
                                             </td>
                                             <td>
-                                                <span className={`badge badge-${atleta.estadoPago === 1 ? 'success' : 'warning'}`}>
-                                                    {atleta.estadoPago === 1 ? 'Al día' : 'Pendiente'}
+                                                <span className={`badge badge-${getEstadoPagoColor(atleta.estadoPago)}`}>
+                                                    {getEstadoPagoLabel(atleta.estadoPago)}
                                                 </span>
                                             </td>
                                         </tr>

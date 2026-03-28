@@ -79,9 +79,19 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
     const handleUpdateStatus = async (newStatus) => {
         try {
             // Updated athlete object with new status
+            // Ensure we use the correct property names for the backend AtletaUpdateDto
             const updatedPayload = {
-                ...athlete,
-                estadoPago: newStatus
+                idPersona: athlete.idPersona,
+                idClub: athlete.idClub,
+                estadoPago: newStatus,
+                perteneceSeleccion: athlete.perteneceSeleccion || false,
+                categoria: athlete.categoria,
+                becadoEnard: athlete.becadoEnard || false,
+                becadoSdn: athlete.becadoSdn || false,
+                montoBeca: athlete.montoBeca || 0,
+                presentoAptoMedico: athlete.presentoAptoMedico || false,
+                fechaAptoMedico: athlete.fechaAptoMedico,
+                fechaCreacion: athlete.fechaCreacion || new Date().toISOString()
             };
             
             // We use PUT /Atleta/{id} typically for updates
