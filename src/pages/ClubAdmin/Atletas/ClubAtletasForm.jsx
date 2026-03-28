@@ -191,170 +191,60 @@ const ClubAtletasForm = () => {
         }
     };
 
-    const handleTutorManagement = async (idAtleta) => {
-        console.log('🔍 Procesando tutor para atleta:', idAtleta);
-        let idTutor;
-
-        if (!tutorData.existe) {
-
-            console.log('➕ Creando Persona para el Tutor...');
-
-            const fechaNacimientoTutor = new Date();
-            fechaNacimientoTutor.setFullYear(fechaNacimientoTutor.getFullYear() - 30);
-
-            const tutorPersonaPayload = {
-                nombre: tutorData.nombre,
-                apellido: tutorData.apellido,
-                documento: tutorData.documento,
-                fechaNacimiento: fechaNacimientoTutor.toISOString(),
-                email: tutorData.email || "",
-                telefono: tutorData.telefono || "",
-                direccion: ""
-            };
-
-            const tutorPersonaResponse = await api.post('/Persona', tutorPersonaPayload);
-            const idPersonaTutor = tutorPersonaResponse.idPersona || tutorPersonaResponse.IdPersona;
-
-            console.log('➕ Registrando como Tutor...');
-            const tutorPayload = {
-                idPersona: idPersonaTutor,
-                tipoTutor: PARENTESCO_MAP[tutorData.parentesco] || 'Padre'
-            };
-
-            await api.post('/Tutor', tutorPayload);
-            idTutor = idPersonaTutor;
-        } else {
-
-            console.log('✅ Usando Tutor existente ID:', tutorData.idPersona);
-            idTutor = tutorData.idPersona;
-
-            try {
-                await api.get(`/Tutor/${idTutor}`);
-            } catch (e) {
-                console.log('➕ La persona existe pero no es Tutor, registrándolo...');
-                const tutorPayload = {
-                    idPersona: idTutor,
-                    tipoTutor: PARENTESCO_MAP[tutorData.parentesco] || 'Padre'
-                };
-                await api.post('/Tutor', tutorPayload);
-            }
-        }
-
-        console.log('🔗 Vinculando Atleta y Tutor...');
-        try {
-            await api.post('/AtletaTutor', {
-                idAtleta: idAtleta,
-                idTutor: idTutor,
-                parentesco: tutorData.parentesco
-            });
-            console.log('✅ Vinculación exitosa');
-        } catch (error) {
-            console.error('Error vinculando tutor (posiblemente ya existe la relación):', error);
-
-        }
-    };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
 
         try {
-            let idPersona;
-
-            const emailInput = formData.email || (esMenor && tutorData.email ? tutorData.email : null);
-            const telefonoInput = formData.telefono || (esMenor && tutorData.telefono ? tutorData.telefono : null);
-
-            const emailFinal = emailInput === "" ? null : emailInput;
-            const telefonoFinal = telefonoInput === "" ? null : telefonoInput;
-            const direccionFinal = formData.direccion === "" ? null : formData.direccion;
-
-            const fechaNacimientoISO = formData.fechaNacimiento ? new Date(formData.fechaNacimiento).toISOString() : new Date().toISOString();
-
-            const personaPayload = {
-                nombre: formData.nombre,
-                apellido: formData.apellido,
-                documento: formData.documento,
-                fechaNacimiento: fechaNacimientoISO,
-                email: emailFinal || "",
-                telefono: telefonoFinal || "",
-                direccion: direccionFinal || "",
-                sexo: parseInt(formData.sexo)
+            // Preparar el payload atómico
+            const payload = {
+                personaAtleta: {
+                    nombre: formData.nombre,
+                    apellido: formData.apellido,
+                    documento: formData.documento,
+                    fechaNacimiento: formData.fechaNacimiento,
+                    sexo: parseInt(formData.sexo),
+                    email: formData.email || "",
+                    telefono: formData.telefono || "",
+                    direccion: formData.direccion || ""
+                },
+                datosDeportivos: {
+                    idPersona: id ? parseInt(id) : 0,
+                    idClub: user.clubId,
+                    categoria: parseInt(formData.categoria) || 0,
+                    becadoEnard: formData.becadoEnard,
+                    becadoSdn: formData.becadoSdn,
+                    montoBeca: parseFloat(formData.montoBeca) || 0,
+                    presentoAptoMedico: formData.presentoAptoMedico,
+                    estadoPago: 0,
+                    perteneceSeleccion: false,
+                    fechaAptoMedico: null
+                },
+                esMenor: esMenor,
+                tutor: esMenor && tutorData.documento ? {
+                    idPersonaTutor: tutorData.idPersona,
+                    personaTutor: !tutorData.existe ? {
+                        nombre: tutorData.nombre,
+                        apellido: tutorData.apellido,
+                        documento: tutorData.documento,
+                        fechaNacimiento: new Date(new Date().setFullYear(new Date().getFullYear() - 30)).toISOString(),
+                        email: tutorData.email || "",
+                        telefono: tutorData.telefono || "",
+                        direccion: ""
+                    } : null,
+                    parentesco: parseInt(tutorData.parentesco)
+                } : null
             };
 
-            const getAtletaPayload = (idPersona) => ({
-                idPersona: idPersona,
-                idClub: user.clubId,
-                categoria: parseInt(formData.categoria) || 0,
-                becadoEnard: formData.becadoEnard,
-                becadoSdn: formData.becadoSdn,
-                montoBeca: parseFloat(formData.montoBeca) || 0,
-                presentoAptoMedico: formData.presentoAptoMedico,
-                estadoPago: 0,
-                perteneceSeleccion: false,
-                fechaAptoMedico: null
-            });
-
-            if (id) {
-
-                await api.put(`/Persona/${id}`, personaPayload);
-                await api.put(`/Atleta/${id}`, getAtletaPayload(parseInt(id)));
-                idPersona = parseInt(id);
-
-                if (esMenor && tutorData.documento) {
-                    await handleTutorManagement(idPersona);
-                } else {
-
-                    try {
-                        await api.delete(`/AtletaTutor/atleta/${idPersona}`);
-                    } catch (error) {
-                        console.log('No había relación tutor para eliminar');
-                    }
-                }
-            } else {
-
-                try {
-                    console.log(`🔍 Buscando persona con DNI ${formData.documento}...`);
-                    const personaExistente = await api.get(`/Persona/documento/${formData.documento}`, { silentErrors: true });
-
-                    if (personaExistente && personaExistente.idPersona) {
-                        idPersona = personaExistente.idPersona;
-                        console.log('⚠️ Persona encontrada, reutilizando ID:', idPersona);
-
-                        console.log('🔄 Actualizando datos de persona existente...');
-                        await api.put(`/Persona/${idPersona}`, personaPayload);
-                    }
-                } catch (error) {
-                    console.log('ℹ️ Persona no encontrada, se creará una nueva.');
-                }
-
-                if (!idPersona) {
-                    console.log('➕ Creando nueva Persona:', personaPayload);
-                    const personaResponse = await api.post('/Persona', personaPayload);
-                    console.log('✅ Persona creada:', personaResponse);
-                    idPersona = personaResponse.idPersona || personaResponse.IdPersona;
-                }
-
-                try {
-
-                    await api.get(`/Atleta/${idPersona}`);
-                    console.log('⚠️ Esta persona ya es atleta.');
-
-                    await api.put(`/Atleta/${idPersona}`, getAtletaPayload(idPersona));
-                } catch (error) {
-
-                    console.log('➕ Creando registro de Atleta...');
-                    await api.post('/Atleta', getAtletaPayload(idPersona));
-                }
-
-                if (esMenor && tutorData.documento) {
-                    await handleTutorManagement(idPersona);
-                }
-            }
+            console.log('🚀 Enviando registro atómico:', payload);
+            
+            // Usamos el nuevo endpoint atómico
+            await api.post('/Atleta/full', payload);
 
             setModalConfig({
                 isOpen: true,
                 title: 'Éxito',
-                message: 'Atleta guardado exitosamente!',
+                message: 'Atleta y tutor procesados exitosamente!',
                 type: 'success',
                 shouldNavigate: true
             });
@@ -362,8 +252,8 @@ const ClubAtletasForm = () => {
             console.error('Error guardando:', error);
             setModalConfig({
                 isOpen: true,
-                title: 'Error',
-                message: 'Error al guardar. Revisa la consola para más detalles.',
+                title: 'Error al guardar',
+                message: error.message || 'Error al procesar la solicitud. Revisa la consola.',
                 type: 'danger',
                 shouldNavigate: false
             });

@@ -1,8 +1,13 @@
+import { PARENTESCO_MAP } from '../utils/enums';
+
 // --- PRODUCCIÓN (Descomentar para subir a la nube) ---
 const API_URL = 'https://sigdef-v7.onrender.com/api'; 
 
 // --- DESARROLLO LOCAL (Comentar para subir a la nube) ---
 // const API_URL = 'http://localhost:5078/api'; 
+
+const DEFAULT_TIMEOUT = 30000; // 30 segundos
+const MAX_RETRIES = 2;
 
 const defaultHeaders = {
     'Content-Type': 'application/json',
@@ -12,160 +17,120 @@ const handleResponse = async (response, options = {}) => {
     const { silentErrors = false } = options;
 
     if (response.status === 204) {
-        console.log('✅ 204 No Content - Operación exitosa');
         return null;
     }
 
     if (response.status === 401) {
-        console.warn('⚠️ 401 Unauthorized - Token expirado o inválido');
-        // Limpiamos la sesión
         localStorage.removeItem('user');
         localStorage.removeItem('token');
-        // Redirigimos al usuario silenciosamente al login
         window.location.href = '/login';
         throw new Error('Su sesión ha expirado');
     }
 
-    const responseText = await response.text();
+    let responseText = '';
+    try {
+        responseText = await response.text();
+    } catch (e) {
+        console.warn('⚠️ No se pudo leer el cuerpo de la respuesta');
+    }
 
     if (!response.ok) {
         if (!silentErrors) {
-            console.error('❌ Error del servidor:', responseText);
+            console.error('❌ Error del servidor:', response.status, responseText);
         }
-        throw new Error(responseText || `Error ${response.status}: ${response.statusText}`);
+        
+        try {
+            const errorObj = JSON.parse(responseText);
+            throw new Error(errorObj.message || errorObj.error || `Error ${response.status}`);
+        } catch (e) {
+            throw new Error(responseText || `Error ${response.status}: ${response.statusText}`);
+        }
     }
 
-    if (!responseText) {
-        console.log('✅ Respuesta vacía - Operación exitosa');
-        return { success: true };
+    if (!responseText) return { success: true };
+
+    try {
+        return JSON.parse(responseText);
+    } catch (error) {
+        return { message: responseText, success: true };
+    }
+};
+
+const fetchWithTimeout = async (resource, options = {}) => {
+    const { timeout = DEFAULT_TIMEOUT } = options;
+    
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    
+    try {
+        const response = await fetch(resource, {
+            ...options,
+            signal: controller.signal
+        });
+        clearTimeout(id);
+        return response;
+    } catch (error) {
+        clearTimeout(id);
+        if (error.name === 'AbortError') {
+            throw new Error('La petición ha tardado demasiado tiempo (Timeout)');
+        }
+        throw error;
+    }
+};
+
+const request = async (endpoint, options = {}, retries = MAX_RETRIES) => {
+    const { silentErrors = false, ...fetchOptions } = options;
+    const url = `${API_URL}${endpoint}`;
+    
+    const token = JSON.parse(localStorage.getItem('user'))?.token;
+    if (token) {
+        fetchOptions.headers = {
+            ...fetchOptions.headers,
+            'Authorization': `Bearer ${token}`
+        };
     }
 
     try {
-        const data = JSON.parse(responseText);
-        console.log('✅ Respuesta JSON exitosa:', data);
-        return data;
+        const response = await fetchWithTimeout(url, fetchOptions);
+        
+        if (response.status >= 500 && retries > 0) {
+            console.warn(`Retrying... (${MAX_RETRIES - retries + 1})`);
+            await new Promise(res => setTimeout(res, 1000));
+            return request(endpoint, options, retries - 1);
+        }
+        
+        return await handleResponse(response, { silentErrors });
     } catch (error) {
-
-        console.log('✅ Respuesta de texto - Operación exitosa:', responseText);
-        return {
-            message: responseText,
-            success: true
-        };
+        if (retries > 0 && error.message.includes('Timeout')) {
+            return request(endpoint, options, retries - 1);
+        }
+        if (!silentErrors) console.error(`💥 Error en ${url}:`, error);
+        throw error;
     }
 };
 
 export const api = {
-    get: async (endpoint, options = {}) => {
-        const { silentErrors = false } = options;
-        const token = JSON.parse(localStorage.getItem('user'))?.token;
-        const headers = { ...defaultHeaders };
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-
-        console.log(`🚀 GET ${API_URL}${endpoint}`);
-
-        try {
-            const response = await fetch(`${API_URL}${endpoint}`, {
-                method: 'GET',
-                headers
-            });
-            return await handleResponse(response, { silentErrors });
-        } catch (error) {
-            if (!silentErrors) {
-                console.error(`💥 Error GET ${endpoint}:`, error);
-            }
-            throw error;
-        }
-    },
-
-    post: async (endpoint, data, options = {}) => {
-        const { silentErrors = false } = options;
-        const token = JSON.parse(localStorage.getItem('user'))?.token;
-        const headers = { ...defaultHeaders };
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-
-        console.log(`🚀 POST ${API_URL}${endpoint}`, data);
-
-        try {
-            const response = await fetch(`${API_URL}${endpoint}`, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify(data)
-            });
-            return await handleResponse(response, { silentErrors });
-        } catch (error) {
-            if (!silentErrors) {
-                console.error(`💥 Error POST ${endpoint}:`, error);
-            }
-            throw error;
-        }
-    },
-
-    put: async (endpoint, data, options = {}) => {
-        const { silentErrors = false } = options;
-        const token = JSON.parse(localStorage.getItem('user'))?.token;
-        const headers = { ...defaultHeaders };
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-
-        console.log(`🚀 PUT ${API_URL}${endpoint}`, data);
-
-        try {
-            const response = await fetch(`${API_URL}${endpoint}`, {
-                method: 'PUT',
-                headers,
-                body: JSON.stringify(data)
-            });
-            return await handleResponse(response, { silentErrors });
-        } catch (error) {
-            if (!silentErrors) {
-                console.error(`💥 Error PUT ${endpoint}:`, error);
-            }
-            throw error;
-        }
-    },
-
-    delete: async (endpoint, options = {}) => {
-        const { silentErrors = false } = options;
-        const token = JSON.parse(localStorage.getItem('user'))?.token;
-        const headers = { ...defaultHeaders };
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-
-        console.log(`🚀 DELETE ${API_URL}${endpoint}`);
-
-        try {
-            const response = await fetch(`${API_URL}${endpoint}`, {
-                method: 'DELETE',
-                headers
-            });
-            return await handleResponse(response, { silentErrors });
-        } catch (error) {
-            if (!silentErrors) {
-                console.error(`💥 Error DELETE ${endpoint}:`, error);
-            }
-            throw error;
-        }
-    },
-
-    upload: async (endpoint, formData, options = {}) => {
-        const { silentErrors = false } = options;
-        const token = JSON.parse(localStorage.getItem('user'))?.token;
-        // Do NOT set Content-Type header for FormData, browser does it automatically with boundary
-        const headers = {};
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-
-        console.log(`🚀 UPLOAD ${API_URL}${endpoint}`);
-
-        try {
-            const response = await fetch(`${API_URL}${endpoint}`, {
-                method: 'POST',
-                headers,
-                body: formData
-            });
-            return await handleResponse(response, { silentErrors });
-        } catch (error) {
-            if (!silentErrors) {
-                console.error(`💥 Error UPLOAD ${endpoint}:`, error);
-            }
-            throw error;
-        }
-    }
+    get: (endpoint, options = {}) => request(endpoint, { method: 'GET', ...options }),
+    
+    post: (endpoint, data, options = {}) => request(endpoint, { 
+        method: 'POST', 
+        headers: defaultHeaders,
+        body: JSON.stringify(data),
+        ...options 
+    }),
+    
+    put: (endpoint, data, options = {}) => request(endpoint, { 
+        method: 'PUT', 
+        headers: defaultHeaders,
+        body: JSON.stringify(data),
+        ...options 
+    }),
+    
+    delete: (endpoint, options = {}) => request(endpoint, { method: 'DELETE', ...options }),
+    
+    upload: (endpoint, formData, options = {}) => request(endpoint, { 
+        method: 'POST', 
+        body: formData,
+        ...options 
+    })
 };
