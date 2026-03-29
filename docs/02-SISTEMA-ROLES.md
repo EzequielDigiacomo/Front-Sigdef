@@ -15,6 +15,7 @@
 - ✅ Gestionar pagos
 - ✅ Acceso a estadísticas globales
 - ✅ Crear, editar y eliminar cualquier entidad
+- ✅ Resetear contraseñas de cualquier usuario
 
 **Credenciales de Prueba**:
 - Usuario: `admin`

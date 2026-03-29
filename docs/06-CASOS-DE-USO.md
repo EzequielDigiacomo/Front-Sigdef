@@ -40,6 +40,18 @@ Esta documentación describe los flujos funcionales clave del sistema SIGDEF, de
   4. El sistema guarda el cambio y habilita al atleta/club para participar en el sistema.
 - **Resultado Técnico**: Petición `PUT` a los endpoints de Atleta o Club actualizando el estado correspondiente.
 
+### 4. Recuperación de Acceso (Reseteo Administrativo)
+**Actor**: Administrador de la Federación.
+**Escenario**: Un usuario (Atleta, Entrenador o Delegado) ha olvidado su contraseña y no puede ingresar al sistema.
+
+- **Flujo Principal**:
+  1. El usuario solicita el acceso al Administrador por un canal externo.
+  2. El Administrador accede al módulo de **Gestión de Usuarios**.
+  3. Identifica al usuario y presiona la acción **Resetear Contraseña**.
+  4. El sistema genera una clave alfanumérica aleatoria y la muestra en pantalla.
+  5. El Administrador comunica la clave al usuario.
+- **Resultado Técnico**: Petición `POST /api/Usuario/reset-password/{id}` que genera un nuevo hash en la base de datos y retorna la clave plana.
+
 ---
 
 ## 🛠 Casos de Uso Técnicos

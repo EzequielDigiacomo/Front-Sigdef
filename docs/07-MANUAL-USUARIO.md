@@ -27,6 +27,11 @@ Desde el inicio, verás estadísticas globales del sistema:
 - Definición de pruebas específicas para cada evento.
 - Visualización de inscripciones en tiempo real.
 
+### 5. Recuperación de Acceso y Seguridad
+- **Reseteo de Contraseñas**: Si un usuario (Club o Atleta) olvida su clave, el administrador puede generar una nueva desde el módulo de **Gestión de Usuarios**.
+- Al presionar **Resetear**, se mostrará una clave temporal alfanumérica que el administrador debe copiar y entregar al usuario.
+- El usuario podrá ingresar con esa clave y luego cambiarla desde su propio perfil.
+
 ---
 
 ## 🏟️ Perfil: CLUB (Gestor Deportivo)
