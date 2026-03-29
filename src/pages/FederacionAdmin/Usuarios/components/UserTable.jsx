@@ -119,6 +119,7 @@ const UserTable = ({ users, clubs = [], onUserUpdated }) => {
                             {
                                 title: 'Resetear Contraseña',
                                 icon: loadingReset && resettingUser?.idPersona === row.idPersona ? <RefreshCw className="animate-spin" size={18} /> : <Key size={18} />,
+                                children: ' ', // Un espacio para ver si el botón aparece
                                 onClick: handleResetPassword,
                                 className: 'text-amber-500',
                                 disabled: loadingReset
