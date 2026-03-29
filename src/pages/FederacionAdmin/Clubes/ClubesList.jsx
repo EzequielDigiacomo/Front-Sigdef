@@ -7,7 +7,7 @@ import FormField from '../../../components/forms/FormField';
 import { Plus, Edit, Trash2, Search, Users, Target, Briefcase } from 'lucide-react';
 import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
-import { getCategoriaLabel } from '../../../utils/enums';
+import { getCategoriaLabel, getEstadoPagoColor, getEstadoPagoLabel } from '../../../utils/enums';
 import { seedDatabase } from '../../../utils/seeder';
 import './Clubes.css';
 
@@ -84,6 +84,9 @@ const ClubesList = () => {
                                 badge={
                                     <div className="flex gap-2">
                                         <span className="badge badge-info"><Users size={12} /> {club.cantidadAtletas || 0}</span>
+                                        <span className={`badge badge-${getEstadoPagoColor(club.estadoMatricula)}`}>
+                                            {getEstadoPagoLabel(club.estadoMatricula)}
+                                        </span>
                                     </div>
                                 }
                                 details={[
@@ -113,7 +116,12 @@ const ClubesList = () => {
                                     <div className="club-card-header">
                                         <div>
                                             <h3 className="club-card-title">{club.nombre}</h3>
-                                            <span className="club-card-siglas">{club.siglas}</span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span className="club-card-siglas">{club.siglas}</span>
+                                                <span className={`badge badge-${getEstadoPagoColor(club.estadoMatricula)}`} style={{ fontSize: '0.7rem', padding: '2px 8px' }}>
+                                                    {getEstadoPagoLabel(club.estadoMatricula)}
+                                                </span>
+                                            </div>
                                         </div>
                                         <div className="club-card-actions">
                                             <button className="club-card-action-btn" onClick={(e) => handleEditClick(e, club.idClub)}><Edit size={18} /></button>

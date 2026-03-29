@@ -581,8 +581,9 @@ const AtletasForm = () => {
                             <label>Estado de Pago (Matrícula)</label>
                             <select name="estadoPago" value={formData.estadoPago} onChange={handleChange} className="form-input">
                                 <option value="0">Adeudado (Pendiente)</option>
-                                <option value="1">Abonado (Al Día)</option>
-                                <option value="2">Exento</option>
+                                <option value="1">Abonado (Pagado)</option>
+                                <option value="2">Vencido</option>
+                                <option value="3">Parcial</option>
                             </select>
                         </div>
 

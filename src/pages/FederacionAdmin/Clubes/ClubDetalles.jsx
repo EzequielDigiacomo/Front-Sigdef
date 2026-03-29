@@ -6,7 +6,7 @@ import Button from '../../../components/common/Button';
 import { ArrowLeft, Users, Target, Calendar, ClipboardList, Edit, Plus, CheckCircle, AlertTriangle, XCircle, Info } from 'lucide-react';
 import Modal from '../../../components/common/Modal';
 import AtletaDetailModal from '../Atletas/components/AtletaDetailModal';
-import { getCategoriaLabel } from '../../../utils/enums';
+import { getCategoriaLabel, getEstadoPagoColor, getEstadoPagoLabel } from '../../../utils/enums';
 
 const ClubDetalles = () => {
     const { id } = useParams();

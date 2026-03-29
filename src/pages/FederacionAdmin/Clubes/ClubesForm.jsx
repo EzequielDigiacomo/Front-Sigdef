@@ -89,8 +89,9 @@ const ClubesForm = () => {
                             <label>Estado de Matrícula (Federación)</label>
                             <select name="estadoMatricula" value={formData.estadoMatricula} onChange={handleChange} className="form-input">
                                 <option value="0">Pendiente</option>
-                                <option value="1">Activa (Al Día)</option>
-                                <option value="2">Vencida</option>
+                                <option value="1">Pagado (Al Día)</option>
+                                <option value="2">Vencido</option>
+                                <option value="3">Parcial</option>
                             </select>
                         </div>
                     </div>
