@@ -16,8 +16,7 @@ const Sidebar = ({ isOpen, closeMobile, isCollapsed, toggleSidebar }) => {
         //        { icon: Calendar, label: 'Eventos', path: '/eventos' },
         //        { icon: ClipboardList, label: 'Inscripciones', path: '/inscripciones' },
         { icon: Briefcase, label: 'Delegados Club', path: '/delegados' },
-        { icon: UserCheck, label: 'Tutores', path: '/tutores' },
-        { icon: DollarSign, label: 'Pagos', path: '/pagos' },
+//        { icon: DollarSign, label: 'Pagos', path: '/pagos' },
         { icon: Trophy, label: 'Federación', path: '/dashboard/federacion' },
     ];
 

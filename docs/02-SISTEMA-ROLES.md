@@ -62,6 +62,7 @@
 | **Gestionar tutores** | ✅ | ❌ |
 | **Gestionar entrenadores** | ✅ | ❌ |
 | **Gestionar pagos** | ✅ | ❌ |
+| **Documentación Persona** | ✅ | ✅* |
 
 \* Solo para entidades propias del club
 
@@ -302,13 +303,13 @@ if (username === 'entrenador1' && password === 'entrenador1') {
 - ✅ Redirección automática para accesos no autorizados
 - ✅ Persistencia segura en localStorage
 
-### Backend (Pendiente)
-- [ ] JWT tokens con expiración
-- [ ] Refresh tokens
-- [ ] Validación de permisos en cada endpoint
-- [ ] Rate limiting por usuario
-- [ ] Logs de acceso y auditoría
-- [ ] Encriptación de datos sensibles
+### Backend (Implementado)
+- ✅ **JWT Tokens**: Autenticación Bearer con tokens firmados (HMAC SHA256).
+- ✅ **Validación de Roles**: Los controladores validan el rol mediante decoradores `[Authorize]`.
+- ✅ **Filtrado por Club**: Los servicios (`ClubServices`, `AtletaServices`) aplican filtros por `idClub` automáticamente para el rol Club.
+- ✅ **Rate Limiting**: Implementado en `Program.cs` mediante `FixedWindowLimiter`.
+- ✅ **CORS**: Política `AllowAll` para facilitar el consumo desde múltiples orígenes.
+- ✅ **Logs de Excepción**: Middleware global para captura y log de errores.
 
 ## Mejores Prácticas
 

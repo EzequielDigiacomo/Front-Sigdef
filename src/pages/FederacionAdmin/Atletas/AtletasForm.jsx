@@ -265,7 +265,7 @@ const AtletasForm = () => {
                 BecadoSdn: formData.becadoSdn,
                 MontoBeca: parseFloat(formData.montoBeca) || 0,
                 PresentoAptoMedico: formData.presentoAptoMedico,
-                EstadoPago: 0,
+                EstadoPago: parseInt(formData.estadoPago),
                 PerteneceSeleccion: formData.perteneceSeleccion,
                 FechaAptoMedico: null
             });
@@ -578,11 +578,11 @@ const AtletasForm = () => {
                             </select>
                         </div>
                         <div className="form-group">
-                            <label>Categoría</label>
-                            <select name="categoria" value={formData.categoria} onChange={handleChange} className="form-input">
-                                {Object.entries(CATEGORIA_MAP).map(([key, label]) => (
-                                    <option key={key} value={key}>{label}</option>
-                                ))}
+                            <label>Estado de Pago (Matrícula)</label>
+                            <select name="estadoPago" value={formData.estadoPago} onChange={handleChange} className="form-input">
+                                <option value="0">Adeudado (Pendiente)</option>
+                                <option value="1">Abonado (Al Día)</option>
+                                <option value="2">Exento</option>
                             </select>
                         </div>
 

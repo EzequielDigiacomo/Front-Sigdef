@@ -16,7 +16,8 @@ const ClubesForm = () => {
         nombre: '',
         direccion: '',
         telefono: '',
-        siglas: ''
+        siglas: '',
+        estadoMatricula: 0
     });
 
     useEffect(() => {
@@ -83,6 +84,14 @@ const ClubesForm = () => {
                         <div className="form-group">
                             <label>Teléfono</label>
                             <input name="telefono" value={formData.telefono} onChange={handleChange} className="form-input" />
+                        </div>
+                        <div className="form-group">
+                            <label>Estado de Matrícula (Federación)</label>
+                            <select name="estadoMatricula" value={formData.estadoMatricula} onChange={handleChange} className="form-input">
+                                <option value="0">Pendiente</option>
+                                <option value="1">Activa (Al Día)</option>
+                                <option value="2">Vencida</option>
+                            </select>
                         </div>
                     </div>
 
