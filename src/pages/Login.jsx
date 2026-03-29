@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/common/Button';
-import { Shield, Eye, EyeOff, Smartphone } from 'lucide-react';
+import { Shield, Eye, EyeOff, Smartphone, HelpCircle } from 'lucide-react';
 import { useDevice } from '../hooks/useDevice';
+import Modal from '../components/common/Modal';
 import './Login.css';
 
 const Login = () => {
@@ -13,6 +14,7 @@ const Login = () => {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [showForgotModal, setShowForgotModal] = useState(false);
 
     const { login } = useAuth();
     const navigate = useNavigate();
@@ -98,6 +100,16 @@ const Login = () => {
                         Iniciar Sesión
                     </Button>
 
+                    <div className="forgot-password-container">
+                        <button 
+                            type="button" 
+                            className="forgot-password-link"
+                            onClick={() => setShowForgotModal(true)}
+                        >
+                            ¿Olvidó su contraseña?
+                        </button>
+                    </div>
+
                     <div className="login-info">
                         <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '1rem', textAlign: 'center' }}>
                             <strong>Credenciales de prueba:</strong><br />
@@ -107,6 +119,42 @@ const Login = () => {
                     </div>
                 </form>
             </div>
+
+            {showForgotModal && (
+                <Modal
+                    isOpen={showForgotModal}
+                    onClose={() => setShowForgotModal(false)}
+                    title="Recuperación de Acceso"
+                    footer={
+                        <Button variant="primary" onClick={() => setShowForgotModal(false)}>
+                            Entendido
+                        </Button>
+                    }
+                >
+                    <div style={{ textAlign: 'center', padding: '1rem' }}>
+                        <div style={{ 
+                            backgroundColor: 'rgba(var(--primary-rgb), 0.1)', 
+                            width: '60px', 
+                            height: '60px', 
+                            borderRadius: '50%', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            margin: '0 auto 1.5rem',
+                            color: 'var(--primary)'
+                        }}>
+                            <HelpCircle size={32} />
+                        </div>
+                        <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Reseteo de Contraseña</h4>
+                        <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                            Por razones de seguridad, el reseteo de contraseñas es gestionado manualmente por el <strong>Administrador de su Club</strong> o la <strong>Federación</strong>.
+                        </p>
+                        <p style={{ color: 'var(--text-secondary)', marginTop: '1rem', fontSize: '0.9rem' }}>
+                            Por favor, póngase en contacto con ellos de forma externa para solicitar la generación de una clave temporal.
+                        </p>
+                    </div>
+                </Modal>
+            )}
         </div>
     );
 };
