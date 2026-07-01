@@ -118,7 +118,7 @@ const EntrenadorSeleccionList = () => {
                             {/* Columna Izquierda: Icono y Título */}
                             <div className="card-col-left">
                                 <div className="category-icon-wrapper">
-                                    <Award size={48} />
+                                    <Award size={32} />
                                 </div>
                                 <h3 className="category-title">{stat.label}</h3>
                             </div>

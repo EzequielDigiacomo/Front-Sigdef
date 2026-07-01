@@ -113,6 +113,7 @@ const Login = () => {
                     <div className="login-info">
                         <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '1rem', textAlign: 'center' }}>
                             <strong>Credenciales de prueba:</strong><br />
+                            <strong>Superadmin:</strong> superadmin / superadmin<br />
                             <strong>Federación:</strong> admin / admin123<br />
                             <strong>Club:</strong> club2 / club123
                         </p>

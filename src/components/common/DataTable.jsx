@@ -62,15 +62,19 @@ const DataTable = ({
                             <th
                                 key={column.key}
                                 className={`${column.headerClassName || ''} ${column.sortable !== false ? 'sortable-header' : ''}`}
+                                style={column.align ? { textAlign: column.align } : {}}
                                 onClick={() => column.sortable !== false && requestSort(column.key)}
                             >
-                                <div className="header-content">
+                                <div 
+                                    className="header-content"
+                                    style={column.align ? { justifyContent: column.align === 'center' ? 'center' : (column.align === 'right' ? 'flex-end' : 'flex-start') } : {}}
+                                >
                                     {column.label}
                                     {renderSortIcon(column)}
                                 </div>
                             </th>
                         ))}
-                        {actions && <th>Acciones</th>}
+                        {actions && <th style={{ textAlign: 'center' }}><div className="header-content" style={{ justifyContent: 'center' }}>Acciones</div></th>}
                     </tr>
                 </thead>
                 <tbody>
@@ -97,12 +101,13 @@ const DataTable = ({
                                     <td
                                         key={column.key}
                                         className={column.cellClassName || ''}
+                                        style={column.align ? { textAlign: column.align } : {}}
                                     >
                                         {renderCell(row, column)}
                                     </td>
                                 ))}
                                 {actions && (
-                                    <td onClick={(e) => e.stopPropagation()}>
+                                    <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
                                         {typeof actions === 'function' ? actions(row) : actions}
                                     </td>
                                 )}

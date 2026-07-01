@@ -207,3 +207,35 @@ button {
 .opacity-30 {
   opacity: 0.3;
 }
+
+/* Flexbox utility classes for modern layouts */
+.flex {
+  display: flex !important;
+}
+.flex-col {
+  flex-direction: column !important;
+}
+.items-center {
+  align-items: center !important;
+}
+.justify-center {
+  justify-content: center !important;
+}
+.justify-between {
+  justify-content: space-between !important;
+}
+.justify-end {
+  justify-content: flex-end !important;
+}
+.gap-1 {
+  gap: 0.25rem !important;
+}
+.gap-2 {
+  gap: 0.5rem !important;
+}
+.gap-3 {
+  gap: 0.75rem !important;
+}
+.gap-4 {
+  gap: 1rem !important;
+}

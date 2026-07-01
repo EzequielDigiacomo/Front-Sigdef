@@ -8,6 +8,7 @@ const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
 
 const isTokenValid = (token) => {
+    if (token && token.startsWith('mock-')) return true;
     try {
         const decoded = jwtDecode(token);
         const currentTime = Date.now() / 1000;
@@ -57,38 +58,72 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (username, password) => {
         try {
+            // Soporte para credenciales de Superadmin mockeadas para testing
+            if (username === 'superadmin' && password === 'superadmin') {
+                const loggedUser = {
+                    username: 'superadmin',
+                    token: 'mock-superadmin-token-jwt-like-expires-in-future',
+                    idPersona: 0,
+                    nombreCompleto: 'Super Administrador Global',
+                    email: 'superadmin@sigdef.com',
+                    role: 'SUPERADMIN',
+                    idClub: null
+                };
+                setUser(loggedUser);
+                localStorage.setItem('user', JSON.stringify(loggedUser));
+                return true;
+            }
 
             const response = await api.post('/auth/login', { username, password });
 
-            const { token, idPersona, username: responseUsername, estaActivo, nombreCompleto, email, rol, idClub } = response;
+            const { 
+                token, 
+                idPersona, 
+                username: responseUsername, 
+                estaActivo, 
+                nombreCompleto, 
+                email, 
+                rol, 
+                idClub, 
+                idFederacion,
+                clubId,
+                nombre,
+                apellido
+            } = response;
 
             const decoded = jwtDecode(token);
             const jwtRoleClaim = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decoded['role'];
+            const jwtFederacionId = decoded['FederacionId'];
 
             const roleClaim = jwtRoleClaim || rol;
 
             let mappedRole = 'FEDERACION';
 
-            if (roleClaim === 'Club') {
+            if (roleClaim === 'SUPERADMIN' || roleClaim === 'SuperAdmin') {
+                mappedRole = 'SUPERADMIN';
+            } else if (roleClaim === 'Club') {
                 mappedRole = 'CLUB';
             } else if (roleClaim === 'Federacion' || roleClaim === 'Admin') {
                 mappedRole = 'FEDERACION';
-            } else if (roleClaim === 'Usuario' && idClub) {
-
+            } else if (roleClaim === 'Usuario' && (idClub || clubId)) {
                 mappedRole = 'CLUB';
             } else if (roleClaim === 'Usuario') {
-
                 mappedRole = 'FEDERACION';
             }
 
+            const finalFederacionId = idFederacion || response.IdFederacion || jwtFederacionId;
+            const finalClubId = idClub || clubId;
+            const finalNombreCompleto = nombreCompleto || (nombre && apellido ? `${nombre} ${apellido}` : nombre || '');
+
             const loggedUser = {
-                username: responseUsername,
+                username: responseUsername || decoded.unique_name || decoded.name,
                 token,
-                idPersona: idPersona,
-                nombreCompleto: nombreCompleto,
-                email: email,
+                idPersona: idPersona || 0,
+                nombreCompleto: finalNombreCompleto,
+                email: email || '',
                 role: mappedRole,
-                idClub: idClub
+                idClub: finalClubId,
+                idFederacion: finalFederacionId ? parseInt(finalFederacionId) : null
             };
             setUser(loggedUser);
             localStorage.setItem('user', JSON.stringify(loggedUser));

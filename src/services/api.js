@@ -1,10 +1,8 @@
 import { PARENTESCO_MAP } from '../utils/enums';
 
-// --- PRODUCCIÓN (Descomentar para subir a la nube) ---
-const API_URL = 'https://sigdef-v7.onrender.com/api'; 
-
-// --- DESARROLLO LOCAL (Comentar para subir a la nube) ---
-// const API_URL = 'http://localhost:5078/api'; 
+// --- CONFIGURACIÓN DE API ---
+// Usa la variable de entorno si existe, sino usa localhost por defecto
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5078/api';
 
 const DEFAULT_TIMEOUT = 30000; // 30 segundos
 const MAX_RETRIES = 2;

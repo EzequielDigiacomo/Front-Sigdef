@@ -122,6 +122,9 @@ export const SEXO_MAP = {
 };
 
 export const getCategoriaLabel = (value) => {
+    if (value === '0' || value === 0 || !value) {
+        return 'Sin Asignar';
+    }
     // Si el valor ya está en el mapa, devolverlo
     if (CATEGORIA_MAP[value]) {
         return CATEGORIA_MAP[value];

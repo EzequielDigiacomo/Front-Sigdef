@@ -43,7 +43,67 @@
 }
 
 .tab-content {
-    padding: 2rem;
+    padding: 1rem;
+}
+
+/* Compact form overrides to reduce height and scroll */
+.user-management-container .form-container {
+    max-width: 100% !important;
+    padding: 0.5rem !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+.user-management-container .form-section {
+    margin-bottom: 0.75rem !important;
+    padding-bottom: 0.5rem !important;
+}
+
+.user-management-container .section-subtitle {
+    font-size: 0.95rem !important;
+    margin-bottom: 0.5rem !important;
+}
+
+.user-management-container .form-grid {
+    gap: 0.5rem !important;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+}
+
+.user-management-container .form-group {
+    gap: 0.25rem !important;
+}
+
+.user-management-container .form-group label {
+    font-size: 0.8rem !important;
+    margin-bottom: 0.1rem !important;
+}
+
+.user-management-container .form-input,
+.user-management-container select {
+    padding: 0.35rem 0.6rem !important;
+    font-size: 0.85rem !important;
+    height: 32px !important;
+}
+
+.user-management-container .action-btn {
+    width: 32px !important;
+    height: 32px !important;
+}
+
+.user-management-container .form-row {
+    display: flex !important;
+    gap: 0.5rem !important;
+}
+
+.user-management-container .mt-6 {
+    margin-top: 0.75rem !important;
+}
+
+.user-management-container button[type="submit"] {
+    height: 34px !important;
+    font-size: 0.85rem !important;
+    padding: 0.4rem 1rem !important;
 }
 
 @media (max-width: 640px) {

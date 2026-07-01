@@ -40,7 +40,7 @@ const AtletasList = () => {
     
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage] = useState(6);
+    const [itemsPerPage] = useState(10);
     const navigate = useNavigate();
     
     const [totalPages, setTotalPages] = useState(1);
