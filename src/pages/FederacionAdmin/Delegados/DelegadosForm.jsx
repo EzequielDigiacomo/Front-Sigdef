@@ -5,11 +5,13 @@ import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import { ArrowLeft, Save, Search } from 'lucide-react';
+import { useAuth } from '../../../context/AuthContext';
 
 const DelegadosForm = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
+    const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [clubes, setClubes] = useState([]);
     const [federacionNombre, setFederacionNombre] = useState('');
@@ -29,7 +31,7 @@ const DelegadosForm = () => {
         // Datos Delegado
         idRol: 3, // Delegado Club
         idClub: '', // Vacío implica Agente Libre
-        idFederacion: 1
+        idFederacion: user?.idFederacion || 1
     });
 
     const [modalConfig, setModalConfig] = useState({
@@ -88,15 +90,14 @@ const DelegadosForm = () => {
 
     const loadFederacion = async () => {
         try {
-            // Forzamos buscar la ID 1 como pidió el usuario
-            const data = await api.get('/Federacion/1');
-            setFederacionNombre(data?.nombre || data?.Nombre || 'Federación Principal');
-            setFormData(prev => ({ ...prev, idFederacion: 1 }));
+            const fedId = user?.idFederacion || 1;
+            const data = await api.get(`/Federacion/${fedId}`);
+            setFederacionNombre(data?.nombre || data?.Nombre || `Federación ID ${fedId}`);
+            setFormData(prev => ({ ...prev, idFederacion: fedId }));
         } catch (error) {
-            console.error('Error cargando federación invidual 1:', error);
-            // Si falla, mostramos fallback pero mantenemos ID 1
-            setFederacionNombre('Federación (ID 1)');
-            setFormData(prev => ({ ...prev, idFederacion: 1 }));
+            console.error(`Error cargando federación individual ${user?.idFederacion || 1}:`, error);
+            setFederacionNombre(`Federación (ID ${user?.idFederacion || 1})`);
+            setFormData(prev => ({ ...prev, idFederacion: user?.idFederacion || 1 }));
         }
     };
 

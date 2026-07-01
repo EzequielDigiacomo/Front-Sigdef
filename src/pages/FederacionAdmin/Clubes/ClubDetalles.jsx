@@ -173,8 +173,8 @@ const ClubDetalles = () => {
                             <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Dirección</label>
                             <div style={{ fontSize: '1rem', fontWeight: '500' }}>{club.direccion || '-'}</div>
                         </div>
-                        <div>
-                            <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Estado de Matrícula</label>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                            <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Estado de Matrícula</label>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <select 
                                     value={club.estadoMatricula ?? 0}
@@ -289,7 +289,7 @@ const ClubDetalles = () => {
                 </Card>
 
                 {/* KPI Cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
                     <Card style={{ textAlign: 'center', padding: '1.5rem' }}>
                         <Target size={32} style={{ margin: '0 auto 0.5rem', color: 'var(--primary)' }} />
                         <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{entrenadoresClub.length}</div>
@@ -300,103 +300,9 @@ const ClubDetalles = () => {
                         <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{atletasClub.length}</div>
                         <div style={{ color: 'var(--text-secondary)' }}>Atletas</div>
                     </Card>
-                    <Card style={{ textAlign: 'center', padding: '1.5rem' }}>
-                        <Calendar size={32} style={{ margin: '0 auto 0.5rem', color: 'var(--warning)' }} />
-                        <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{eventosAsistidos.length}</div>
-                        <div style={{ color: 'var(--text-secondary)' }}>Eventos Asistidos</div>
-                    </Card>
                 </div>
 
-                {/* Eventos Creados */}
-                <Card>
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 style={{ color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                            <Calendar size={20} />
-                            Eventos Creados ({eventosCreados.length})
-                        </h3>
-                        <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={() => navigate('/dashboard/eventos/nuevo', { state: { clubId: club.idClub, returnPath: `/dashboard/clubes/detalles/${club.idClub}` } })}
-                        >
-                            <Plus size={16} className="mr-2" /> Agregar Evento
-                        </Button>
-                    </div>
-                    {eventosCreados.length > 0 ? (
-                        <div className="table-responsive">
-                            <table className="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Nombre</th>
-                                        <th>Fecha Inicio</th>
-                                        <th>Estado</th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {eventosCreados.map((ev) => (
-                                        <tr key={ev.idEvento}>
-                                            <td>{ev.nombre}</td>
-                                            <td>{new Date(ev.fechaInicio).toLocaleDateString()}</td>
-                                            <td>
-                                                {new Date(ev.fechaFin) < new Date() ? 'Finalizado' : 'Próximo'}
-                                            </td>
-                                            <td>
-                                                <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/eventos/${ev.idEvento}`)}>Ver</Button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    ) : (
-                        <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
-                            No tiene eventos creados
-                        </div>
-                    )}
-                </Card>
-
-                {/* Eventos Asistidos */}
-                <Card>
-                    <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <ClipboardList size={20} />
-                        Eventos Asistidos ({eventosAsistidos.length})
-                    </h3>
-                    {eventosAsistidos.length > 0 ? (
-                        <div className="table-responsive">
-                            <table className="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Nombre</th>
-                                        <th>Fecha Inicio</th>
-                                        <th>Atletas Inscritos</th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {eventosAsistidos.map((ev) => {
-                                        // Contar cuántos inscritos de este club hay en este evento
-                                        const countInscritos = inscripciones.filter(i => i.idEvento === ev.idEvento && i.idClub === club.idClub).length;
-                                        return (
-                                            <tr key={ev.idEvento}>
-                                                <td>{ev.nombre}</td>
-                                                <td>{new Date(ev.fechaInicio).toLocaleDateString()}</td>
-                                                <td>{countInscritos}</td>
-                                                <td>
-                                                    <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/eventos/${ev.idEvento}`)}>Ver</Button>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    ) : (
-                        <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
-                            No ha asistido a ningún evento
-                        </div>
-                    )}
-                </Card>
+                {/* Eventos y Competencias temporalmente deshabilitados */}
 
 
                 {/* Entrenadores */}

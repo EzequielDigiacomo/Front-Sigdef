@@ -59,21 +59,24 @@
     width: 100%;
     border-collapse: collapse;
     color: var(--text-primary);
+    font-size: 0.85rem;
 }
 
 .data-table th,
 .data-table td {
-    padding: 1rem;
+    padding: 0.5rem 0.75rem;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
 }
 
 .data-table th {
     font-weight: 600;
     color: var(--text-secondary);
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    padding: 0.6rem 0.75rem;
 }
 
 .data-table tr:last-child td {

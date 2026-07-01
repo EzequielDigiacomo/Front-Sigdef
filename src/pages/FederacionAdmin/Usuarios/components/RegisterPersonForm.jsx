@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../../../services/api';
+import { useAuth } from '../../../../context/AuthContext';
 import { Search, Save, UserPlus } from 'lucide-react';
 import { SEXO_MAP } from '../../../../utils/enums';
 import Button from '../../../../components/common/Button';
@@ -7,6 +8,7 @@ import ConfirmationModal from '../../../../components/common/ConfirmationModal';
 import './RegisterPersonForm.css';
 
 const RegisterPersonForm = ({ onUserCreated }) => {
+    const { user } = useAuth();
     const [formData, setFormData] = useState({
         // Datos Persona
         nombre: '',
@@ -28,7 +30,7 @@ const RegisterPersonForm = ({ onUserCreated }) => {
 
         // Datos Específicos
         licencia: '',
-        idFederacion: 1 // Default
+        idFederacion: user?.idFederacion || 1 // Default
     });
 
     const [personaExists, setPersonaExists] = useState(false);
@@ -176,8 +178,8 @@ const RegisterPersonForm = ({ onUserCreated }) => {
                 IdPersona: currentIdPersona,
                 idClub: parseInt(formData.idClub) || 0,
                 IdClub: parseInt(formData.idClub) || 0,
-                idFederacion: 1,
-                IdFederacion: 1,
+                idFederacion: user?.idFederacion || 1,
+                IdFederacion: user?.idFederacion || 1,
                 username: formData.username,
                 Username: formData.username,
                 password: formData.password,
@@ -201,7 +203,7 @@ const RegisterPersonForm = ({ onUserCreated }) => {
                 await api.post('/DelegadoClub', {
                     IdPersona: currentIdPersona,
                     IdClub: clubIdInt > 0 ? clubIdInt : null,
-                    IdFederacion: 1,
+                    IdFederacion: user?.idFederacion || 1,
                     IdRol: 3
                 });
             } else if (formData.rol === 'Entrenador') {
@@ -224,7 +226,7 @@ const RegisterPersonForm = ({ onUserCreated }) => {
             setFormData({
                 nombre: '', apellido: '', documento: '', sexo: 1, fechaNacimiento: '',
                 email: '', telefono: '', direccion: '', username: '', password: '',
-                confirmPassword: '', rol: '', idClub: 0, estaActivo: true, licencia: '', idFederacion: 1
+                confirmPassword: '', rol: '', idClub: 0, estaActivo: true, licencia: '', idFederacion: user?.idFederacion || 1
             });
             setPersonaExists(false);
             setIdPersona(0);

@@ -6,15 +6,17 @@ Esta carpeta contiene toda la documentación del proyecto SIGDEF (Sistema de Ges
 
 ### 📄 Documentos Disponibles
 
-1. **[01-ARQUITECTURA.md](./01-ARQUITECTURA.md)** - Arquitectura general del sistema
-2. **[02-SISTEMA-ROLES.md](./02-SISTEMA-ROLES.md)** - Sistema de roles y permisos
-3. **[03-ESTRUCTURA-PROYECTO.md](./03-ESTRUCTURA-PROYECTO.md)** - Estructura de carpetas y archivos
-4. **[04-COMPONENTES.md](./04-COMPONENTES.md)** - Documentación de componentes
-5. **[05-RUTAS.md](./05-RUTAS.md)** - Sistema de rutas y navegación
-6. **[06-ESTILOS.md](./06-ESTILOS.md)** - Guía de estilos y diseño
-7. **[07-API-INTEGRATION.md](./07-API-INTEGRATION.md)** - Guía de integración con API
-8. **[08-GUIA-DESARROLLO.md](./08-GUIA-DESARROLLO.md)** - Guía para desarrolladores
-9. **[09-DEPLOYMENT.md](./09-DEPLOYMENT.md)** - Guía de despliegue
+00. **[00-INFORMACIÓN GENERAL](./00-INFORMACION-GENERAL.md)** - Visión y alcance del proyecto SIGDEF Canotaje.
+01. **[01-ARQUITECTURA](./01-ARQUITECTURA.md)** - Arquitectura general del sistema.
+02. **[02-SISTEMA-ROLES](./02-SISTEMA-ROLES.md)** - Estructura de roles, permisos y flujos de usuario.
+03. **[03-ESTRUCTURA-PROYECTO](./03-ESTRUCTURA-PROYECTO.md)** - Organización de carpetas y estándares de código.
+04. **[04-API-BACKEND](./04-API-BACKEND.md)** - Documentación de endpoints y servicios de servidor.
+05. **[05-BASE-DE-DATOS](./05-BASE-DE-DATOS.md)** - Modelo relacional y esquemas.
+06. **[06-CASOS-DE-USO](./06-CASOS-DE-USO.md)** - Historias de usuario y casos prácticos.
+07. **[07-API-INTEGRATION](./07-API-INTEGRATION.md)** - Guía de integración Frontend-Backend.
+08. **[08-GUIA-DESARROLLO](./08-GUIA-DESARROLLO.md)** - Manual para nuevos desarrolladores.
+09. **[09-RELEVAMIENTO](./09-RELEVAMIENTO.md)** - Organigrama de Canotaje, procesos y puntos de dolor.
+10. **[10-PROPUESTA](./10-PROPUESTA.md)** - Solución integral y propuesta de valor.
 
 ## 🚀 Inicio Rápido
 

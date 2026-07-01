@@ -30,7 +30,7 @@ const ClubDelegadosForm = () => {
 
         // Datos Delegado
         idRol: 3, // Delegado Club (Default)
-        idFederacion: 1
+        idFederacion: user?.idFederacion || 1
     });
 
     const [modalConfig, setModalConfig] = useState({

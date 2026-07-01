@@ -26,7 +26,7 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
     const [filters, setFilters] = useState({ search: '', club: '' });
     const [clubes, setClubes] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage] = useState(8);
+    const [itemsPerPage] = useState(10);
 
     // Document Modals State
     const [showUploadModal, setShowUploadModal] = useState(false);
@@ -122,19 +122,20 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
 
     const columns = [
         { label: 'Nombre y Apellido', key: 'nombrePersona', render: (value, row) => <span className="font-medium text-primary">{row.nombrePersona || `${row.nombre || ''} ${row.apellido || ''}`}</span> },
-        { label: 'Documento', key: 'documento' },
+        { label: 'Documento', key: 'documento', align: 'center' },
         { label: 'Club', key: 'nombreClub', render: (val) => val || 'Sin Club' },
-        { label: 'Email', key: 'email', render: (val) => val || '-' },
+        { label: 'Email', key: 'email', render: (val) => val || '-', align: 'center' },
         ...(viewMode === 'seleccion' ? [
-            { label: 'Beca ENARD', key: 'becadoEnard', render: (val) => val ? <span className="badge badge-success">SÍ</span> : <span className="badge badge-secondary">NO</span> },
-            { label: 'Beca SND', key: 'becadoSdn', render: (val) => val ? <span className="badge badge-success">SÍ</span> : <span className="badge badge-secondary">NO</span> },
-            { label: 'Monto', key: 'montoBeca', render: (val) => val ? `$${val.toLocaleString()}` : '$0' },
-            { label: 'Apto Médico', key: 'presentoAptoMedico', render: (val) => val ? <span className="badge badge-success">SÍ</span> : <span className="badge badge-danger">NO</span> },
-            { label: 'Categoría', key: 'categoriaSeleccion', render: (val) => val || '-' },
+            { label: 'Beca ENARD', key: 'becadoEnard', render: (val) => val ? <span className="badge badge-success">SÍ</span> : <span className="badge badge-secondary">NO</span>, align: 'center' },
+            { label: 'Beca SND', key: 'becadoSdn', render: (val) => val ? <span className="badge badge-success">SÍ</span> : <span className="badge badge-secondary">NO</span>, align: 'center' },
+            { label: 'Monto', key: 'montoBeca', render: (val) => val ? `$${val.toLocaleString()}` : '$0', align: 'center' },
+            { label: 'Apto Médico', key: 'presentoAptoMedico', render: (val) => val ? <span className="badge badge-success">SÍ</span> : <span className="badge badge-danger">NO</span>, align: 'center' },
+            { label: 'Categoría', key: 'categoriaSeleccion', render: (val) => getCategoriaLabel(val), align: 'center' },
             {
                 label: 'Documentación', key: 'documentacion',
+                align: 'center',
                 render: (val, row) => (
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex justify-center gap-2">
                         <Button variant="ghost" size="sm" className="p-1 h-auto" title="Subir" onClick={(e) => { e.stopPropagation(); setSelectedEntrenadorForDocs(row); loadDocuments(row.idPersona); setShowUploadModal(true); }}><Plus size={18} className="text-primary" /></Button>
                         <Button variant="ghost" size="sm" className="p-1 h-auto" title="Ver" onClick={(e) => { e.stopPropagation(); setSelectedEntrenadorForDocs(row); setShowViewerModal(true); }}><Eye size={18} className="text-primary" /></Button>
                     </div>
@@ -145,8 +146,9 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
             { label: 'Teléfono', key: 'telefono' },
             {
                 label: 'Documentación', key: 'documentacion',
+                align: 'center',
                 render: (val, row) => (
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex justify-center gap-2">
                         <Button variant="ghost" size="sm" className="p-1 h-auto" title="Subir" onClick={(e) => { e.stopPropagation(); setSelectedEntrenadorForDocs(row); loadDocuments(row.idPersona); setShowUploadModal(true); }}><Plus size={18} className="text-primary" /></Button>
                         <Button variant="ghost" size="sm" className="p-1 h-auto" title="Ver" onClick={(e) => { e.stopPropagation(); setSelectedEntrenadorForDocs(row); setShowViewerModal(true); }}><Eye size={18} className="text-primary" /></Button>
                     </div>
@@ -155,8 +157,9 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
         ]),
         {
             label: 'Acciones', key: 'actions',
+            align: 'center',
             render: (value, row) => (
-                <div className="flex gap-2">
+                <div className="flex justify-center gap-2">
                     {viewMode === 'seleccion' && <Button variant="ghost" size="sm" onClick={() => { setSelectedEntrenadorForCategory(row); setShowCategoryModal(true); }} title="Asignar Categoría"><UserCog size={18} className="text-primary" /></Button>}
                     <Button variant="ghost" size="sm" onClick={() => handleEdit(row.id)} title="Editar"><Edit size={18} className="text-primary" /></Button>
                     <Button variant="ghost" size="sm" className="text-danger" onClick={() => handleDelete(row.id)} title="Eliminar"><Trash2 size={18} /></Button>
@@ -215,7 +218,7 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
                                     key={coach.idPersona}
                                     title={coach.nombrePersona || `${coach.nombre || ''} ${coach.apellido || ''}`}
                                     subtitle={coach.nombreClub || 'Sin Club'}
-                                    badge={viewMode === 'seleccion' ? <span className="badge badge-info">{coach.categoriaSeleccion || '-'}</span> : <span className="badge badge-secondary">{coach.licencia || '-'}</span>}
+                                    badge={viewMode === 'seleccion' ? <span className="badge badge-info">{getCategoriaLabel(coach.categoriaSeleccion)}</span> : <span className="badge badge-secondary">{coach.licencia || '-'}</span>}
                                     details={[
                                         { label: 'DNI', value: coach.documento || '-' },
                                         { label: 'Apto', value: coach.presentoAptoMedico ? '✅' : '❌' }

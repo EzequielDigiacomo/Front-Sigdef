@@ -3,7 +3,15 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import MainLayout from './components/layout/MainLayout';
 import MainLayoutClub from './components/layout/MainLayoutClub';
+import MainLayoutSuper from './components/layout/MainLayoutSuper';
 import Login from './pages/Login';
+
+// Importaciones del Portal de Superadmin
+import SuperDashboard from './pages/SuperAdmin/SuperDashboard';
+import FederacionesManagement from './pages/SuperAdmin/FederacionesManagement';
+import FederacionesForm from './pages/SuperAdmin/FederacionesForm';
+import Suscripciones from './pages/SuperAdmin/Suscripciones';
+import Auditoria from './pages/SuperAdmin/Auditoria';
 
 import Dashboard from './pages/Dashboard';
 import AtletasList from './pages/FederacionAdmin/Atletas/AtletasList';
@@ -55,7 +63,7 @@ const PrivateRoute = ({ children, allowedRoles }) => {
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
 
-    const redirectPath = user.role === 'CLUB' ? '/club' : '/dashboard';
+    const redirectPath = user.role === 'CLUB' ? '/club' : (user.role === 'SUPERADMIN' ? '/superadmin' : '/dashboard');
     return <Navigate to={redirectPath} replace />;
   }
 
@@ -69,7 +77,7 @@ const LoginRoute = () => {
 
   if (isAuthenticated) {
 
-    const redirectPath = user.role === 'CLUB' ? '/club' : '/dashboard';
+    const redirectPath = user.role === 'CLUB' ? '/club' : (user.role === 'SUPERADMIN' ? '/superadmin' : '/dashboard');
     console.log('Usuario ya autenticado, redirigiendo a:', redirectPath);
     return <Navigate to={redirectPath} replace />;
   }
@@ -88,6 +96,10 @@ const RootRedirect = () => {
 
   if (user.role === 'CLUB') {
     return <Navigate to="/club" replace />;
+  }
+
+  if (user.role === 'SUPERADMIN') {
+    return <Navigate to="/superadmin" replace />;
   }
 
   return <Navigate to="/dashboard" replace />;
@@ -201,6 +213,20 @@ function App() {
               { /*
               <Route path="inscripciones/nuevo" element={<InscripcionesForm />} />
 */ }
+            </Route>
+
+            {/* RUTA DE SUPERADMIN GLOBAL */}
+            <Route path="/superadmin" element={
+              <PrivateRoute allowedRoles={['SUPERADMIN']}>
+                <MainLayoutSuper />
+              </PrivateRoute>
+            }>
+              <Route index element={<SuperDashboard />} />
+              <Route path="federaciones" element={<FederacionesManagement />} />
+              <Route path="federaciones/nueva" element={<FederacionesForm />} />
+              <Route path="federaciones/editar/:id" element={<FederacionesForm />} />
+              <Route path="suscripciones" element={<Suscripciones />} />
+              <Route path="auditoria" element={<Auditoria />} />
             </Route>
 
             { }

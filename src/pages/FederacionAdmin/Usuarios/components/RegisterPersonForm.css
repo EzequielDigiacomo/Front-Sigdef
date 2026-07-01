@@ -3,8 +3,8 @@
 }
 
 .form-section {
-    margin-bottom: 2rem;
-    padding-bottom: 1.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -12,7 +12,7 @@
     font-size: 1.1rem;
     font-weight: 600;
     color: var(--primary);
-    margin-bottom: 1.25rem;
+    margin-bottom: 0.75rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -20,8 +20,8 @@
 
 .form-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.75rem;
 }
 
 .full-width {

@@ -10,8 +10,9 @@ Bienvenido a la carpeta de documentación técnica de **SIGDEF** (Sistema de Ges
 4.  **[05-ARQUITECTURA-TECNICA.md](./05-ARQUITECTURA-TECNICA.md)**: Patrones, diagramas de flujo y arquitectura web/móvil.
 5.  **[06-MODELO-DATOS.md](./06-MODELO-DATOS.md)**: Entidades, relaciones (ERD) y diccionarios de datos.
 6.  **[07-CASOS-DE-USO.md](./07-CASOS-DE-USO.md)**: Interacciones por actor (Federación, Club, Atleta).
-7.  **[09-API-DOCUMENTACION.md](./09-API-DOCUMENTACION.md)**: Guía de endpoints y autenticación JWT.
-8.  **[11-GUIA-DESARROLLO.md](./11-GUIA-DESARROLLO.md)**: Setup local, comandos útiles y debugging en **Android Studio**.
+7.  **[08-ROLES-Y-PERMISOS.md](./08-ROLES-Y-PERMISOS.md)**: Matriz de roles y alcance de accesos por usuario (enforcement frontend y backend).
+8.  **[09-API-DOCUMENTACION.md](./09-API-DOCUMENTACION.md)**: Guía de endpoints y autenticación JWT.
+9.  **[11-GUIA-DESARROLLO.md](./11-GUIA-DESARROLLO.md)**: Setup local, comandos útiles y debugging en **Android Studio**.
 
 ## 🚀 Guía de Inicio Rápido para Devs
 
