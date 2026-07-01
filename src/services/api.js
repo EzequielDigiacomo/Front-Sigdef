@@ -2,7 +2,7 @@ import { PARENTESCO_MAP } from '../utils/enums';
 
 // --- CONFIGURACIÓN DE API ---
 // Usa la variable de entorno si existe, sino usa localhost por defecto
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5078/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5029/api';
 
 const DEFAULT_TIMEOUT = 30000; // 30 segundos
 const MAX_RETRIES = 2;

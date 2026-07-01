@@ -27,15 +27,17 @@ const SuperDashboard = () => {
                 let feds = [];
                 let clubesCount = 0;
                 let atletasCount = 0;
+                let apiSuccess = false;
                 try {
                     const [allFeds, allClubs, allAthletes] = await Promise.all([
-                        api.get('/Federaciones').catch(() => []),
-                        api.get('/Clubes').catch(() => []),
-                        api.get('/Participantes').catch(() => [])
+                        api.get('/Federaciones'),
+                        api.get('/Clubes'),
+                        api.get('/Participantes')
                     ]);
                     feds = allFeds || [];
                     clubesCount = allClubs ? allClubs.length : 0;
                     atletasCount = allAthletes ? allAthletes.length : 0;
+                    apiSuccess = true;
                 } catch (e) {
                     console.warn("No se pudo cargar desde los endpoints reales:", e);
                 }
@@ -48,7 +50,7 @@ const SuperDashboard = () => {
                     { idFederacion: 4, nombre: 'Federación Brasilera de Canotaje', sigla: 'CBCa', email: 'adm@cbca.org.br', telefono: '+55 41 3024 9900', plan: 'Enterprise', estado: 'Pendiente de Pago', fechaRegistro: '2026-04-20', costoMensual: 150000 }
                 ];
 
-                const finalFederaciones = feds.length > 0 ? feds.map((f, index) => ({
+                const finalFederaciones = apiSuccess ? feds.map((f, index) => ({
                     idFederacion: f.id || f.idFederacion || index + 1,
                     nombre: f.nombre || f.razonSocial || 'Federación Deportiva',
                     sigla: f.sigla || f.nombre?.substring(0, 3).toUpperCase() || 'FED',
@@ -64,18 +66,18 @@ const SuperDashboard = () => {
 
                 // Calcular KPIs reales o simulados
                 const activeFeds = finalFederaciones.length;
-                const clubsTotalCount = feds.length > 0 ? clubesCount : (activeFeds * 12 + 8);
-                const athletesTotalCount = feds.length > 0 ? atletasCount : (clubsTotalCount * 25 + 140);
-                const monthlyIncome = finalFederaciones
+                const clubsTotalCount = apiSuccess ? clubesCount : (activeFeds * 12 + 8);
+                const athletesTotalCount = apiSuccess ? atletasCount : (clubsTotalCount * 25 + 140);
+                const monthlyIncome = apiSuccess ? finalFederaciones
                     .filter(f => f.estado === 'Activo')
-                    .reduce((sum, f) => sum + f.costoMensual, 0);
+                    .reduce((sum, f) => sum + (f.costoMensual || 0), 0) : 295000;
 
                 setStats({
                     totalFederaciones: activeFeds,
                     totalClubes: clubsTotalCount,
                     totalAtletas: athletesTotalCount,
                     ingresosMensuales: monthlyIncome,
-                    porcentajeCrecimiento: 14.8
+                    porcentajeCrecimiento: apiSuccess ? 0 : 14.8
                 });
 
                 // Logs de auditoría mock premium
