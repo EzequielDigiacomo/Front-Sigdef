@@ -27,9 +27,8 @@ const SuperDashboard = () => {
                 // Intentar cargar federaciones de la API real
                 let data = [];
                 try {
-                    const allClubs = await api.get('/Clubes') || [];
-                    // Federaciones are clubs without a parent
-                    data = allClubs.filter(c => !c.parentClubId);
+                    const allFeds = await api.get('/Federaciones') || [];
+                    data = allFeds;
                 } catch (e) {
                     console.warn("No se pudo cargar desde /Clubes, usando fallback local:", e);
                 }
@@ -43,7 +42,7 @@ const SuperDashboard = () => {
                 ];
 
                 const finalFederaciones = data.length > 0 ? data.map((f, index) => ({
-                    idFederacion: f.id || f.idFederacion || index + 1,
+                    idFederacion: f.id,
                     nombre: f.nombre || f.razonSocial || 'Federación Deportiva',
                     sigla: f.sigla || f.nombre?.substring(0, 3).toUpperCase() || 'FED',
                     email: f.email || 'contacto@federacion.org',

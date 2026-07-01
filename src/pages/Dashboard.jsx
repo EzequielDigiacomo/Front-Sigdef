@@ -60,8 +60,8 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchFederacion = async () => {
             try {
-                const fedId = user?.idClub || 1;
-                const data = await api.get(`/Clubes/${fedId}`);
+                const fedId = user?.idFederacion || user?.federacionId || 1;
+                const data = await api.get(`/Federaciones/${fedId}`);
                 setFederacionNombre(data.nombre || data.razonSocial || data.Nombre || 'Federación Principal');
             } catch (err) {
                 setFederacionNombre('Federación SIGDEF');

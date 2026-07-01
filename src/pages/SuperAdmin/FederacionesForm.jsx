@@ -36,7 +36,7 @@ const FederacionesForm = () => {
 
     const loadFederacion = async () => {
         try {
-            const data = await api.get(`/Clubes/${id}`);
+            const data = await api.get(`/Federaciones/${id}`);
             if (data) {
                 setForm({
                     nombre: data.nombre || data.razonSocial || data.Nombre || '',
@@ -115,10 +115,10 @@ const FederacionesForm = () => {
             };
 
             if (isEditMode) {
-                await api.put(`/Clubes/${id}`, payload);
+                await api.put(`/Federaciones/${id}`, payload);
             } else {
                 // 1. Crear la federación en la BD
-                const createdFed = await api.post('/Clubes', payload);
+                const createdFed = await api.post('/Federaciones', payload);
                 const newFedId = createdFed?.id || createdFed?.idFederacion || createdFed?.IdFederacion;
 
                 if (!newFedId) {

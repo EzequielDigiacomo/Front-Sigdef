@@ -29,17 +29,17 @@ const FederacionDetalles = () => {
     const loadFederacion = async () => {
         try {
             setLoading(true);
-            const response = await api.get('/Clubes');
+            const response = await api.get('/Federaciones');
 
             let data = null;
-            if (Array.isArray(response) && response.length > 0) {
-                // If it's an array, pick the first federation (parentClubId is null)
-                data = response.find(c => !c.parentClubId) || response[0];
+            if (response && Array.isArray(response) && response.length > 0) {
+                // Pick the first federation
+                data = response[0];
             } else if (response && (response.id || response.idFederacion)) {
                 data = response;
             } else {
                 try {
-                    data = await api.get('/Clubes/1');
+                    data = await api.get('/Federaciones/1');
                 } catch (e) {
                     console.warn('No se pudo cargar federación ID 1');
                 }
@@ -90,7 +90,7 @@ const FederacionDetalles = () => {
             };
 
             const fedId = federacion.id || federacion.idFederacion;
-            await api.put(`/Clubes/${fedId}`, payload);
+            await api.put(`/Federaciones/${fedId}`, payload);
             setFederacion(prev => ({ ...prev, ...payload }));
             setIsEditing(false);
         } catch (error) {
