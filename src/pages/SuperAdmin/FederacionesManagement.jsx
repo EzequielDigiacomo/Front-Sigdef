@@ -31,12 +31,13 @@ const FederacionesManagement = () => {
     const loadFederaciones = async () => {
         try {
             setLoading(true);
-            const data = await api.get('/federacion') || [];
+            const allClubs = await api.get('/Clubes') || [];
+            const data = allClubs.filter(c => !c.parentClubId);
 
             const finalFeds = data.map((f, idx) => ({
-                idFederacion: f.idFederacion || f.IdFederacion,
-                nombre: f.nombre || f.Nombre || 'Federación Deportiva',
-                sigla: getSigla(f.nombre || f.Nombre),
+                idFederacion: f.id || f.idFederacion || f.IdFederacion,
+                nombre: f.nombre || f.razonSocial || f.Nombre || 'Federación Deportiva',
+                sigla: getSigla(f.nombre || f.razonSocial || f.Nombre),
                 email: f.email || f.Email || 'contacto@federacion.org',
                 telefono: f.telefono || f.Telefono || 'Sin teléfono',
                 plan: idx % 3 === 0 ? 'Enterprise' : (idx % 3 === 1 ? 'Premium' : 'Básico'),
@@ -71,7 +72,7 @@ const FederacionesManagement = () => {
 
     const confirmDelete = async () => {
         try {
-            await api.delete(`/federacion/${selectedFed.idFederacion}`);
+            await api.delete(`/Clubes/${selectedFed.idFederacion}`);
             setShowDeleteModal(false);
             setSelectedFed(null);
             loadFederaciones();

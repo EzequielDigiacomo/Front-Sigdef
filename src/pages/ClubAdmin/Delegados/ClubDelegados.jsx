@@ -31,10 +31,10 @@ const ClubDelegados = () => {
         try {
             setLoading(true);
             const clubIdActual = user.idClub;
-            const data = await api.get('/DelegadoClub');
+            const data = await api.get('/Auth/usuarios');
             const delegadosFiltrados = data.filter(d => {
                 const idClubDelegado = d.idClub || d.IdClub || d.clubId || d.ClubId;
-                return parseInt(idClubDelegado) === parseInt(clubIdActual);
+                return parseInt(idClubDelegado) === parseInt(clubIdActual) && (d.rol === 'Club' || d.rol === 'Delegado' || d.rol === 'DelegadoClub');
             });
             setDelegados(delegadosFiltrados);
         } catch (error) {
@@ -51,10 +51,10 @@ const ClubDelegados = () => {
 
     const handleConfirmDelete = async () => {
         if (!delegadoToDelete) return;
-        const id = delegadoToDelete.idPersona || delegadoToDelete.IdPersona;
+        const id = delegadoToDelete.id || delegadoToDelete.idPersona || delegadoToDelete.IdPersona;
         try {
-            await api.delete(`/DelegadoClub/${id}`);
-            setDelegados(delegados.filter(d => (d.idPersona || d.IdPersona) !== id));
+            await api.delete(`/Auth/usuarios/${id}`);
+            setDelegados(delegados.filter(d => (d.id || d.idPersona || d.IdPersona) !== id));
             setShowDeleteModal(false);
         } catch (error) {
             console.error('Error eliminando:', error);
@@ -62,7 +62,7 @@ const ClubDelegados = () => {
     };
 
     const filteredDelegados = delegados.filter(delegado =>
-        delegado.nombrePersona?.toLowerCase().includes(searchTerm.toLowerCase())
+        (delegado.nombreCompleto || delegado.nombrePersona || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     if (loading) return <div className="loading-container"><div className="spinner"></div></div>;
@@ -88,17 +88,17 @@ const ClubDelegados = () => {
                         ) : (
                             filteredDelegados.map(delegado => (
                                 <MobileCard 
-                                    key={delegado.idPersona || delegado.IdPersona}
-                                    title={delegado.nombrePersona || delegado.NombrePersona || 'Sin nombre'}
-                                    subtitle={delegado.nombreFederacion || delegado.NombreFederacion || '-'}
+                                    key={delegado.id || delegado.idPersona || delegado.IdPersona}
+                                    title={delegado.nombreCompleto || delegado.nombrePersona || delegado.NombrePersona || 'Sin nombre'}
+                                    subtitle={delegado.clubNombre || delegado.nombreFederacion || delegado.NombreFederacion || '-'}
                                     details={[
-                                        { label: 'DNI', value: delegado.documento || delegado.Documento || '-' },
+                                        { label: 'DNI', value: delegado.dni || delegado.documento || delegado.Documento || '-' },
                                         { label: 'Email', value: delegado.email || delegado.Email || '-' },
                                         { label: 'Tel', value: delegado.telefono || delegado.Telefono || '-' }
                                     ]}
                                     actions={
                                         <div className="flex gap-2">
-                                            <Button variant="ghost" size="sm" icon={Edit} onClick={() => navigate(`/club/delegados/editar/${delegado.idPersona || delegado.IdPersona}`)} />
+                                            <Button variant="ghost" size="sm" icon={Edit} onClick={() => navigate(`/club/delegados/editar/${delegado.id || delegado.idPersona || delegado.IdPersona}`)} />
                                             <Button variant="ghost" size="sm" icon={Trash2} className="text-danger" onClick={() => handleDeleteClick(delegado)} />
                                         </div>
                                     }
@@ -109,19 +109,19 @@ const ClubDelegados = () => {
                 ) : (
                     <DataTable
                         columns={[
-                            { key: 'nombrePersona', label: 'Nombre', render: (_, row) => <strong>{row.nombrePersona || row.NombrePersona || 'Sin nombre'}</strong> },
-                            { key: 'documento', label: 'DNI', render: (_, row) => row.documento || row.Documento || '-' },
+                            { key: 'nombrePersona', label: 'Nombre', render: (_, row) => <strong>{row.nombreCompleto || row.nombrePersona || row.NombrePersona || 'Sin nombre'}</strong> },
+                            { key: 'documento', label: 'DNI', render: (_, row) => row.dni || row.documento || row.Documento || '-' },
                             { key: 'email', label: 'Email', render: (_, row) => row.email || row.Email || '-' },
                             { key: 'telefono', label: 'Teléfono', render: (_, row) => row.telefono || row.Telefono || '-' },
-                            { key: 'nombreFederacion', label: 'Federación', render: (_, row) => row.nombreFederacion || row.NombreFederacion || '-' }
+                            { key: 'nombreFederacion', label: 'Federación / Club', render: (_, row) => row.clubNombre || row.nombreFederacion || row.NombreFederacion || '-' }
                         ]}
                         data={filteredDelegados}
                         loading={loading}
-                        keyField="idPersona"
+                        keyField="id"
                         emptyMessage="No hay delegados registrados para tu club"
                         actions={(delegado) => (
                             <div className="actions-cell">
-                                <Button variant="ghost" size="sm" onClick={() => navigate(`/club/delegados/editar/${delegado.idPersona || delegado.IdPersona}`)}>
+                                <Button variant="ghost" size="sm" onClick={() => navigate(`/club/delegados/editar/${delegado.id || delegado.idPersona || delegado.IdPersona}`)}>
                                     <Edit size={18} />
                                 </Button>
                                 <Button variant="ghost" size="sm" className="text-danger" onClick={() => handleDeleteClick(delegado)}>

@@ -58,27 +58,24 @@ const ClubDelegadosForm = () => {
 
     const loadDelegado = async () => {
         try {
-            const data = await api.get(`/DelegadoClub/${id}`);
-            // Assuming 'id' in URL is actually the IdPersona based on current routing logic, 
-            // or we fetch Delegate then Person. If 'id' is Delegate ID, adjust accordingly.
-            // Usually Route is /delegados/editar/:idPersona
+            const data = await api.get('/Auth/usuarios');
+            const user = data.find(u => (u.id || u.idPersona || u.IdPersona).toString() === id);
 
-            // If the endpoint is GET /DelegadoClub/{idPersona}
-            const persona = await api.get(`/Persona/${data.idPersona}`);
+            if (user) {
+                setFormData({
+                    nombre: user.nombre || user.nombrePersona || '',
+                    apellido: user.apellido || user.apellidoPersona || '',
+                    documento: user.dni || user.documento || '',
+                    fechaNacimiento: '', 
+                    email: user.email || '',
+                    telefono: user.telefono || '',
+                    direccion: '',
+                    sexo: 1,
 
-            setFormData({
-                nombre: persona.nombre || persona.Nombre || '',
-                apellido: persona.apellido || persona.Apellido || '',
-                documento: persona.documento || persona.Documento || '',
-                fechaNacimiento: (persona.fechaNacimiento || persona.FechaNacimiento || '').split('T')[0],
-                email: persona.email || persona.Email || '',
-                telefono: persona.telefono || persona.Telefono || '',
-                direccion: persona.direccion || persona.Direccion || '',
-                sexo: persona.sexo || persona.Sexo || 1,
-
-                idRol: data.idRol || 3,
-                idFederacion: data.idFederacion || 1
-            });
+                    idRol: 3,
+                    idFederacion: user.federacionId || 1
+                });
+            }
         } catch (error) {
             console.error('Error cargando delegado:', error);
             showModal('Error', 'Error al cargar los datos del delegado.', 'danger', true);
@@ -94,26 +91,8 @@ const ClubDelegadosForm = () => {
     };
 
     const buscarPersonaPorDni = async () => {
-        if (!formData.documento || formData.documento.length < 7) return;
-
-        try {
-            const persona = await api.get(`/Persona/documento/${formData.documento}`);
-            if (persona) {
-                setFormData(prev => ({
-                    ...prev,
-                    nombre: persona.nombre || persona.Nombre || '',
-                    apellido: persona.apellido || persona.Apellido || '',
-                    sexo: persona.sexo || persona.Sexo || 1,
-                    fechaNacimiento: (persona.fechaNacimiento || persona.FechaNacimiento || '').split('T')[0],
-                    email: persona.email || persona.Email || '',
-                    telefono: persona.telefono || persona.Telefono || '',
-                    direccion: persona.direccion || persona.Direccion || ''
-                }));
-                // Optional: alert user found
-            }
-        } catch (error) {
-            // Not found, user enters data manually
-        }
+        // Feature not supported natively with Auth/usuarios
+        console.log('Búsqueda por DNI no disponible en este contexto.');
     };
 
     const handleSubmit = async (e) => {
@@ -121,53 +100,27 @@ const ClubDelegadosForm = () => {
         setLoading(true);
 
         try {
-            let idPersonaFinal = id ? parseInt(id) : null;
-
-            const personaPayload = {
-                Nombre: formData.nombre,
-                Apellido: formData.apellido,
-                Documento: formData.documento,
-                Sexo: parseInt(formData.sexo),
-                FechaNacimiento: formData.fechaNacimiento ? new Date(formData.fechaNacimiento).toISOString() : new Date().toISOString(),
-                Email: formData.email || null,
-                Telefono: formData.telefono || null,
-                Direccion: formData.direccion || null
-            };
-
-            // 1. Create or Update Persona
-            if (idPersonaFinal) {
-                await api.put(`/Persona/${idPersonaFinal}`, personaPayload);
-            } else {
-                // Check existance by DNI for creation
-                try {
-                    const personaExistente = await api.get(`/Persona/documento/${formData.documento}`);
-                    if (personaExistente) {
-                        idPersonaFinal = personaExistente.idPersona || personaExistente.IdPersona;
-                        await api.put(`/Persona/${idPersonaFinal}`, personaPayload);
-                    }
-                } catch (e) { /* Not found */ }
-
-                if (!idPersonaFinal) {
-                    const nuevaPersona = await api.post('/Persona', personaPayload);
-                    idPersonaFinal = nuevaPersona.idPersona || nuevaPersona.IdPersona;
-                }
-            }
-
-            // 2. Create or Update Delegado Record
-            const delegadoPayload = {
-                idPersona: idPersonaFinal,
-                idRol: parseInt(formData.idRol),
-                idFederacion: parseInt(formData.idFederacion),
-                idClub: parseInt(clubId) // Assign to CURRENT LOGGED IN CLUB
+            const userPayload = {
+                username: formData.documento, // DNI as username
+                password: formData.documento, // DNI as password for initial creation
+                email: formData.email || `${formData.documento}@sigdef.com`,
+                rol: "Club",
+                clubId: parseInt(clubId),
+                nombre: formData.nombre,
+                apellido: formData.apellido,
+                dni: formData.documento,
+                telefono: formData.telefono
             };
 
             if (id) {
-                // Update mode
-                // Assuming PUT /DelegadoClub/{idPersona}
-                await api.put(`/DelegadoClub/${idPersonaFinal}`, delegadoPayload);
+                await api.put(`/Auth/usuarios/${id}/perfil`, {
+                    nombre: formData.nombre,
+                    apellido: formData.apellido,
+                    telefono: formData.telefono,
+                    dni: formData.documento
+                });
             } else {
-                // Create mode
-                await api.post('/DelegadoClub', delegadoPayload);
+                await api.post('/Auth/register', userPayload);
             }
 
             showModal('Éxito', 'Delegado guardado correctamente.', 'success', true);

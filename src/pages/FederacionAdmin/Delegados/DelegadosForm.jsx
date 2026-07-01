@@ -53,27 +53,27 @@ const DelegadosForm = () => {
     const loadDelegado = async () => {
         setLoading(true);
         try {
-            // Suponemos que el ID que llega es el idPersona (o idDelegado que apunta a persona)
-            const delegado = await api.get(`/DelegadoClub/${id}`);
-            const persona = await api.get(`/Persona/${id}`);
+            const data = await api.get('/Auth/usuarios');
+            const user = data.find(u => (u.id || u.idPersona || u.IdPersona).toString() === id);
 
-            setFormData(prev => ({
-                ...prev,
-                // Datos Persona
-                nombre: persona.nombre || persona.Nombre || '',
-                apellido: persona.apellido || persona.Apellido || '',
-                documento: persona.documento || persona.Documento || '',
-                sexo: persona.sexo || persona.Sexo || 1,
-                fechaNacimiento: (persona.fechaNacimiento || persona.FechaNacimiento || '').split('T')[0],
-                email: persona.email || persona.Email || '',
-                telefono: persona.telefono || persona.Telefono || '',
-                direccion: persona.direccion || persona.Direccion || '',
+            if (user) {
+                setFormData(prev => ({
+                    ...prev,
+                    nombre: user.nombre || user.nombrePersona || '',
+                    apellido: user.apellido || user.apellidoPersona || '',
+                    documento: user.dni || user.documento || '',
+                    sexo: 1, // Default
+                    fechaNacimiento: '', // No birthdate in Auth/usuarios usually
+                    email: user.email || '',
+                    telefono: user.telefono || '',
+                    direccion: '',
 
-                // Datos Delegado
-                idRol: delegado.idRol || delegado.IdRol || 3,
-                idClub: delegado.idClub || delegado.IdClub || '',
-                idFederacion: delegado.idFederacion || delegado.IdFederacion || 1
-            }));
+                    // Datos Delegado
+                    idRol: 3,
+                    idClub: user.clubId || '',
+                    idFederacion: user.federacionId || 1
+                }));
+            }
         } catch (error) {
             console.error('Error cargando datos del delegado:', error);
             showModal('Error', 'No se pudieron cargar los datos del delegado.', 'danger');
@@ -131,28 +131,8 @@ const DelegadosForm = () => {
     };
 
     const buscarPersonaPorDni = async () => {
-        if (!formData.documento || formData.documento.length < 7) return;
-
-        try {
-            const persona = await api.get(`/Persona/documento/${formData.documento}`);
-            if (persona) {
-                // Populate form with existing persona data
-                setFormData(prev => ({
-                    ...prev,
-                    nombre: persona.nombre || persona.Nombre || '',
-                    apellido: persona.apellido || persona.Apellido || '',
-                    sexo: persona.sexo || persona.Sexo || 1,
-                    fechaNacimiento: (persona.fechaNacimiento || persona.FechaNacimiento || '').split('T')[0],
-                    email: persona.email || persona.Email || '',
-                    telefono: persona.telefono || persona.Telefono || '',
-                    direccion: persona.direccion || persona.Direccion || ''
-                }));
-                showModal('Persona Encontrada', 'Se han cargado los datos de la persona existente.', 'success');
-            }
-        } catch (error) {
-            // No existe, no hacemos nada (el usuario llenará los datos)
-            console.log('Persona no encontrada, continuar carga manual.');
-        }
+        // Feature not supported natively with Auth/usuarios unless we call an external service
+        console.log('Búsqueda por DNI no disponible en este contexto.');
     };
 
     const handleSubmit = async (e) => {
@@ -160,65 +140,27 @@ const DelegadosForm = () => {
         setLoading(true);
 
         try {
-            // 1. Preparar Payload Persona
-            const personaPayload = {
-                Nombre: formData.nombre,
-                Apellido: formData.apellido,
-                Documento: formData.documento,
-                Sexo: parseInt(formData.sexo),
-                FechaNacimiento: formData.fechaNacimiento ? new Date(formData.fechaNacimiento).toISOString() : new Date().toISOString(),
-                Email: formData.email || null,
-                Telefono: formData.telefono || null,
-                Direccion: formData.direccion || null
+            const userPayload = {
+                username: formData.documento, // DNI as username
+                password: formData.documento, // DNI as password for initial creation
+                email: formData.email || `${formData.documento}@sigdef.com`,
+                rol: "Club",
+                clubId: formData.idClub ? parseInt(formData.idClub) : null,
+                nombre: formData.nombre,
+                apellido: formData.apellido,
+                dni: formData.documento,
+                telefono: formData.telefono
             };
-
-            let idPersonaFinal = null;
-
-            // 2. Buscar o Crear/Actualizar Persona
-            try {
-                const personaExistente = await api.get(`/Persona/documento/${formData.documento}`);
-                if (personaExistente) {
-                    idPersonaFinal = personaExistente.idPersona || personaExistente.IdPersona || personaExistente.id;
-                    console.log('👤 Persona existente encontrada ID:', idPersonaFinal);
-                    await api.put(`/Persona/${idPersonaFinal}`, personaPayload);
-                }
-            } catch (err) {
-                console.log('ℹ️ Persona no encontrada, se procederá a crear.');
-            }
-
-            if (!idPersonaFinal) {
-                const nuevaPersona = await api.post('/Persona', personaPayload);
-                // Capturamos el ID de la respuesta, soportando varios formatos de casing
-                idPersonaFinal = nuevaPersona.idPersona || nuevaPersona.IdPersona || nuevaPersona.id || nuevaPersona.Id;
-                console.log('✅ Nueva persona creada ID:', idPersonaFinal);
-            }
-
-            if (!idPersonaFinal) {
-                throw new Error("No se pudo obtener el ID de la persona para crear el delegado.");
-            }
-
-            // 3. Crear o Actualizar Registro Delegado
-            const delegadoPayload = {
-                IdPersona: parseInt(idPersonaFinal),
-                IdRol: parseInt(formData.idRol),
-                IdFederacion: parseInt(formData.idFederacion)
-            };
-
-            // Solo incluimos la clave IdClub si realmente hay un club seleccionado.
-            // Si es Agente Libre, omitimos la propiedad para evitar que el backend 
-            // intente validar un club con ID null.
-            if (formData.idClub) {
-                delegadoPayload.IdClub = parseInt(formData.idClub);
-            }
-
-            console.log('📦 Persona Payload:', personaPayload);
-            console.log('🚀 Enviando payload a DelegadoClub:', delegadoPayload);
-            console.log('🚀 Enviando payload a DelegadoClub:', delegadoPayload);
 
             if (id) {
-                await api.put(`/DelegadoClub/${idPersonaFinal}`, delegadoPayload);
+                await api.put(`/Auth/usuarios/${id}/perfil`, {
+                    nombre: formData.nombre,
+                    apellido: formData.apellido,
+                    telefono: formData.telefono,
+                    dni: formData.documento
+                });
             } else {
-                await api.post('/DelegadoClub', delegadoPayload);
+                await api.post('/Auth/register', userPayload);
             }
 
             showModal('Éxito', 'Delegado guardado correctamente.', 'success', true);

@@ -36,10 +36,10 @@ const FederacionesForm = () => {
 
     const loadFederacion = async () => {
         try {
-            const data = await api.get(`/federacion/${id}`);
+            const data = await api.get(`/Clubes/${id}`);
             if (data) {
                 setForm({
-                    nombre: data.nombre || data.Nombre || '',
+                    nombre: data.nombre || data.razonSocial || data.Nombre || '',
                     cuit: data.cuit || data.Cuit || '',
                     direccion: data.direccion || data.Direccion || '',
                     email: data.email || data.Email || '',
@@ -107,23 +107,19 @@ const FederacionesForm = () => {
         try {
             const payload = {
                 nombre: form.nombre,
-                cuit: form.cuit,
+                siglas: form.nombre.substring(0, 3).toUpperCase(),
                 direccion: form.direccion,
                 email: form.email,
                 telefono: form.telefono,
-                bancoNombre: '',
-                tipoCuenta: '',
-                numeroCuenta: '',
-                titularCuenta: '',
-                emailCobro: ''
+                idFederacion: null
             };
 
             if (isEditMode) {
-                await api.put(`/federacion/${id}`, payload);
+                await api.put(`/Clubes/${id}`, payload);
             } else {
                 // 1. Crear la federación en la BD
-                const createdFed = await api.post('/federacion', payload);
-                const newFedId = createdFed?.idFederacion || createdFed?.IdFederacion || createdFed?.id;
+                const createdFed = await api.post('/Clubes', payload);
+                const newFedId = createdFed?.id || createdFed?.idFederacion || createdFed?.IdFederacion;
 
                 if (!newFedId) {
                     throw new Error("No se pudo obtener el ID de la federación creada.");
@@ -131,16 +127,13 @@ const FederacionesForm = () => {
 
                 // 2. Crear la cuenta de usuario Administrador Principal para esta federación
                 const userPayload = {
-                    idPersona: 0,
-                    idClub: 0,
-                    idFederacion: parseInt(newFedId),
                     username: form.adminUsername,
                     password: form.adminPassword,
-                    confirmPassword: form.confirmAdminPassword,
-                    estaActivo: true,
-                    rol: "Admin"
+                    email: form.email,
+                    rol: "Admin",
+                    clubId: parseInt(newFedId)
                 };
-                await api.post('/Auth/registrar', userPayload);
+                await api.post('/Auth/register', userPayload);
             }
             navigate('/superadmin/federaciones');
         } catch (error) {

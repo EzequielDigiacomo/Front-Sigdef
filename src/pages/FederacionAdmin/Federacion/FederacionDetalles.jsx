@@ -29,16 +29,17 @@ const FederacionDetalles = () => {
     const loadFederacion = async () => {
         try {
             setLoading(true);
-            const response = await api.get('/Federacion');
+            const response = await api.get('/Clubes');
 
             let data = null;
             if (Array.isArray(response) && response.length > 0) {
-                data = response[0];
-            } else if (response && response.idFederacion) {
+                // If it's an array, pick the first federation (parentClubId is null)
+                data = response.find(c => !c.parentClubId) || response[0];
+            } else if (response && (response.id || response.idFederacion)) {
                 data = response;
             } else {
                 try {
-                    data = await api.get('/Federacion/1');
+                    data = await api.get('/Clubes/1');
                 } catch (e) {
                     console.warn('No se pudo cargar federación ID 1');
                 }
@@ -88,7 +89,8 @@ const FederacionDetalles = () => {
                 emailCobro: formData.emailCobro
             };
 
-            await api.put(`/Federacion/${federacion.idFederacion}`, payload);
+            const fedId = federacion.id || federacion.idFederacion;
+            await api.put(`/Clubes/${fedId}`, payload);
             setFederacion(prev => ({ ...prev, ...payload }));
             setIsEditing(false);
         } catch (error) {

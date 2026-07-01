@@ -171,42 +171,28 @@ const RegisterPersonForm = ({ onUserCreated }) => {
             // 2. Registrar Usuario (Mapeamos roles al estándar que acepta /Auth/registrar)
             // IMPORTANTE: Evitamos 'Club' porque el backend pide usar el otro endpoint.
             let apiRol = formData.rol;
-            if (apiRol === 'Delegado') apiRol = 'Usuario';
+            if (apiRol === 'Delegado') apiRol = 'Club';
 
             const userPayload = {
-                idPersona: currentIdPersona,
-                IdPersona: currentIdPersona,
-                idClub: parseInt(formData.idClub) || 0,
-                IdClub: parseInt(formData.idClub) || 0,
-                idFederacion: user?.idFederacion || 1,
-                IdFederacion: user?.idFederacion || 1,
                 username: formData.username,
-                Username: formData.username,
                 password: formData.password,
-                Password: formData.password,
-                confirmPassword: formData.confirmPassword,
-                ConfirmPassword: formData.confirmPassword,
+                email: formData.email,
                 rol: apiRol,
-                Rol: apiRol,
-                estaActivo: formData.estaActivo,
-                EstaActivo: formData.estaActivo
+                clubId: parseInt(formData.idClub) || null,
+                nombre: formData.nombre,
+                apellido: formData.apellido,
+                dni: formData.documento,
+                telefono: formData.telefono
             };
 
             console.log("👤 Enviando registro de usuario...");
-            await api.post('/Auth/registrar', userPayload);
+            const registerResponse = await api.post('/Auth/register', userPayload);
+            const userId = registerResponse.id || currentIdPersona;
 
             // 3. Registrar Rol específico si aplica
             const clubIdInt = parseInt(formData.idClub);
 
-            if (formData.rol === 'Delegado') {
-                console.log("🎖️ Registrando Delegado...");
-                await api.post('/DelegadoClub', {
-                    IdPersona: currentIdPersona,
-                    IdClub: clubIdInt > 0 ? clubIdInt : null,
-                    IdFederacion: user?.idFederacion || 1,
-                    IdRol: 3
-                });
-            } else if (formData.rol === 'Entrenador') {
+            if (formData.rol === 'Entrenador') {
                 console.log("🧢 Registrando Entrenador...");
                 await api.post('/Entrenador', {
                     idPersona: currentIdPersona,

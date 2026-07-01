@@ -21,8 +21,9 @@ const DelegadosList = () => {
 
     const loadDelegados = async () => {
         try {
-            const data = await api.get('/DelegadoClub');
-            setDelegados(data);
+            const data = await api.get('/Auth/usuarios');
+            // Filtrar usuarios que actúan como delegados
+            setDelegados(data.filter(u => u.rol === 'Club' || u.rol === 'Delegado' || u.rol === 'DelegadoClub'));
         } catch (error) {
             console.error('Error cargando delegados:', error);
         } finally {
@@ -33,7 +34,7 @@ const DelegadosList = () => {
     const handleDelete = async (id) => {
         if (window.confirm('¿Estás seguro de eliminar este delegado?')) {
             try {
-                await api.delete(`/DelegadoClub/${id}`);
+                await api.delete(`/Auth/usuarios/${id}`);
                 loadDelegados();
             } catch (error) {
                 console.error('Error eliminando delegado:', error);
@@ -45,8 +46,8 @@ const DelegadosList = () => {
     const delegadosFiltrados = delegados.filter(delegado => {
         if (!searchTerm) return true;
         const search = searchTerm.toLowerCase();
-        const nombre = (delegado.nombrePersona || delegado.NombrePersona || '').toLowerCase();
-        const club = (delegado.nombreClub || delegado.NombreClub || '').toLowerCase();
+        const nombre = (delegado.nombreCompleto || delegado.nombrePersona || delegado.NombrePersona || '').toLowerCase();
+        const club = (delegado.clubNombre || delegado.nombreClub || delegado.NombreClub || '').toLowerCase();
         return nombre.includes(search) || club.includes(search);
     });
 
@@ -82,17 +83,17 @@ const DelegadosList = () => {
                         ) : (
                             delegadosFiltrados.map((delegado) => (
                                 <MobileCard 
-                                    key={delegado.idPersona || delegado.IdPersona}
-                                    title={delegado.nombrePersona || delegado.NombrePersona || '-'}
-                                    subtitle={delegado.nombreClub || delegado.NombreClub || 'Agente Libre'}
+                                    key={delegado.id || delegado.idPersona || delegado.IdPersona}
+                                    title={delegado.nombreCompleto || delegado.nombrePersona || delegado.NombrePersona || '-'}
+                                    subtitle={delegado.clubNombre || delegado.nombreClub || delegado.NombreClub || 'Agente Libre'}
                                     details={[
-                                        { label: 'DNI', value: delegado.documento || delegado.Documento || '-' },
+                                        { label: 'DNI', value: delegado.dni || delegado.documento || delegado.Documento || '-' },
                                         { label: 'Email', value: delegado.email || delegado.Email || '-' }
                                     ]}
                                     actions={
                                         <div className="flex gap-2">
-                                            <Button variant="ghost" size="sm" icon={Edit} onClick={() => navigate(`/dashboard/delegados/editar/${delegado.idPersona || delegado.IdPersona}`)} />
-                                            <Button variant="ghost" size="sm" icon={Trash2} className="text-danger" onClick={() => handleDelete(delegado.idPersona || delegado.IdPersona)} />
+                                            <Button variant="ghost" size="sm" icon={Edit} onClick={() => navigate(`/dashboard/delegados/editar/${delegado.id || delegado.idPersona || delegado.IdPersona}`)} />
+                                            <Button variant="ghost" size="sm" icon={Trash2} className="text-danger" onClick={() => handleDelete(delegado.id || delegado.idPersona || delegado.IdPersona)} />
                                         </div>
                                     }
                                 />
@@ -119,14 +120,15 @@ const DelegadosList = () => {
                                     <tr><td colSpan="6" className="text-center">No hay delegados registrados</td></tr>
                                 ) : (
                                     (delegadosFiltrados.map((delegado) => {
-                                        const nombre = delegado.nombrePersona || delegado.NombrePersona || '-';
-                                        const club = delegado.nombreClub || delegado.NombreClub || 'Agente Libre';
-                                        const dni = delegado.documento || delegado.Documento || '-';
+                                        const nombre = delegado.nombreCompleto || delegado.nombrePersona || delegado.NombrePersona || '-';
+                                        const club = delegado.clubNombre || delegado.nombreClub || delegado.NombreClub || 'Agente Libre';
+                                        const dni = delegado.dni || delegado.documento || delegado.Documento || '-';
                                         const email = delegado.email || delegado.Email || '-';
                                         const tel = delegado.telefono || delegado.Telefono || '-';
+                                        const id = delegado.id || delegado.idPersona || delegado.IdPersona;
 
                                         return (
-                                            <tr key={delegado.idPersona || delegado.IdPersona}>
+                                            <tr key={id}>
                                                 <td>{nombre}</td>
                                                 <td>{club}</td>
                                                 <td>{dni}</td>
@@ -134,10 +136,10 @@ const DelegadosList = () => {
                                                 <td>{tel}</td>
                                                 <td>
                                                     <div className="actions-cell">
-                                                        <Button variant="ghost" size="sm" onClick={() => navigate(`/dashboard/delegados/editar/${delegado.idPersona || delegado.IdPersona}`)}>
+                                                        <Button variant="ghost" size="sm" onClick={() => navigate(`/dashboard/delegados/editar/${id}`)}>
                                                             <Edit size={18} />
                                                         </Button>
-                                                        <Button variant="ghost" size="sm" className="text-danger" onClick={() => handleDelete(delegado.idPersona || delegado.IdPersona)}>
+                                                        <Button variant="ghost" size="sm" className="text-danger" onClick={() => handleDelete(id)}>
                                                             <Trash2 size={18} />
                                                         </Button>
                                                     </div>

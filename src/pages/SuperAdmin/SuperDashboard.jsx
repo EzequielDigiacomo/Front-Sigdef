@@ -27,9 +27,11 @@ const SuperDashboard = () => {
                 // Intentar cargar federaciones de la API real
                 let data = [];
                 try {
-                    data = await api.get('/federacion') || [];
+                    const allClubs = await api.get('/Clubes') || [];
+                    // Federaciones are clubs without a parent
+                    data = allClubs.filter(c => !c.parentClubId);
                 } catch (e) {
-                    console.warn("No se pudo cargar desde /federacion, usando fallback local:", e);
+                    console.warn("No se pudo cargar desde /Clubes, usando fallback local:", e);
                 }
 
                 // Si no hay datos, poblar con datos iniciales mock premium
@@ -41,13 +43,13 @@ const SuperDashboard = () => {
                 ];
 
                 const finalFederaciones = data.length > 0 ? data.map((f, index) => ({
-                    idFederacion: f.idFederacion || index + 1,
-                    nombre: f.nombre || 'Federación Deportiva',
-                    sigla: f.sigla || 'FED',
+                    idFederacion: f.id || f.idFederacion || index + 1,
+                    nombre: f.nombre || f.razonSocial || 'Federación Deportiva',
+                    sigla: f.sigla || f.nombre?.substring(0, 3).toUpperCase() || 'FED',
                     email: f.email || 'contacto@federacion.org',
                     telefono: f.telefono || 'Sin teléfono',
                     plan: index % 3 === 0 ? 'Enterprise' : (index % 3 === 1 ? 'Premium' : 'Básico'),
-                    estado: f.estaActivo !== false ? 'Activo' : 'Suspendido',
+                    estado: (f.activo !== false && f.estaActivo !== false) ? 'Activo' : 'Suspendido',
                     fechaRegistro: f.fechaCreacion ? f.fechaCreacion.split('T')[0] : '2026-05-01',
                     costoMensual: index % 3 === 0 ? 150000 : (index % 3 === 1 ? 95000 : 50000)
                 })) : mockFederaciones;
