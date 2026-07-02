@@ -80,6 +80,10 @@ Esta sección registra los errores corregidos para evitar volver a caer en ellos
 *   **Error de UX:** En versiones iniciales, los inputs de búsqueda diferían en comportamiento y estilo visual.
 *   **Lección Aprendida:** Utilizar el componente global de UI `SearchInput` en todas las nuevas pantallas (como `FederacionesManagement` y `Auditoria`), asegurando consistencia en la presentación del campo de filtro interactivo.
 
+### ⚙️ D. Compatibilidad de Claims y JWT en .NET 8
+*   **Error de Autorización:** La serialización de roles y arrays en los tokens JWT presentaba fallos al intentar autorizar roles como `SuperAdmin` bajo .NET 8, afectando los fallbacks.
+*   **Lección Aprendida:** Usar nombres cortos y nativos para los claims en `.NET 8` (`JwtRegisteredClaimNames` y `ClaimTypes.Role`). Ajustar el mapeo de roles explícitamente en el `TokenService` para asegurar compatibilidad universal entre el middleware de identidad de ASP.NET Core y la decodificación del cliente React.
+
 ---
 
 ## 📍 4. Dónde Quedamos (Estado Actual)
@@ -91,7 +95,9 @@ Se ha completado la interfaz premium del Superadministrador global bajo `src/pag
 3.  **Auditoría y Bitácora (`Auditoria.jsx`):** Pantalla de monitoreo de seguridad y accesos con logs detallados e IP del operador.
 4.  **Facturación (`Suscripciones.jsx`):** Tablas de control de cobros recurrentes de federaciones por sus planes de suscripción.
 
-### 🏢 Panel de Club (Frontend)
+### 🏢 Panel de Club y Federaciones (Frontend)
+*   **Unificación de Formularios:** Se consolidaron componentes de formularios (creación/edición) para mejorar la mantenibilidad de la UI.
+*   **Dashboards Conectados:** Los paneles principales se vincularon de manera efectiva con el backend en la nube/local, reduciendo la dependencia de datos simulados (mocks) y corrigiendo sincronizaciones con `localStorage`.
 *   Integrado completamente con datos reales provenientes de la base de datos (mediante la API de desarrollo local/nube) para:
     *   Dashboard del Club (KPIs de palistas, eventos e inscripciones).
     *   Visualización de información institucional del club.
@@ -101,7 +107,36 @@ Se ha completado la interfaz premium del Superadministrador global bajo `src/pag
 
 ---
 
-## 📋 5. Tareas Pendientes (Qué Falta Hacer)
+## 🔍 5. Patrón: SuperAdmin "Ingresar a Federación" (2026-07-02)
+
+### Objetivo
+Replicar el flujo de SportTrack donde el SuperAdmin puede "entrar" a cada federación y ver su dashboard administrativo con datos de esa federación específica.
+
+### Archivos Involucrados
+- **[FederacionView.jsx](file:///c:/Users/EZEQU/source/reposFront/FrontSigdef/src/pages/SuperAdmin/FederacionView.jsx)** *(nuevo)* — Dashboard del SuperAdmin dentro de una federación. Incluye `SuperAdminContextBanner`, KPIs reales y módulos de navegación.
+- **[FederacionesManagement.jsx](file:///c:/Users/EZEQU/source/reposFront/FrontSigdef/src/pages/SuperAdmin/FederacionesManagement.jsx)** — Agregado botón "Ingresar →" con `LogIn` icon en cada tarjeta de federación. Navega a `/superadmin/federacion/:id`.
+- **[AtletasList.jsx](file:///c:/Users/EZEQU/source/reposFront/FrontSigdef/src/pages/FederacionAdmin/Atletas/AtletasList.jsx)** — Lee `{ fedId }` de `useParams()`. Si está presente, filtra atletas por clubs de esa federación (client-side).
+- **[ClubesList.jsx](file:///c:/Users/EZEQU/source/reposFront/FrontSigdef/src/pages/FederacionAdmin/Clubes/ClubesList.jsx)** — Ídem para clubes: filtra por `c.idFederacion === fedId`.
+- **[App.jsx](file:///c:/Users/EZEQU/source/reposFront/FrontSigdef/src/App.jsx)** — Rutas bajo `/superadmin/federacion/:fedId/*` usando el mismo `MainLayoutSuper`.
+
+### Patrón de Filtrado (Client-Side por limitación backend)
+El backend SIGDEF no expone un filtro `?idFederacion=X` en `/Atleta` ni `/Club`. El filtrado se hace:
+1. Cargar todos los clubes `/Club`.
+2. Filtrar los que tienen `c.idFederacion === fedId`.
+3. Extraer sus IDs.
+4. Filtrar atletas por `a.idClub` en ese conjunto.
+
+**Fallback:** Si ningún club tiene `idFederacion` (campo no poblado en DB), se muestran todos.
+
+### Lección para Escala
+Para producción, el backend debería implementar filtros server-side. La columna `IdFederacion` ya existe en la tabla `Club` (ver sección 2), solo falta que el endpoint `/Club?fedId=X` la use como WHERE.
+
+### UX: Banner Contextual
+El `SuperAdminContextBanner` (en `FederacionView.jsx`) y el mini-banner inline en `AtletasList`/`ClubesList` recuerdan visualmente que el SuperAdmin está viendo una federación ajena. Incluye siempre un botón "← Volver" claro.
+
+---
+
+## 📋 6. Tareas Pendientes (Qué Falta Hacer)
 
 Para completar el ecosistema al 100%, se requiere avanzar con las siguientes fases:
 

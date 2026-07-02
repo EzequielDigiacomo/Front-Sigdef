@@ -10,6 +10,7 @@ import Login from './pages/Login';
 import SuperDashboard from './pages/SuperAdmin/SuperDashboard';
 import FederacionesManagement from './pages/SuperAdmin/FederacionesManagement';
 import FederacionesForm from './pages/SuperAdmin/FederacionesForm';
+import FederacionView from './pages/SuperAdmin/FederacionView';
 import Suscripciones from './pages/SuperAdmin/Suscripciones';
 import Auditoria from './pages/SuperAdmin/Auditoria';
 
@@ -227,6 +228,30 @@ function App() {
               <Route path="federaciones/editar/:id" element={<FederacionesForm />} />
               <Route path="suscripciones" element={<Suscripciones />} />
               <Route path="auditoria" element={<Auditoria />} />
+
+              {/* Vista SuperAdmin dentro de una federación específica */}
+              <Route path="federacion/:fedId" element={<FederacionView />} />
+              <Route path="federacion/:fedId/atletas" element={<AtletasList />} />
+              <Route path="federacion/:fedId/atletas/nuevo" element={<AtletasForm />} />
+              <Route path="federacion/:fedId/atletas/editar/:id" element={<AtletasForm />} />
+              <Route path="federacion/:fedId/clubes" element={<ClubesList />} />
+              <Route path="federacion/:fedId/clubes/nuevo" element={<ClubesForm />} />
+              <Route path="federacion/:fedId/clubes/editar/:id" element={<ClubesForm />} />
+              <Route path="federacion/:fedId/clubes/detalles/:id" element={<ClubDetalles />} />
+              <Route path="federacion/:fedId/entrenadores" element={<EntrenadoresList viewMode="club" />} />
+              <Route path="federacion/:fedId/entrenadores/nuevo" element={<ClubEntrenadoresForm />} />
+              <Route path="federacion/:fedId/entrenadores/editar/:id" element={<ClubEntrenadoresForm />} />
+              <Route path="federacion/:fedId/selecciones" element={<EntrenadoresSeleccionList />} />
+              <Route path="federacion/:fedId/selecciones/categoria/:categoryId" element={<SeleccionCategoriaDetalle />} />
+              <Route path="federacion/:fedId/entrenadores-seleccion/nuevo" element={<EntrenadoresSeleccionForm />} />
+              <Route path="federacion/:fedId/entrenadores-seleccion/editar/:id" element={<EntrenadoresSeleccionForm />} />
+              <Route path="federacion/:fedId/delegados" element={<DelegadosList />} />
+              <Route path="federacion/:fedId/delegados/nuevo" element={<DelegadosForm />} />
+              <Route path="federacion/:fedId/delegados/editar/:id" element={<DelegadosForm />} />
+              <Route path="federacion/:fedId/tutores" element={<TutoresList />} />
+              <Route path="federacion/:fedId/tutores/nuevo" element={<TutoresForm />} />
+              <Route path="federacion/:fedId/tutores/:id/edit" element={<TutoresForm />} />
+              <Route path="federacion/:fedId/pagos" element={<div style={{padding:'2rem',color:'var(--text-secondary)'}}>Módulo de Pagos (próximamente)</div>} />
             </Route>
 
             { }

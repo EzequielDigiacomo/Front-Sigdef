@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
@@ -8,12 +8,23 @@ import { ArrowLeft, Save } from 'lucide-react';
 import { CATEGORIA_MAP, SEXO_MAP } from '../../../utils/enums';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import './EntrenadorSeleccion.css';
-
+ 
 const EntrenadorSeleccionForm = () => {
-    const { id } = useParams();
+    const { id, fedId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const [loading, setLoading] = useState(false);
     const [clubes, setClubes] = useState([]);
+ 
+    const goBack = () => {
+        if (location.state?.returnPath) {
+            navigate(location.state.returnPath);
+        } else if (fedId) {
+            navigate(`/superadmin/federacion/${fedId}/selecciones`);
+        } else {
+            navigate('/dashboard/entrenadores-seleccion');
+        }
+    };
 
     // Confirmation Modal State
     const [showConfirmation, setShowConfirmation] = useState(false);
@@ -194,7 +205,7 @@ const EntrenadorSeleccionForm = () => {
                 message: id ? 'Entrenador actualizado correctamente.' : 'Entrenador creado correctamente.',
                 onConfirm: () => {
                     setShowConfirmation(false);
-                    navigate('/dashboard/entrenadores-seleccion');
+                    goBack();
                 },
                 showCancel: false,
                 confirmText: 'Continuar'
@@ -228,14 +239,14 @@ const EntrenadorSeleccionForm = () => {
         <div className="page-container">
             <div className="page-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Button variant="ghost" onClick={() => navigate('/dashboard/entrenadores-seleccion')}>
+                    <Button variant="ghost" onClick={goBack}>
                         <ArrowLeft size={20} />
                     </Button>
                     <h2 className="page-title">{id ? 'Editar Entrenador de Selección' : 'Nuevo Entrenador de Selección'}</h2>
                 </div>
             </div>
 
-            <Card>
+            <Card style={{ maxWidth: '800px', margin: '0 auto' }}>
                 <form onSubmit={handleSubmit}>
                     <div className="form-grid">
                         <h3 className="form-section-title">Datos Personales</h3>
@@ -419,7 +430,7 @@ const EntrenadorSeleccionForm = () => {
                         <Button
                             type="button"
                             variant="secondary"
-                            onClick={() => navigate('/dashboard/entrenadores-seleccion')}
+                            onClick={goBack}
                         >
                             Cancelar
                         </Button>

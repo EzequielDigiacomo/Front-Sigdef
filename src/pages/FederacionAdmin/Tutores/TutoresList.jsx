@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
@@ -17,12 +17,29 @@ import { PARENTESCO_MAP } from '../../../utils/enums';
 
 const TutoresList = () => {
     const { isNative } = useDevice();
+    const { fedId } = useParams();
+    const isSuperAdminView = Boolean(fedId);
     const [tutores, setTutores] = useState([]);
     const [atletas, setAtletas] = useState([]);
     const [atletaTutorRelaciones, setAtletaTutorRelaciones] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const navigate = useNavigate();
+    const location = useLocation();
+
+    const handleEditTutor = (id) => {
+        const path = isSuperAdminView
+            ? `/superadmin/federacion/${fedId}/tutores/${id}/edit`
+            : `/dashboard/tutores/${id}/edit`;
+        navigate(path, { state: { returnPath: location.pathname } });
+    };
+
+    const handleEditAtleta = (id) => {
+        const path = isSuperAdminView
+            ? `/superadmin/federacion/${fedId}/atletas/editar/${id}`
+            : `/dashboard/atletas/editar/${id}`;
+        navigate(path, { state: { returnPath: location.pathname } });
+    };
 
     // Document Modals State
     const [showUploadModal, setShowUploadModal] = useState(false);
@@ -255,7 +272,10 @@ const TutoresList = () => {
                             <UserPlus size={20} /> Vincular
                         </Button>
                     )}
-                    <Button onClick={() => navigate('/dashboard/tutores/new')} icon={Plus}>
+                    <Button onClick={() => {
+                        const base = isSuperAdminView ? `/superadmin/federacion/${fedId}/tutores` : '/dashboard/tutores';
+                        navigate(`${base}/nuevo`, { state: { returnPath: base } });
+                    }} icon={Plus}>
                         {isNative ? 'Nuevo' : 'Nuevo Tutor'}
                     </Button>
                 </div>
@@ -292,7 +312,7 @@ const TutoresList = () => {
                                     }}
                                     actions={
                                         <div className="flex gap-2">
-                                            <Button variant="ghost" size="sm" icon={Edit} onClick={(e) => { e.stopPropagation(); navigate(`/tutores/${tutor.idPersona}/edit`); }} />
+                                            <Button variant="ghost" size="sm" icon={Edit} onClick={(e) => { e.stopPropagation(); handleEditTutor(tutor.idPersona); }} />
                                             <Button variant="ghost" size="sm" icon={Plus} onClick={(e) => { e.stopPropagation(); setSelectedTutorForDocs(tutor); loadDocuments(tutor.idPersona); setShowUploadModal(true); }} />
                                             <Button variant="ghost" size="sm" icon={Eye} onClick={(e) => { e.stopPropagation(); setSelectedTutorForDocs(tutor); setShowViewerModal(true); }} />
                                         </div>
@@ -367,7 +387,7 @@ const TutoresList = () => {
                                         <td>
                                             <div className="actions-cell" onClick={(e) => e.stopPropagation()}>
                                                 <Button variant="ghost" size="sm" onClick={() => { setSelectedTutorForLink(tutor); setShowLinkAthleteModal(true); }} title="Enlazar"><UserPlus size={18} /></Button>
-                                                <Button variant="ghost" size="sm" onClick={() => navigate(`/tutores/${tutor.idPersona}/edit`)}><Edit size={18} /></Button>
+                                                <Button variant="ghost" size="sm" onClick={() => handleEditTutor(tutor.idPersona)}><Edit size={18} /></Button>
                                                 <Button variant="ghost" size="sm" className="text-danger" onClick={() => handleDeleteClick(tutor)}><Trash2 size={18} /></Button>
                                             </div>
                                         </td>
@@ -453,7 +473,7 @@ const TutoresList = () => {
                                 variant="primary"
                                 onClick={() => {
                                     setShowDetailsModal(false);
-                                    navigate(`/tutores/${selectedTutorForDetails.idPersona}/edit`);
+                                    handleEditTutor(selectedTutorForDetails.idPersona);
                                 }}
                             >
                                 <Edit size={18} /> Editar Tutor
@@ -492,9 +512,7 @@ const TutoresList = () => {
                                                     key={idx}
                                                     onClick={() => {
                                                         setShowDetailsModal(false);
-                                                        navigate(`/dashboard/atletas/editar/${atleta.idPersona}`, {
-                                                            state: { returnPath: '/dashboard/tutores' }
-                                                        });
+                                                        handleEditAtleta(atleta.idPersona);
                                                     }}
                                                     style={{
                                                         padding: '0.75rem',

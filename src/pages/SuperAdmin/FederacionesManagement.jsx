@@ -4,7 +4,7 @@ import { api } from '../../services/api';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import SearchInput from '../../components/common/SearchInput';
-import { Plus, Edit, Trash2, Globe, Mail, Phone, ShieldCheck, ShieldAlert, Award } from 'lucide-react';
+import { Plus, Edit, Trash2, Globe, Mail, Phone, ShieldCheck, ShieldAlert, Award, LogIn } from 'lucide-react';
 import Modal from '../../components/common/Modal';
 
 const FederacionesManagement = () => {
@@ -220,7 +220,31 @@ const FederacionesManagement = () => {
                                         <span>{fed.estado}</span>
                                     </button>
 
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                        {/* Botón principal: Ingresar al dashboard de la federación */}
+                                        <button
+                                            onClick={() => navigate(`/superadmin/federacion/${fed.idFederacion}`)}
+                                            title="Ver dashboard de esta federación"
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.35rem',
+                                                padding: '0.4rem 0.85rem',
+                                                borderRadius: '8px',
+                                                background: 'linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(139,92,246,0.1) 100%)',
+                                                border: '1px solid rgba(59,130,246,0.4)',
+                                                color: '#60a5fa',
+                                                fontWeight: '700',
+                                                fontSize: '0.8rem',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(59,130,246,0.25)'; }}
+                                            onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(139,92,246,0.1) 100%)'; }}
+                                        >
+                                            <LogIn size={14} />
+                                            Ingresar
+                                        </button>
                                         <Button 
                                             variant="ghost" 
                                             size="sm" 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
@@ -7,7 +7,7 @@ import FormField from '../../../components/forms/FormField';
 import Pagination from '../../../components/common/Pagination';
 import DocumentUploadModal from '../../../components/common/DocumentUploadModal';
 import DocumentViewerModal from '../../../components/common/DocumentViewerModal';
-import { Plus, Edit, Trash2, Search, FileText, Eye, ChevronUp, ChevronDown, ChevronsUpDown, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, FileText, Eye, ChevronUp, ChevronDown, ChevronsUpDown, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useSort } from '../../../hooks/useSort';
 import { getCategoriaLabel, getEstadoPagoLabel, getEstadoPagoColor } from '../../../utils/enums';
 import './Atletas.css';
@@ -20,6 +20,8 @@ import MobileCard from '../../../components/common/MobileCard';
 
 const AtletasList = () => {
     const { isNative } = useDevice();
+    const { fedId } = useParams();                          // Presente cuando el SuperAdmin entra a /superadmin/federacion/:fedId/atletas
+    const isSuperAdminView = Boolean(fedId);
     const [atletas, setAtletas] = useState([]);
     // ... rest of state
     const [loading, setLoading] = useState(true);
@@ -42,6 +44,7 @@ const AtletasList = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10);
     const navigate = useNavigate();
+    const location = useLocation();
     
     const [totalPages, setTotalPages] = useState(1);
     const [totalRecords, setTotalRecords] = useState(0);
@@ -73,7 +76,7 @@ const AtletasList = () => {
     useEffect(() => {
         loadAtletas();
         loadClubs();
-    }, [currentPage, itemsPerPage, debouncedSearchTerm]);
+    }, [currentPage, itemsPerPage, debouncedSearchTerm, fedId]);
 
     const loadClubs = async () => {
         try {
@@ -160,7 +163,27 @@ const AtletasList = () => {
 
             // Fallback: usar /Atleta completo con paginación client-side
             const allAtletas = await api.get('/Atleta');
-            const atletasArray = Array.isArray(allAtletas) ? allAtletas : [];
+            let atletasArray = Array.isArray(allAtletas) ? allAtletas : [];
+
+            // Si estamos en modo SuperAdmin (fedId presente), filtramos por federación
+            // NOTA: el backend de SIGDEF no expone un filtro por federación en /Atleta
+            // así que hacemos el filtrado client-side usando los clubes de la federación.
+            if (fedId) {
+                try {
+                    const clubesFed = await api.get('/Club');
+                    const clubIdsFed = (Array.isArray(clubesFed) ? clubesFed : [])
+                        .filter(c => String(c.idFederacion ?? c.federacionId ?? '') === String(fedId))
+                        .map(c => c.idClub);
+                    // Si no hay clubes con idFederacion, mostramos todos (datos no tienen el campo)
+                    if (clubIdsFed.length > 0) {
+                        atletasArray = atletasArray.filter(a =>
+                            clubIdsFed.includes(a.idClub ?? a.IdClub)
+                        );
+                    }
+                } catch (filterErr) {
+                    console.warn('No se pudo filtrar atletas por federación:', filterErr);
+                }
+            }
 
             // Normalizar campos
             const normalized = atletasArray.map(a => ({
@@ -260,15 +283,44 @@ const AtletasList = () => {
 
     return (
         <div className={`page-container ${isNative ? 'mobile-view' : ''}`}>
+
+            {/* Banner contextual cuando el SuperAdmin ve una federación específica */}
+            {isSuperAdminView && (
+                <div style={{
+                    background: 'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(139,92,246,0.08) 100%)',
+                    border: '1px solid rgba(59,130,246,0.3)',
+                    borderRadius: '10px',
+                    padding: '0.7rem 1.1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    marginBottom: '1rem'
+                }}>
+                    <button
+                        onClick={() => navigate(`/superadmin/federacion/${fedId}`)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#60a5fa', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: '600', fontSize: '0.85rem', padding: 0 }}
+                    >
+                        <ArrowLeft size={15} /> Volver al dashboard de la federación
+                    </button>
+                    <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Modo Supervisión SuperAdmin</span>
+                </div>
+            )}
+
             <div className="page-header">
-                <h2 className="page-title">Gestión de Atletas</h2>
+                <h2 className="page-title">{isSuperAdminView ? 'Atletas de la Federación' : 'Gestión de Atletas'}</h2>
                 <div style={{ display: 'flex', gap: '10px' }}>
                     {!isNative && (
                         <Button variant="secondary" onClick={exportToExcel}>
                             <FileText size={20} /> Exportar Excel
                         </Button>
                     )}
-                    <Button onClick={() => navigate(isNative ? '/login' : '/dashboard/atletas/nuevo')}>
+                    <Button onClick={() => {
+                            const nuevoPath = isSuperAdminView
+                                ? `/superadmin/federacion/${fedId}/atletas/nuevo`
+                                : '/dashboard/atletas/nuevo';
+                            navigate(nuevoPath, { state: { returnPath: isSuperAdminView ? `/superadmin/federacion/${fedId}/atletas` : '/dashboard/atletas' } });
+                        }}>
                         <Plus size={20} /> Nuevo
                     </Button>
                 </div>

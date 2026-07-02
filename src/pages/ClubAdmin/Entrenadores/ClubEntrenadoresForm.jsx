@@ -47,7 +47,9 @@ const ClubEntrenadoresForm = () => {
     const handleNavigateBack = () => {
         if (location.state?.returnPath) {
             navigate(location.state.returnPath);
-        } else if (user.role === 'FEDERACION') {
+        } else if (fedId) {
+            navigate(`/superadmin/federacion/${fedId}/entrenadores`);
+        } else if (user?.role === 'FEDERACION') {
             navigate('/dashboard/entrenadores');
         } else {
             navigate('/club/entrenadores');
@@ -231,7 +233,7 @@ const ClubEntrenadoresForm = () => {
                 </div>
             </div>
 
-            <Card>
+            <Card style={{ maxWidth: '800px', margin: '0 auto' }}>
                 <form onSubmit={handleSubmit}>
                     <div className="form-grid">
                         <h3 className="form-section-title">Datos Personales</h3>
@@ -326,7 +328,7 @@ const ClubEntrenadoresForm = () => {
                     </div>
 
                     <div className="form-actions">
-                        <Button type="button" variant="secondary" onClick={() => navigate('/club/entrenadores')}>Cancelar</Button>
+                        <Button type="button" variant="secondary" onClick={handleNavigateBack}>Cancelar</Button>
                         <Button type="submit" variant="primary" isLoading={loading}>
                             <Save size={18} /> {id ? 'Actualizar' : 'Guardar'} Entrenador
                         </Button>

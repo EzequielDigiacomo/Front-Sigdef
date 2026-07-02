@@ -16,6 +16,15 @@ const DelegadosForm = () => {
     const [clubes, setClubes] = useState([]);
     const [federacionNombre, setFederacionNombre] = useState('');
 
+    // Helper de navegación hacia atrás: usa el returnPath provisto por la lista, o vuelve al historial
+    const goBack = () => {
+        if (location.state?.returnPath) {
+            navigate(location.state.returnPath);
+        } else {
+            navigate(-1);
+        }
+    };
+
     // Estado del formulario unificado (Persona + Delegado)
     const [formData, setFormData] = useState({
         // Datos Persona
@@ -126,7 +135,7 @@ const DelegadosForm = () => {
     const handleModalClose = () => {
         setModalConfig(prev => ({ ...prev, isOpen: false }));
         if (modalConfig.shouldNavigate) {
-            navigate('/dashboard/delegados');
+            goBack();
         }
     };
 
@@ -177,14 +186,14 @@ const DelegadosForm = () => {
         <div className="page-container">
             <div className="page-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Button variant="ghost" onClick={() => navigate('/dashboard/delegados')}>
+                    <Button variant="ghost" onClick={goBack}>
                         <ArrowLeft size={20} />
                     </Button>
                     <h2 className="page-title">Crear / Asignar Delegado</h2>
                 </div>
             </div>
 
-            <Card>
+            <Card style={{ maxWidth: '800px', margin: '0 auto' }}>
                 <form onSubmit={handleSubmit}>
                     <div className="form-grid">
                         <h3 className="form-section-title" style={{ gridColumn: '1 / -1' }}>Datos de la Persona</h3>
@@ -334,7 +343,7 @@ const DelegadosForm = () => {
                     </div>
 
                     <div className="form-actions" style={{ marginTop: '2rem' }}>
-                        <Button type="button" variant="secondary" onClick={() => navigate('/dashboard/delegados')}>
+                        <Button type="button" variant="secondary" onClick={goBack}>
                             Cancelar
                         </Button>
                         <Button type="submit" variant="primary" isLoading={loading}>

@@ -7,7 +7,7 @@ import { ArrowLeft, Save } from 'lucide-react';
 import '../Atletas/Atletas.css';
 
 const ClubesForm = () => {
-    const { id } = useParams();
+    const { id, fedId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
     const [loading, setLoading] = useState(false);
@@ -39,6 +39,8 @@ const ClubesForm = () => {
     const handleNavigateBack = () => {
         if (location.state?.returnPath) {
             navigate(location.state.returnPath);
+        } else if (fedId) {
+            navigate(`/superadmin/federacion/${fedId}/clubes`);
         } else {
             navigate('/dashboard/clubes');
         }
@@ -85,7 +87,7 @@ const ClubesForm = () => {
                 </div>
             </div>
 
-            <Card>
+            <Card style={{ maxWidth: '700px', margin: '0 auto' }}>
                 <form onSubmit={handleSubmit}>
                     <div className="form-grid">
                         <h3 className="form-section-title">Datos Identificatorios</h3>

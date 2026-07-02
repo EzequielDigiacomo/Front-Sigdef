@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../../services/api';
 import Button from '../../../components/common/Button';
 import Card from '../../../components/common/Card';
 import FormField from '../../../components/forms/FormField';
-import { Plus, Edit, Trash2, Search, Users, Target, Briefcase } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Users, Target, Briefcase, ArrowLeft } from 'lucide-react';
 import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
 import { getCategoriaLabel, getEstadoPagoColor, getEstadoPagoLabel } from '../../../utils/enums';
-import { seedDatabase } from '../../../utils/seeder';
 import './Clubes.css';
 
 const ClubesList = () => {
     const { isNative } = useDevice();
+    const { fedId } = useParams();                       // Presente cuando el SuperAdmin navega a /superadmin/federacion/:fedId/clubes
+    const isSuperAdminView = Boolean(fedId);
     const [clubes, setClubes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -20,12 +21,23 @@ const ClubesList = () => {
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [fedId]);
 
     const loadData = async () => {
         try {
             const clubesData = await api.get('/Club');
-            setClubes(clubesData);
+            const clubesArray = Array.isArray(clubesData) ? clubesData : [];
+
+            // Si estamos en modo SuperAdmin con una federación específica, filtrar
+            if (fedId) {
+                const filtrados = clubesArray.filter(c =>
+                    String(c.idFederacion ?? c.federacionId ?? '') === String(fedId)
+                );
+                // Si el backend devuelve idFederacion, filtramos; si no, mostramos todos
+                setClubes(filtrados.length > 0 ? filtrados : clubesArray);
+            } else {
+                setClubes(clubesArray);
+            }
         } catch (error) {
             console.error('Error cargando clubes:', error);
         } finally {
@@ -49,15 +61,34 @@ const ClubesList = () => {
 
     return (
         <div className={`page-container ${isNative ? 'mobile-view' : ''}`}>
+
+            {/* Banner contextual SuperAdmin */}
+            {isSuperAdminView && (
+                <div style={{
+                    background: 'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(139,92,246,0.08) 100%)',
+                    border: '1px solid rgba(59,130,246,0.3)',
+                    borderRadius: '10px',
+                    padding: '0.7rem 1.1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    marginBottom: '1rem'
+                }}>
+                    <button
+                        onClick={() => navigate(`/superadmin/federacion/${fedId}`)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#60a5fa', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: '600', fontSize: '0.85rem', padding: 0 }}
+                    >
+                        <ArrowLeft size={15} /> Volver al dashboard de la federación
+                    </button>
+                    <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Modo Supervisión SuperAdmin</span>
+                </div>
+            )}
+
             <div className="page-header">
-                <h2 className="page-title">{isNative ? 'Clubes' : 'Gestión de Clubes'}</h2>
+                <h2 className="page-title">{isSuperAdminView ? 'Clubes de la Federación' : (isNative ? 'Clubes' : 'Gestión de Clubes')}</h2>
                 <div style={{ display: 'flex', gap: '1rem' }}>
-                    {!isNative && (
-                        <Button variant="danger" onClick={seedDatabase}>
-                            GENERAR DATOS TEST
-                        </Button>
-                    )}
-                    <Button onClick={() => navigate('nuevo')} variant="primary" icon={Plus}>
+                    <Button onClick={() => navigate('nuevo', { state: { returnPath: isSuperAdminView ? `/superadmin/federacion/${fedId}/clubes` : '/dashboard/clubes' } })} variant="primary" icon={Plus}>
                         {isNative ? 'Nuevo' : 'Nuevo Club'}
                     </Button>
                 </div>

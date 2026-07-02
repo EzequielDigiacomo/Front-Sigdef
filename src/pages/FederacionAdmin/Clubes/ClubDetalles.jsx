@@ -9,7 +9,8 @@ import AtletaDetailModal from '../Atletas/components/AtletaDetailModal';
 import { getCategoriaLabel, getEstadoPagoColor, getEstadoPagoLabel } from '../../../utils/enums';
 
 const ClubDetalles = () => {
-    const { id } = useParams();
+    const { id, fedId } = useParams();
+    const isSuperAdminView = Boolean(fedId);
     const navigate = useNavigate();
     const [club, setClub] = useState(null);
     const [atletas, setAtletas] = useState([]);
@@ -140,13 +141,13 @@ const ClubDetalles = () => {
         <div className="page-container">
             <div className="page-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Button variant="ghost" onClick={() => navigate('/dashboard/clubes')}>
+                    <Button variant="ghost" onClick={() => navigate(isSuperAdminView ? `/superadmin/federacion/${fedId}/clubes` : '/dashboard/clubes')}>
                         <ArrowLeft size={20} />
                     </Button>
                     <h2 className="page-title">Detalles - {club.nombre}</h2>
                 </div>
             </div>
-
+ 
             <div style={{ display: 'grid', gap: '2rem' }}>
                 {/* Info General */}
                 <Card>
@@ -155,7 +156,7 @@ const ClubDetalles = () => {
                         <Button
                             variant="primary"
                             size="sm"
-                            onClick={() => navigate(`/dashboard/clubes/editar/${club.idClub}`)}
+                            onClick={() => navigate(isSuperAdminView ? `/superadmin/federacion/${fedId}/clubes/editar/${club.idClub}` : `/dashboard/clubes/editar/${club.idClub}`)}
                         >
                             <Edit size={16} className="mr-2" /> Editar
                         </Button>
@@ -213,7 +214,11 @@ const ClubDetalles = () => {
                             <Button
                                 variant="primary"
                                 size="sm"
-                                onClick={() => navigate('/dashboard/delegados-club/nuevo', { state: { clubId: club.idClub, returnPath: `/dashboard/clubes/detalles/${club.idClub}` } })}
+                                onClick={() => {
+                                    const target = isSuperAdminView ? `/superadmin/federacion/${fedId}/delegados/nuevo` : '/dashboard/delegados/nuevo';
+                                    const returnPath = isSuperAdminView ? `/superadmin/federacion/${fedId}/clubes/detalles/${club.idClub}` : `/dashboard/clubes/detalles/${club.idClub}`;
+                                    navigate(target, { state: { clubId: club.idClub, returnPath } });
+                                }}
                             >
                                 <Plus size={16} className="mr-2" /> Nuevo Delegado
                             </Button>
@@ -315,7 +320,11 @@ const ClubDetalles = () => {
                         <Button
                             variant="primary"
                             size="sm"
-                            onClick={() => navigate('/dashboard/entrenadores/nuevo', { state: { clubId: club.idClub, returnPath: `/dashboard/clubes/detalles/${club.idClub}` } })}
+                            onClick={() => {
+                                const target = isSuperAdminView ? `/superadmin/federacion/${fedId}/entrenadores/nuevo` : '/dashboard/entrenadores/nuevo';
+                                const returnPath = isSuperAdminView ? `/superadmin/federacion/${fedId}/clubes/detalles/${club.idClub}` : `/dashboard/clubes/detalles/${club.idClub}`;
+                                navigate(target, { state: { clubId: club.idClub, returnPath } });
+                            }}
                         >
                             <Plus size={16} className="mr-2" /> Agregar Entrenador
                         </Button>
@@ -380,12 +389,11 @@ const ClubDetalles = () => {
                             <Button
                                 variant="primary"
                                 size="sm"
-                                onClick={() => navigate('/dashboard/atletas/nuevo', {
-                                    state: {
-                                        clubId: club.idClub,
-                                        returnPath: `/dashboard/clubes/detalles/${club.idClub}`
-                                    }
-                                })}
+                                onClick={() => {
+                                    const target = isSuperAdminView ? `/superadmin/federacion/${fedId}/atletas/nuevo` : '/dashboard/atletas/nuevo';
+                                    const returnPath = isSuperAdminView ? `/superadmin/federacion/${fedId}/clubes/detalles/${club.idClub}` : `/dashboard/clubes/detalles/${club.idClub}`;
+                                    navigate(target, { state: { clubId: club.idClub, returnPath } });
+                                }}
                             >
                                 <Plus size={16} className="mr-2" /> Crear Atleta
                             </Button>

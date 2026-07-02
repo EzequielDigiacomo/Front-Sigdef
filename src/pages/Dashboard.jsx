@@ -2,23 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import Card from '../components/common/Card';
-import { Users, Shield, DollarSign, Calendar, LayoutDashboard, Award, Trophy, ClipboardList, Briefcase, UserCheck, Lock, Trash2 } from 'lucide-react';
+import { Users, Shield, DollarSign, Calendar, LayoutDashboard, Award, Trophy, ClipboardList, Briefcase, UserCheck, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import './Dashboard.css';
-
-import DataGenerationModal from '../components/common/DataGenerationModal';
-import ConfirmationModal from '../components/common/ConfirmationModal';
-import { DataGenerator } from '../utils/DataGenerator';
 
 const Dashboard = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [federacionNombre, setFederacionNombre] = useState('...');
-
-    // Data Generation Modal State
-    const [showGenModal, setShowGenModal] = useState(false);
-    const [showClearConfirm, setShowClearConfirm] = useState(false);
-    const [isClearing, setIsClearing] = useState(false);
 
     const [stats, setStats] = useState([
         {
@@ -54,7 +45,6 @@ const Dashboard = () => {
     ]);
     const [proximosEventos, setProximosEventos] = useState([]);
     const [loading, setLoading] = useState(true);
-    // Trigger to refresh data after generation
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     useEffect(() => {
@@ -186,19 +176,6 @@ const Dashboard = () => {
         navigate(route);
     };
 
-    const handleClearDB = async () => {
-        setIsClearing(true);
-        try {
-            await DataGenerator.clearAllData();
-            setRefreshTrigger(prev => prev + 1);
-            setShowClearConfirm(false);
-        } catch (error) {
-            console.error("Error clearing DB:", error);
-        } finally {
-            setIsClearing(false);
-        }
-    };
-
     return (
         <div className="dashboard-container">
             <div className="dashboard-header mb-8" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -210,43 +187,7 @@ const Dashboard = () => {
                         Panel de control de <strong>{federacionNombre}</strong>
                     </p>
                 </div>
-                <div>
-                    <button
-                        className="btn btn-danger"
-                        onClick={() => setShowClearConfirm(true)}
-                        style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '1rem' }}
-                    >
-                        <Trash2 size={16} /> Limpiar DB
-                    </button>
-                    <button
-                        className="btn btn-secondary"
-                        onClick={() => setShowGenModal(true)}
-                        style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px dashed var(--text-secondary)' }}
-                    >
-                        ⚡ Generar Datos
-                    </button>
-                </div>
             </div>
-
-            {/* Modal de Confirmación para Limpiar */}
-            <ConfirmationModal
-                isOpen={showClearConfirm}
-                onClose={() => setShowClearConfirm(false)}
-                onConfirm={handleClearDB}
-                title="¿Limpiar Base de Datos?"
-                message="Esta acción eliminará Atletas, Clubes, Eventos y toda la información generada. Esta acción no se puede deshacer."
-                type="danger"
-                confirmText={isClearing ? "Limpiando..." : "Sí, Limpiar Todo"}
-                cancelText="Cancelar"
-                isLoading={isClearing}
-            />
-
-            {/* Modal de Generación */}
-            <DataGenerationModal
-                isOpen={showGenModal}
-                onClose={() => setShowGenModal(false)}
-                onDataGenerated={() => setRefreshTrigger(prev => prev + 1)}
-            />
 
             <div className="stats-grid">
                 {stats.map((stat, index) => (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
@@ -10,10 +10,18 @@ import MobileCard from '../../../components/common/MobileCard';
 
 const DelegadosList = () => {
     const { isNative } = useDevice();
+    const { fedId } = useParams();
+    const isSuperAdminView = Boolean(fedId);
     const [delegados, setDelegados] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const navigate = useNavigate();
+    const location = useLocation();
+
+    const handleEdit = (id) => {
+        const base = isSuperAdminView ? `/superadmin/federacion/${fedId}/delegados` : '/dashboard/delegados';
+        navigate(`${base}/editar/${id}`, { state: { returnPath: location.pathname } });
+    };
 
     useEffect(() => {
         loadDelegados();
@@ -58,7 +66,13 @@ const DelegadosList = () => {
                     <Briefcase size={28} />
                     <h2 className="page-title">{isNative ? 'Delegados' : 'Gestión de Delegados Club'}</h2>
                 </div>
-                <Button onClick={() => navigate('/dashboard/delegados/nuevo')} variant="primary" icon={Plus}>
+                <Button
+                    onClick={() => {
+                        const base = isSuperAdminView ? `/superadmin/federacion/${fedId}/delegados` : '/dashboard/delegados';
+                        navigate(`${base}/nuevo`, { state: { returnPath: base } });
+                    }}
+                    variant="primary" icon={Plus}
+                >
                     {isNative ? 'Nuevo' : 'Nuevo Delegado'}
                 </Button>
             </div>
@@ -92,7 +106,7 @@ const DelegadosList = () => {
                                     ]}
                                     actions={
                                         <div className="flex gap-2">
-                                            <Button variant="ghost" size="sm" icon={Edit} onClick={() => navigate(`/dashboard/delegados/editar/${delegado.id || delegado.idPersona || delegado.IdPersona}`)} />
+                                            <Button variant="ghost" size="sm" icon={Edit} onClick={() => handleEdit(delegado.id || delegado.idPersona || delegado.IdPersona)} />
                                             <Button variant="ghost" size="sm" icon={Trash2} className="text-danger" onClick={() => handleDelete(delegado.id || delegado.idPersona || delegado.IdPersona)} />
                                         </div>
                                     }
@@ -136,7 +150,7 @@ const DelegadosList = () => {
                                                 <td>{tel}</td>
                                                 <td>
                                                     <div className="actions-cell">
-                                                        <Button variant="ghost" size="sm" onClick={() => navigate(`/dashboard/delegados/editar/${id}`)}>
+                                                        <Button variant="ghost" size="sm" onClick={() => handleEdit(id)}>
                                                             <Edit size={18} />
                                                         </Button>
                                                         <Button variant="ghost" size="sm" className="text-danger" onClick={() => handleDelete(id)}>

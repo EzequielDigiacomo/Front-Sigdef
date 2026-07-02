@@ -12,14 +12,17 @@ import AssignCategoryModal from './components/AssignCategoryModal';
 import AddCoachToSelectionModal from './components/AddCoachToSelectionModal';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import { getCategoriaLabel } from '../../../utils/enums';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Button from '../../../components/common/Button';
 import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
 
 const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'seleccion'
     const { isNative } = useDevice();
+    const { fedId } = useParams();
+    const isSuperAdminView = Boolean(fedId);
     const navigate = useNavigate();
+    const location = useLocation();
     // ... states
     const [entrenadores, setEntrenadores] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -96,7 +99,10 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
     const handlePageChange = (pageNumber) => { setCurrentPage(pageNumber); };
 
     const handleEdit = (id) => {
-        navigate(viewMode === 'seleccion' ? `/dashboard/entrenadores-seleccion/editar/${id}` : `/dashboard/entrenadores/editar/${id}`);
+        const path = isSuperAdminView
+            ? (viewMode === 'seleccion' ? `/superadmin/federacion/${fedId}/entrenadores-seleccion/editar/${id}` : `/superadmin/federacion/${fedId}/entrenadores/editar/${id}`)
+            : (viewMode === 'seleccion' ? `/dashboard/entrenadores-seleccion/editar/${id}` : `/dashboard/entrenadores/editar/${id}`);
+        navigate(path, { state: { returnPath: location.pathname } });
     };
 
     const handleDelete = (id) => {
@@ -185,7 +191,12 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
                         <Button variant="outline" onClick={() => setShowAddCoachModal(true)}>
                             {isNative ? <UserPlus size={20} /> : <><UserPlus size={20} /> Vincular Existente</>}
                         </Button>
-                        <Button onClick={() => navigate('/dashboard/entrenadores-seleccion/nuevo')}>
+                        <Button onClick={() => {
+                            const path = isSuperAdminView
+                                ? `/superadmin/federacion/${fedId}/entrenadores-seleccion/nuevo`
+                                : '/dashboard/entrenadores-seleccion/nuevo';
+                            navigate(path, { state: { returnPath: location.pathname } });
+                        }}>
                             <Plus size={20} /> {isNative ? 'Crear' : 'Crear Entrenador Nuevo'}
                         </Button>
                     </div>

@@ -10,7 +10,7 @@ import { getCategoryByAge } from '../../../utils/categoryConfig';
 import './Atletas.css';
 
 const AtletasForm = () => {
-    const { id } = useParams();
+    const { id, fedId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
     const [loading, setLoading] = useState(false);
@@ -403,8 +403,10 @@ const AtletasForm = () => {
         if (resultModal.type === 'success') {
             if (location.state?.returnPath) {
                 navigate(location.state.returnPath);
+            } else if (fedId) {
+                navigate(`/superadmin/federacion/${fedId}/atletas`);
             } else {
-                navigate('/atletas');
+                navigate('/dashboard/atletas');
             }
         }
     };
@@ -412,8 +414,10 @@ const AtletasForm = () => {
     const handleCancel = () => {
         if (location.state?.returnPath) {
             navigate(location.state.returnPath);
+        } else if (fedId) {
+            navigate(`/superadmin/federacion/${fedId}/atletas`);
         } else {
-            navigate('/atletas');
+            navigate('/dashboard/atletas');
         }
     };
 
@@ -428,7 +432,7 @@ const AtletasForm = () => {
                 </div>
             </div>
 
-            <Card>
+            <Card style={{ maxWidth: '800px', margin: '0 auto' }}>
                 <form onSubmit={handleSubmit}>
                     <div className="form-grid">
                         <h3 className="form-section-title">Datos Personales</h3>

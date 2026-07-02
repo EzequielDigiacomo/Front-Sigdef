@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
@@ -8,7 +8,16 @@ import { ArrowLeft, Save } from 'lucide-react';
 const TutoresForm = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const [loading, setLoading] = useState(false);
+
+    const goBack = () => {
+        if (location.state?.returnPath) {
+            navigate(location.state.returnPath);
+        } else {
+            navigate(-1);
+        }
+    };
 
     const [formData, setFormData] = useState({
         nombre: '',
@@ -81,7 +90,7 @@ const TutoresForm = () => {
                 });
             }
 
-            navigate('/dashboard/tutores');
+            goBack();
         } catch (error) {
             console.error('Error guardando:', error);
             alert('Error al guardar el tutor. Verifica los datos e intenta nuevamente.');
@@ -94,18 +103,18 @@ const TutoresForm = () => {
         <div className="page-container">
             <div className="page-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Button variant="ghost" onClick={() => navigate('/dashboard/tutores')}>
+                    <Button variant="ghost" onClick={goBack}>
                         <ArrowLeft size={20} />
                     </Button>
                     <h2 className="page-title">{id ? 'Editar Tutor' : 'Nuevo Tutor'}</h2>
                 </div>
             </div>
 
-            <Card>
+            <Card style={{ maxWidth: '800px', margin: '0 auto' }}>
                 <form onSubmit={handleSubmit}>
 // ... (omitting lines to keep replacement concise, focusing on fixing the navigate calls)
                     <div className="form-actions">
-                        <Button type="button" variant="secondary" onClick={() => navigate('/dashboard/tutores')}>Cancelar</Button>
+                        <Button type="button" variant="secondary" onClick={goBack}>Cancelar</Button>
                         <Button type="submit" variant="primary" isLoading={loading}>
                             <Save size={18} /> Guardar Tutor
                         </Button>
