@@ -14,15 +14,25 @@ const ClubesForm = () => {
 
     const [formData, setFormData] = useState({
         nombre: '',
-        direccion: '',
-        telefono: '',
         siglas: '',
+        email: '',
+        telefono: '',
+        direccion: '',
         estadoMatricula: 0
     });
 
     useEffect(() => {
         if (id) {
-            api.get(`/Club/${id}`).then(data => setFormData(data)).catch(console.error);
+            api.get(`/Club/${id}`).then(data => {
+                setFormData({
+                    nombre: data.nombre || data.Nombre || '',
+                    siglas: data.siglas || data.Siglas || data.sigla || '',
+                    email: data.email || data.Email || '',
+                    telefono: data.telefono || data.Telefono || '',
+                    direccion: data.direccion || data.Direccion || data.ubicacion || '',
+                    estadoMatricula: data.estadoMatricula ?? data.EstadoMatricula ?? 0
+                });
+            }).catch(console.error);
         }
     }, [id]);
 
@@ -38,14 +48,23 @@ const ClubesForm = () => {
         e.preventDefault();
         setLoading(true);
         try {
+            const payload = {
+                nombre: formData.nombre,
+                siglas: formData.siglas,
+                email: formData.email,
+                telefono: formData.telefono,
+                direccion: formData.direccion,
+                estadoMatricula: parseInt(formData.estadoMatricula)
+            };
             if (id) {
-                await api.put(`/Club/${id}`, formData);
+                await api.put(`/Club/${id}`, payload);
             } else {
-                await api.post('/Club', formData);
+                await api.post('/Club', payload);
             }
             handleNavigateBack();
         } catch (error) {
             console.error('Error guardando club:', error);
+            alert(error.message || 'Error al guardar el club');
         } finally {
             setLoading(false);
         }
@@ -69,22 +88,34 @@ const ClubesForm = () => {
             <Card>
                 <form onSubmit={handleSubmit}>
                     <div className="form-grid">
+                        <h3 className="form-section-title">Datos Identificatorios</h3>
+
                         <div className="form-group">
-                            <label>Nombre del Club</label>
+                            <label>Nombre Institucional *</label>
                             <input name="nombre" value={formData.nombre} onChange={handleChange} className="form-input" required />
                         </div>
                         <div className="form-group">
-                            <label>Siglas</label>
-                            <input name="siglas" value={formData.siglas} onChange={handleChange} className="form-input" maxLength="10" />
+                            <label>Sigla / Acrónimo</label>
+                            <input name="siglas" value={formData.siglas} onChange={handleChange} className="form-input" maxLength="10" placeholder="Ej: CFD, CNS..." />
                         </div>
+
+                        <h3 className="form-section-title">Información de Contacto</h3>
+
                         <div className="form-group">
-                            <label>Dirección</label>
-                            <input name="direccion" value={formData.direccion} onChange={handleChange} className="form-input" />
+                            <label>Email Oficial</label>
+                            <input type="email" name="email" value={formData.email} onChange={handleChange} className="form-input" placeholder="contacto@club.org" />
                         </div>
                         <div className="form-group">
                             <label>Teléfono</label>
-                            <input name="telefono" value={formData.telefono} onChange={handleChange} className="form-input" />
+                            <input name="telefono" value={formData.telefono} onChange={handleChange} className="form-input" placeholder="+54 11 ..." />
                         </div>
+                        <div className="form-group">
+                            <label>Dirección / Ubicación / Sede</label>
+                            <input name="direccion" value={formData.direccion} onChange={handleChange} className="form-input" placeholder="Ciudad, Provincia..." />
+                        </div>
+
+                        <h3 className="form-section-title">Estado Administrativo</h3>
+
                         <div className="form-group">
                             <label>Estado de Matrícula (Federación)</label>
                             <select name="estadoMatricula" value={formData.estadoMatricula} onChange={handleChange} className="form-input">

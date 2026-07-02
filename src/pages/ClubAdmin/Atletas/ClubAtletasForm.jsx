@@ -216,8 +216,8 @@ const ClubAtletasForm = () => {
                     becadoSdn: formData.becadoSdn,
                     montoBeca: parseFloat(formData.montoBeca) || 0,
                     presentoAptoMedico: formData.presentoAptoMedico,
-                    estadoPago: 0,
-                    perteneceSeleccion: false,
+                    estadoPago: parseInt(formData.estadoPago),
+                    perteneceSeleccion: formData.perteneceSeleccion,
                     fechaAptoMedico: null
                 },
                 esMenor: esMenor,
@@ -402,6 +402,19 @@ const ClubAtletasForm = () => {
                         <div className="form-group checkbox-group">
                             <input type="checkbox" name="presentoAptoMedico" checked={formData.presentoAptoMedico} onChange={handleChange} id="apto" />
                             <label htmlFor="apto">Presentó Apto Médico</label>
+                        </div>
+                        <div className="form-group checkbox-group">
+                            <input type="checkbox" name="perteneceSeleccion" checked={formData.perteneceSeleccion} onChange={handleChange} id="seleccion" />
+                            <label htmlFor="seleccion">Pertenece a Selección</label>
+                        </div>
+                        <div className="form-group">
+                            <label>Estado de Pago (Matrícula)</label>
+                            <select name="estadoPago" value={formData.estadoPago} onChange={handleChange} className="form-input">
+                                <option value="0">Adeudado (Pendiente)</option>
+                                <option value="1">Abonado (Pagado)</option>
+                                <option value="2">Vencido</option>
+                                <option value="3">Parcial</option>
+                            </select>
                         </div>
 
                         <h3 className="form-section-title">Becas</h3>
