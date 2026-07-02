@@ -8,7 +8,7 @@ const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
 
 const isTokenValid = (token) => {
-    if (token && token.startsWith('mock-')) return true;
+    if (!token || token.startsWith('mock-')) return false;
     try {
         const decoded = jwtDecode(token);
         const currentTime = Date.now() / 1000;
@@ -58,22 +58,6 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (username, password) => {
         try {
-            // Soporte para credenciales de Superadmin mockeadas para testing
-            if (username === 'superadmin' && password === 'superadmin') {
-                const loggedUser = {
-                    username: 'superadmin',
-                    token: 'mock-superadmin-token-jwt-like-expires-in-future',
-                    idPersona: 0,
-                    nombreCompleto: 'Super Administrador Global',
-                    email: 'superadmin@sigdef.com',
-                    role: 'SUPERADMIN',
-                    idClub: null
-                };
-                setUser(loggedUser);
-                localStorage.setItem('user', JSON.stringify(loggedUser));
-                return true;
-            }
-
             const response = await api.post('/auth/login', { username, password });
 
             const { 
@@ -135,11 +119,11 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const logout = () => {
+    const logout = (response) => {
         console.log('Cerrando sesión...');
         setUser(null);
         localStorage.removeItem('user');
-
+        localStorage.removeItem('token');
     };
 
     const value = {

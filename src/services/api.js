@@ -21,8 +21,10 @@ const handleResponse = async (response, options = {}) => {
     if (response.status === 401) {
         localStorage.removeItem('user');
         localStorage.removeItem('token');
-        window.location.href = '/login';
-        throw new Error('Su sesión ha expirado');
+        if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+        }
+        throw new Error('Su sesión ha expirado. Por favor inicie sesión nuevamente.');
     }
 
     let responseText = '';

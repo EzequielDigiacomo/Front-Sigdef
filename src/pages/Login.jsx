@@ -31,7 +31,7 @@ const Login = () => {
                 console.log('Login exitoso, redirigiendo...');
                 navigate('/', { replace: true });
             } else {
-                setError('Credenciales inválidas. Prueba: admin/admin o club1/club1');
+                setError('Credenciales inválidas. Verifique usuario y contraseña.');
             }
         } catch (err) {
             setError('Ocurrió un error al iniciar sesión');
@@ -113,9 +113,8 @@ const Login = () => {
                     <div className="login-info">
                         <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '1rem', textAlign: 'center' }}>
                             <strong>Credenciales de prueba:</strong><br />
-                            <strong>Superadmin:</strong> superadmin / superadmin<br />
-                            <strong>Federación:</strong> admin / admin123<br />
-                            <strong>Club:</strong> club2 / club123
+                            <strong>Superadmin:</strong> superadmin / admin123<br />
+                            <strong>Federación:</strong> admin / admin123
                         </p>
                     </div>
                 </form>

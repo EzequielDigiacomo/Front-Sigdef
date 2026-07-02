@@ -13,6 +13,7 @@ const FederacionesForm = () => {
 
     const [form, setForm] = useState({
         nombre: '',
+        sigla: '',
         cuit: '',
         direccion: '',
         email: '',
@@ -21,6 +22,7 @@ const FederacionesForm = () => {
         costoMensual: 95000,
         estado: 'Activo',
         adminUsername: '',
+        adminEmail: '',
         adminPassword: '',
         confirmAdminPassword: ''
     });
@@ -40,6 +42,7 @@ const FederacionesForm = () => {
             if (data) {
                 setForm({
                     nombre: data.nombre || data.razonSocial || data.Nombre || '',
+                    sigla: data.sigla || data.Sigla || '',
                     cuit: data.cuit || data.Cuit || '',
                     direccion: data.direccion || data.Direccion || '',
                     email: data.email || data.Email || '',
@@ -70,7 +73,11 @@ const FederacionesForm = () => {
     const validate = () => {
         const newErrors = {};
         if (!form.nombre.trim()) newErrors.nombre = 'El nombre es obligatorio';
-        if (!form.cuit.trim()) newErrors.cuit = 'El CUIT es obligatorio';
+        
+        if (isEditMode && !form.cuit?.trim()) {
+            newErrors.cuit = 'El CUIT es obligatorio';
+        }
+
         if (!form.email.trim()) {
             newErrors.email = 'El email es obligatorio';
         } else if (!/\S+@\S+\.\S+/.test(form.email)) {
@@ -78,6 +85,11 @@ const FederacionesForm = () => {
         }
 
         if (!isEditMode) {
+            if (!form.adminEmail?.trim()) {
+                newErrors.adminEmail = 'El email del administrador es obligatorio';
+            } else if (!/\S+@\S+\.\S+/.test(form.adminEmail)) {
+                newErrors.adminEmail = 'Email inválido';
+            }
             if (!form.adminUsername.trim()) {
                 newErrors.adminUsername = 'El usuario es obligatorio';
             } else if (form.adminUsername.length < 4) {
@@ -105,35 +117,29 @@ const FederacionesForm = () => {
 
         setSubmitting(true);
         try {
-            const payload = {
-                nombre: form.nombre,
-                siglas: form.nombre.substring(0, 3).toUpperCase(),
-                direccion: form.direccion,
-                email: form.email,
-                telefono: form.telefono,
-                idFederacion: null
-            };
-
             if (isEditMode) {
+                const payload = {
+                    nombre: form.nombre,
+                    cuit: form.cuit,
+                    siglas: form.sigla || form.nombre.substring(0, 3).toUpperCase(),
+                    direccion: form.direccion,
+                    email: form.email,
+                    telefono: form.telefono,
+                    idFederacion: id
+                };
                 await api.put(`/Federaciones/${id}`, payload);
             } else {
-                // 1. Crear la federación en la BD
-                const createdFed = await api.post('/Federaciones', payload);
-                const newFedId = createdFed?.id || createdFed?.idFederacion || createdFed?.IdFederacion;
-
-                if (!newFedId) {
-                    throw new Error("No se pudo obtener el ID de la federación creada.");
-                }
-
-                // 2. Crear la cuenta de usuario Administrador Principal para esta federación
-                const userPayload = {
-                    username: form.adminUsername,
-                    password: form.adminPassword,
+                const payload = {
+                    nombre: form.nombre,
+                    sigla: form.sigla || form.nombre.substring(0, 3).toUpperCase(),
                     email: form.email,
-                    rol: "Admin",
-                    clubId: parseInt(newFedId)
+                    telefono: form.telefono,
+                    direccion: form.direccion,
+                    adminUsername: form.adminUsername,
+                    adminEmail: form.adminEmail,
+                    adminPassword: form.adminPassword
                 };
-                await api.post('/Auth/register', userPayload);
+                await api.post('/saas/create-federacion', payload);
             }
             navigate('/superadmin/federaciones');
         } catch (error) {
@@ -177,24 +183,39 @@ const FederacionesForm = () => {
                             {errors.nombre && <span style={{ color: 'var(--danger)', fontSize: '0.8rem' }}>{errors.nombre}</span>}
                         </div>
 
-                        <div className="form-group">
-                            <label htmlFor="cuit">CUIT *</label>
-                            <input
-                                type="text"
-                                id="cuit"
-                                className="form-input"
-                                value={form.cuit}
-                                onChange={(e) => setForm(prev => ({ ...prev, cuit: e.target.value }))}
-                                placeholder="Ej. 30-12345678-9"
-                                required
-                            />
-                            {errors.cuit && <span style={{ color: 'var(--danger)', fontSize: '0.8rem' }}>{errors.cuit}</span>}
-                        </div>
+                        {isEditMode ? (
+                            <div className="form-group">
+                                <label htmlFor="cuit">CUIT *</label>
+                                <input
+                                    type="text"
+                                    id="cuit"
+                                    className="form-input"
+                                    value={form.cuit}
+                                    onChange={(e) => setForm(prev => ({ ...prev, cuit: e.target.value }))}
+                                    placeholder="Ej. 30-12345678-9"
+                                    required={isEditMode}
+                                />
+                                {errors.cuit && <span style={{ color: 'var(--danger)', fontSize: '0.8rem' }}>{errors.cuit}</span>}
+                            </div>
+                        ) : (
+                            <div className="form-group">
+                                <label htmlFor="sigla">Sigla (e.g. FAF)</label>
+                                <input
+                                    type="text"
+                                    id="sigla"
+                                    className="form-input"
+                                    value={form.sigla}
+                                    onChange={(e) => setForm(prev => ({ ...prev, sigla: e.target.value }))}
+                                    placeholder="Ej. FAF"
+                                />
+                                {errors.sigla && <span style={{ color: 'var(--danger)', fontSize: '0.8rem' }}>{errors.sigla}</span>}
+                            </div>
+                        )}
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                         <div className="form-group">
-                            <label htmlFor="email">Correo Electrónico de Contacto *</label>
+                            <label htmlFor="email">Email Institucional *</label>
                             <input
                                 type="email"
                                 id="email"
@@ -208,7 +229,7 @@ const FederacionesForm = () => {
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="telefono">Teléfono Administrativo</label>
+                            <label htmlFor="telefono">Teléfono</label>
                             <input
                                 type="text"
                                 id="telefono"
@@ -220,9 +241,9 @@ const FederacionesForm = () => {
                         </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
                         <div className="form-group">
-                            <label htmlFor="direccion">Dirección / Ubicación</label>
+                            <label htmlFor="direccion">Dirección/País</label>
                             <input
                                 type="text"
                                 id="direccion"
@@ -232,64 +253,9 @@ const FederacionesForm = () => {
                                 placeholder="Ej. Av. de Mayo 1234, CABA"
                             />
                         </div>
-
-                        <div className="form-group">
-                            <label htmlFor="estado">Estado de Cuenta</label>
-                            <select
-                                id="estado"
-                                className="form-input"
-                                value={form.estado}
-                                onChange={(e) => setForm(prev => ({ ...prev, estado: e.target.value }))}
-                                style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
-                            >
-                                <option value="Activo">Activo (Acceso Completo)</option>
-                                <option value="Suspendido">Suspendido (Acceso Bloqueado)</option>
-                            </select>
-                        </div>
                     </div>
 
-                    <div style={{
-                        padding: '1.5rem',
-                        borderRadius: 'var(--radius-lg)',
-                        backgroundColor: 'rgba(59, 130, 246, 0.05)',
-                        border: '1px dashed var(--border-color)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '1rem'
-                    }}>
-                        <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', color: 'var(--primary)' }}>
-                            <ShieldAlert size={18} />
-                            Configuración de Plan SaaS
-                        </h4>
-                        
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                            <div className="form-group">
-                                <label htmlFor="plan">Plan Seleccionado</label>
-                                <select
-                                    id="plan"
-                                    className="form-input"
-                                    value={form.plan}
-                                    onChange={handlePlanChange}
-                                    style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
-                                >
-                                    <option value="Enterprise">Enterprise ($150.000 / mes)</option>
-                                    <option value="Premium">Premium ($95.000 / mes)</option>
-                                    <option value="Básico">Básico ($50.000 / mes)</option>
-                                </select>
-                            </div>
 
-                            <div className="form-group">
-                                <label htmlFor="costo">Costo Mensual Personalizado (ARS)</label>
-                                <input
-                                    type="number"
-                                    id="costo"
-                                    className="form-input"
-                                    value={form.costoMensual}
-                                    onChange={(e) => setForm(prev => ({ ...prev, costoMensual: e.target.value }))}
-                                />
-                            </div>
-                        </div>
-                    </div>
 
                     {!isEditMode && (
                         <div style={{
@@ -307,9 +273,9 @@ const FederacionesForm = () => {
                                 Cuenta de Administrador Principal
                             </h4>
                             
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                                 <div className="form-group">
-                                    <label htmlFor="adminUsername">Usuario Admin *</label>
+                                    <label htmlFor="adminUsername">Nombre de Usuario *</label>
                                     <input
                                         type="text"
                                         id="adminUsername"
@@ -322,6 +288,21 @@ const FederacionesForm = () => {
                                     {errors.adminUsername && <span style={{ color: 'var(--danger)', fontSize: '0.8rem' }}>{errors.adminUsername}</span>}
                                 </div>
 
+                                <div className="form-group">
+                                    <label htmlFor="adminEmail">Email de Administrador *</label>
+                                    <input
+                                        type="email"
+                                        id="adminEmail"
+                                        className="form-input"
+                                        value={form.adminEmail}
+                                        onChange={(e) => setForm(prev => ({ ...prev, adminEmail: e.target.value }))}
+                                        placeholder="admin@federacion.org"
+                                        required
+                                    />
+                                    {errors.adminEmail && <span style={{ color: 'var(--danger)', fontSize: '0.8rem' }}>{errors.adminEmail}</span>}
+                                </div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                                 <div className="form-group">
                                     <label htmlFor="adminPassword">Contraseña *</label>
                                     <input
