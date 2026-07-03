@@ -47,27 +47,30 @@ const ClubDetalles = () => {
     const loadClubDetalles = async () => {
         try {
             const [clubData, atletasData, entrenadoresData, delegadosData, eventosData] = await Promise.all([
-                api.get(`/Club/${id}`),
-                api.get(`/Club/${id}/Atletas`),
-                api.get(`/Club/${id}/Entrenadores`),
-                api.get(`/Club/${id}/Delegados`),
-                api.get(`/Club/${id}/Eventos`)
+                api.get(`/Clubes/${id}`),
+                api.get(`/Participantes/club/${id}`).catch(() => []),
+                api.get(`/Clubes/${id}/Entrenadores`).catch(() => []),
+                api.get(`/Clubes/${id}/Delegados`).catch(() => []),
+                api.get(`/Clubes/${id}/Eventos`).catch(() => [])
             ]);
 
-            // Ahora los endpoints ya nos devuelven la data filtrada y enriquecida (NombrePersona, etc)
-            setClub(clubData);
-            setAtletas(atletasData);
-            setEntrenadores(entrenadoresData);
-            setDelegados(delegadosData);
-            setEventos(eventosData);
+            // Normalizar clubData
+            const normalizedClub = {
+                idClub: clubData.idClub ?? clubData.id ?? clubData.Id,
+                nombre: clubData.nombre ?? clubData.Nombre,
+                siglas: clubData.sigla ?? clubData.Sigla ?? clubData.siglas ?? clubData.Siglas ?? '',
+                email: clubData.email ?? clubData.Email ?? '',
+                telefono: clubData.telefono ?? clubData.Telefono ?? '',
+                direccion: clubData.direccion ?? clubData.Direccion ?? '',
+                estadoMatricula: clubData.estadoMatricula ?? clubData.EstadoMatricula ?? 0
+            };
 
-            // Nota: Para inscripciones globales, si se necesitan para "Eventos Asistidos", 
-            // idealmente deberíamos tener un endpoint específico. 
-            // Por ahora, dejamos inscripciones vacío para no sobrecargar, 
-            // o si es crítico ver eventos asistidos, deberíamos agregar api.get(`/Club/${id}/EventosAsistidos`) en el backend.
+            setClub(normalizedClub);
+            setAtletas(atletasData || []);
+            setEntrenadores(entrenadoresData || []);
+            setDelegados(delegadosData || []);
+            setEventos(eventosData || []);
             setInscripciones([]);
-
-
         } catch (error) {
             console.error('Error cargando detalles del club:', error);
         } finally {
@@ -82,20 +85,17 @@ const ClubDetalles = () => {
                 nombre: club.nombre,
                 direccion: club.direccion,
                 telefono: club.telefono,
-                siglas: club.siglas,
+                sigla: club.siglas, // backend espera 'sigla'
                 email: club.email || "",
                 estadoMatricula: newStatus
             };
 
-            await api.put(`/Club/${club.idClub}`, payload);
+            await api.put(`/Clubes/${club.idClub}`, payload);
             
             // Actualizar estado local
             setClub(prev => ({ ...prev, estadoMatricula: newStatus }));
-            
-            // Mostrar feedback opcional si se desea
         } catch (error) {
             console.error('Error actualizando matrícula:', error);
-            // Revertir o mostrar error
         } finally {
             setUpdatingStatus(false);
         }

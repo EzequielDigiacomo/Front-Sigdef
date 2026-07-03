@@ -111,6 +111,66 @@ const Suscripciones = () => {
                     </table>
                 </div>
             </Card>
+
+            {/* Tabla de Tarifas de Referencia (SaaS) */}
+            <Card>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                    <div>
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>Grilla de Precios de Referencia (SaaS)</h3>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Valores oficiales de suscripción mensual y pago anual con descuento del 20%.</p>
+                    </div>
+                </div>
+                <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+                        <thead>
+                            <tr style={{ borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                                <th style={{ padding: '1rem 0.5rem' }}>PLAN / MÓDULO</th>
+                                <th style={{ padding: '1rem 0.5rem' }}>MENSUAL</th>
+                                <th style={{ padding: '1rem 0.5rem' }}>ANUAL (PAGO ÚNICO)</th>
+                                <th style={{ padding: '1rem 0.5rem' }}>EQUIV. MENSUAL EN ANUAL</th>
+                                <th style={{ padding: '1rem 0.5rem', textAlign: 'right' }}>AHORRO EFECTIVO</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {[
+                                { name: 'SIGDEF (S)', mensual: 'USD 50', anual: 'USD 480', equiv: 'USD 40', ahorro: '20%' },
+                                { name: 'SIGDEF (M)', mensual: 'USD 120', anual: 'USD 1.150', equiv: 'USD 95.8', ahorro: '20%' },
+                                { name: 'SIGDEF (L)', mensual: 'USD 250', anual: 'USD 2.400', equiv: 'USD 200', ahorro: '20%' },
+                                { name: 'SportTrack (S)', mensual: 'USD 40', anual: 'USD 380', equiv: 'USD 31.6', ahorro: '20%' },
+                                { name: 'SportTrack (M)', mensual: 'USD 90', anual: 'USD 860', equiv: 'USD 71.6', ahorro: '20%' },
+                                { name: 'SportTrack (L)', mensual: 'USD 190', anual: 'USD 1.800', equiv: 'USD 150', ahorro: '20%' },
+                                { name: 'Pack Dúo (S)', mensual: 'USD 75', anual: 'USD 720', equiv: 'USD 60', ahorro: '20%' },
+                                { name: 'Pack Dúo (M)', mensual: 'USD 170', anual: 'USD 1.600', equiv: 'USD 133.3', ahorro: '20%' },
+                                { name: 'Pack Dúo (L)', mensual: 'USD 350', anual: 'USD 3.360', equiv: 'USD 280', ahorro: '20%' },
+                            ].map((row, idx) => (
+                                <tr key={idx} style={{ 
+                                    borderBottom: '1px solid var(--border-color)', 
+                                    fontSize: '0.9rem', 
+                                    color: 'var(--text-primary)',
+                                    backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(255, 255, 255, 0.02)'
+                                }}>
+                                    <td style={{ padding: '1rem 0.5rem', fontWeight: 'bold' }}>{row.name}</td>
+                                    <td style={{ padding: '1rem 0.5rem' }}>{row.mensual}</td>
+                                    <td style={{ padding: '1rem 0.5rem', color: 'var(--success)', fontWeight: '600' }}>{row.anual}</td>
+                                    <td style={{ padding: '1rem 0.5rem', color: 'var(--text-secondary)' }}>{row.equiv}</td>
+                                    <td style={{ padding: '1rem 0.5rem', textAlign: 'right' }}>
+                                        <span style={{ 
+                                            backgroundColor: 'rgba(16, 185, 129, 0.1)', 
+                                            color: 'var(--success)', 
+                                            fontSize: '0.75rem', 
+                                            padding: '0.2rem 0.5rem', 
+                                            borderRadius: '6px',
+                                            fontWeight: 'bold' 
+                                        }}>
+                                            {row.ahorro}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </Card>
         </div>
     );
 };

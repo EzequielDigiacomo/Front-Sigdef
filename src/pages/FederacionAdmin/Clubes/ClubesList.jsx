@@ -25,18 +25,26 @@ const ClubesList = () => {
 
     const loadData = async () => {
         try {
-            const clubesData = await api.get('/Club');
-            const clubesArray = Array.isArray(clubesData) ? clubesData : [];
+            const clubesData = await api.get('/Clubes');
+            const normalizedClubes = Array.isArray(clubesData) ? clubesData.map(c => ({
+                idClub: c.idClub ?? c.id ?? c.Id,
+                nombre: c.nombre ?? c.Nombre,
+                siglas: c.sigla ?? c.Sigla ?? c.siglas ?? c.Siglas ?? '',
+                email: c.email ?? c.Email,
+                telefono: c.telefono ?? c.Telefono,
+                direccion: c.direccion ?? c.Direccion,
+                idFederacion: c.idFederacion ?? c.federacionId ?? c.FederacionId,
+                estadoMatricula: c.estadoMatricula ?? c.EstadoMatricula ?? 0
+            })) : [];
 
             // Si estamos en modo SuperAdmin con una federación específica, filtrar
             if (fedId) {
-                const filtrados = clubesArray.filter(c =>
-                    String(c.idFederacion ?? c.federacionId ?? '') === String(fedId)
+                const filtrados = normalizedClubes.filter(c =>
+                    String(c.idFederacion ?? '') === String(fedId)
                 );
-                // Si el backend devuelve idFederacion, filtramos; si no, mostramos todos
-                setClubes(filtrados.length > 0 ? filtrados : clubesArray);
+                setClubes(filtrados);
             } else {
-                setClubes(clubesArray);
+                setClubes(normalizedClubes);
             }
         } catch (error) {
             console.error('Error cargando clubes:', error);

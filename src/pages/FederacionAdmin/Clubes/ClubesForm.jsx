@@ -23,16 +23,18 @@ const ClubesForm = () => {
 
     useEffect(() => {
         if (id) {
-            api.get(`/Club/${id}`).then(data => {
+            api.get(`/Clubes/${id}`).then(data => {
                 setFormData({
                     nombre: data.nombre || data.Nombre || '',
-                    siglas: data.siglas || data.Siglas || data.sigla || '',
+                    siglas: data.sigla || data.Sigla || data.siglas || data.Siglas || '',
                     email: data.email || data.Email || '',
                     telefono: data.telefono || data.Telefono || '',
-                    direccion: data.direccion || data.Direccion || data.ubicacion || '',
-                    estadoMatricula: data.estadoMatricula ?? data.EstadoMatricula ?? 0
+                    direccion: data.direccion || data.Direccion || '',
+                    estadoMatricula: data.estadoMatricula || data.EstadoMatricula || 1
                 });
-            }).catch(console.error);
+            }).catch(err => {
+                console.error(err);
+            });
         }
     }, [id]);
 
@@ -52,16 +54,17 @@ const ClubesForm = () => {
         try {
             const payload = {
                 nombre: formData.nombre,
-                siglas: formData.siglas,
+                sigla: formData.siglas, // backend usa 'sigla'
                 email: formData.email,
                 telefono: formData.telefono,
                 direccion: formData.direccion,
-                estadoMatricula: parseInt(formData.estadoMatricula)
+                estadoMatricula: parseInt(formData.estadoMatricula),
+                federacionId: fedId ? parseInt(fedId) : null
             };
             if (id) {
-                await api.put(`/Club/${id}`, payload);
+                await api.put(`/Clubes/${id}`, payload);
             } else {
-                await api.post('/Club', payload);
+                await api.post('/Clubes', payload);
             }
             handleNavigateBack();
         } catch (error) {

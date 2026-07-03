@@ -80,7 +80,16 @@ const fetchWithTimeout = async (resource, options = {}) => {
 
 const request = async (endpoint, options = {}, retries = MAX_RETRIES) => {
     const { silentErrors = false, ...fetchOptions } = options;
-    const url = `${API_URL}${endpoint}`;
+    
+    // Reescribir endpoints de /Club a /Clubes para interactuar con la API real
+    let finalEndpoint = endpoint;
+    if (endpoint === '/Club') {
+        finalEndpoint = '/Clubes';
+    } else if (endpoint.startsWith('/Club/')) {
+        finalEndpoint = endpoint.replace('/Club/', '/Clubes/');
+    }
+
+    const url = `${API_URL}${finalEndpoint}`;
     
     const token = JSON.parse(localStorage.getItem('user'))?.token;
     if (token) {
@@ -99,7 +108,23 @@ const request = async (endpoint, options = {}, retries = MAX_RETRIES) => {
             return request(endpoint, options, retries - 1);
         }
         
-        return await handleResponse(response, { silentErrors });
+        let data = await handleResponse(response, { silentErrors });
+
+        // Normalización de Clubes para asegurar compatibilidad del front (idClub, siglas) con la API real (id, sigla)
+        if (endpoint.startsWith('/Club') || endpoint.startsWith('/Clubes')) {
+            if (Array.isArray(data)) {
+                data = data.map(c => ({
+                    ...c,
+                    idClub: c.idClub ?? c.id ?? c.Id,
+                    siglas: c.sigla ?? c.Sigla ?? c.siglas ?? c.Siglas ?? ''
+                }));
+            } else if (data && typeof data === 'object') {
+                data.idClub = data.idClub ?? data.id ?? data.Id;
+                data.siglas = data.sigla ?? data.Sigla ?? data.siglas ?? data.Siglas ?? '';
+            }
+        }
+
+        return data;
     } catch (error) {
         if (retries > 0 && error.message.includes('Timeout')) {
             return request(endpoint, options, retries - 1);
