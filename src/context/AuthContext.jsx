@@ -107,7 +107,8 @@ export const AuthProvider = ({ children }) => {
                 email: email || '',
                 role: mappedRole,
                 idClub: finalClubId,
-                idFederacion: finalFederacionId ? parseInt(finalFederacionId) : null
+                idFederacion: finalFederacionId ? parseInt(finalFederacionId) : null,
+                plan: response.plan || null
             };
             setUser(loggedUser);
             localStorage.setItem('user', JSON.stringify(loggedUser));

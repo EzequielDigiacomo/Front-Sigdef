@@ -13,6 +13,7 @@ import FederacionesForm from './pages/SuperAdmin/FederacionesForm';
 import FederacionView from './pages/SuperAdmin/FederacionView';
 import Suscripciones from './pages/SuperAdmin/Suscripciones';
 import Auditoria from './pages/SuperAdmin/Auditoria';
+import PlanGuard from './components/common/PlanGuard';
 
 import Dashboard from './pages/Dashboard';
 import AtletasList from './pages/FederacionAdmin/Atletas/AtletasList';
@@ -66,6 +67,16 @@ const PrivateRoute = ({ children, allowedRoles }) => {
 
     const redirectPath = user.role === 'CLUB' ? '/club' : (user.role === 'SUPERADMIN' ? '/superadmin' : '/dashboard');
     return <Navigate to={redirectPath} replace />;
+  }
+
+  // Guard de plan: si el usuario tiene un plan asignado y no es SuperAdmin,
+  // verificar que su plan incluya acceso a SIGDEF.
+  if (user.role !== 'SUPERADMIN') {
+    return (
+      <PlanGuard requiereSigdef user={user}>
+        {children}
+      </PlanGuard>
+    );
   }
 
   return children;

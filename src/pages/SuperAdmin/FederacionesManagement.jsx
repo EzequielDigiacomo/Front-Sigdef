@@ -19,6 +19,8 @@ const FederacionesManagement = () => {
     const [selectedFedConfig, setSelectedFedConfig] = useState(null);
     const [planes, setPlanes] = useState([]);
     const [updatingSaaS, setUpdatingSaaS] = useState(false);
+    // Local buffer for date inputs (avoid API call on every keystroke)
+    const [localDateValues, setLocalDateValues] = useState({ fechaAltaPlan: '', fechaVencimientoPlan: '' });
 
     const formatDate = (dateStr) => {
         if (!dateStr) return 'Sin fecha';
@@ -510,8 +512,15 @@ const FederacionesManagement = () => {
                                 <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Inicio de Suscripción</label>
                                 <input 
                                     type="date"
-                                    value={selectedFedConfig.fechaAltaPlan ? selectedFedConfig.fechaAltaPlan.split('T')[0] : ''}
-                                    onChange={(e) => handleUpdateInlineField(selectedFedConfig.idFederacion, 'fechaAltaPlan', e.target.value)}
+                                    value={localDateValues.fechaAltaPlan !== '' ? localDateValues.fechaAltaPlan : (selectedFedConfig.fechaAltaPlan ? selectedFedConfig.fechaAltaPlan.split('T')[0] : '')}
+                                    onFocus={() => setLocalDateValues(v => ({ ...v, fechaAltaPlan: selectedFedConfig.fechaAltaPlan ? selectedFedConfig.fechaAltaPlan.split('T')[0] : '' }))}
+                                    onChange={(e) => setLocalDateValues(v => ({ ...v, fechaAltaPlan: e.target.value }))}
+                                    onBlur={(e) => {
+                                        if (e.target.value && e.target.value !== (selectedFedConfig.fechaAltaPlan ? selectedFedConfig.fechaAltaPlan.split('T')[0] : '')) {
+                                            handleUpdateInlineField(selectedFedConfig.idFederacion, 'fechaAltaPlan', e.target.value);
+                                        }
+                                        setLocalDateValues(v => ({ ...v, fechaAltaPlan: '' }));
+                                    }}
                                     disabled={updatingSaaS}
                                     style={{
                                         width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid var(--border-color)',
@@ -524,8 +533,15 @@ const FederacionesManagement = () => {
                                 <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Vencimiento de Suscripción</label>
                                 <input 
                                     type="date"
-                                    value={selectedFedConfig.fechaVencimientoPlan ? selectedFedConfig.fechaVencimientoPlan.split('T')[0] : ''}
-                                    onChange={(e) => handleUpdateInlineField(selectedFedConfig.idFederacion, 'fechaVencimientoPlan', e.target.value)}
+                                    value={localDateValues.fechaVencimientoPlan !== '' ? localDateValues.fechaVencimientoPlan : (selectedFedConfig.fechaVencimientoPlan ? selectedFedConfig.fechaVencimientoPlan.split('T')[0] : '')}
+                                    onFocus={() => setLocalDateValues(v => ({ ...v, fechaVencimientoPlan: selectedFedConfig.fechaVencimientoPlan ? selectedFedConfig.fechaVencimientoPlan.split('T')[0] : '' }))}
+                                    onChange={(e) => setLocalDateValues(v => ({ ...v, fechaVencimientoPlan: e.target.value }))}
+                                    onBlur={(e) => {
+                                        if (e.target.value && e.target.value !== (selectedFedConfig.fechaVencimientoPlan ? selectedFedConfig.fechaVencimientoPlan.split('T')[0] : '')) {
+                                            handleUpdateInlineField(selectedFedConfig.idFederacion, 'fechaVencimientoPlan', e.target.value);
+                                        }
+                                        setLocalDateValues(v => ({ ...v, fechaVencimientoPlan: '' }));
+                                    }}
                                     disabled={updatingSaaS}
                                     style={{
                                         width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid var(--border-color)',
