@@ -1,5 +1,6 @@
 import React from 'react';
-import { ShieldOff, ArrowLeft } from 'lucide-react';
+import { ShieldOff, LogOut } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 /**
  * PlanGuard: Muestra una pantalla de "Plan no compatible" si el usuario
@@ -34,7 +35,9 @@ const PlanGuard = ({ children, requiereSigdef, requiereSportTrack, requiereContr
     return children;
 };
 
-const PlanBloqueado = ({ motivo }) => (
+const PlanBloqueado = ({ motivo }) => {
+    const { logout } = useAuth();
+    return (
     <div style={{
         minHeight: '100vh',
         display: 'flex',
@@ -88,8 +91,18 @@ const PlanBloqueado = ({ motivo }) => (
             }}>
                 💡 Planes disponibles: <strong>S</strong>, <strong>M</strong> y <strong>L</strong> — tanto para SIGDEF, SportTrack o Pack Dúo (acceso a ambos).
             </div>
+            
+            <button 
+                onClick={logout}
+                style={{ marginTop: '2rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', color: '#fff', cursor: 'pointer', fontWeight: 500, transition: 'background 0.2s' }}
+                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+            >
+                <LogOut size={18} /> Cerrar Sesión
+            </button>
         </div>
     </div>
-);
+    );
+};
 
 export default PlanGuard;

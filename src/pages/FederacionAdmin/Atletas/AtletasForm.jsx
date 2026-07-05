@@ -9,6 +9,9 @@ import { CATEGORIA_MAP, PARENTESCO_MAP, SEXO_MAP } from '../../../utils/enums';
 import { getCategoryByAge } from '../../../utils/categoryConfig';
 import './Atletas.css';
 
+const getParticipanteId = (data) =>
+    data?.participanteId ?? data?.ParticipanteId ?? data?.idPersona ?? data?.IdPersona ?? null;
+
 const AtletasForm = () => {
     const { id, fedId } = useParams();
     const navigate = useNavigate();
@@ -66,18 +69,19 @@ const AtletasForm = () => {
             const fetchTutor = async () => {
                 try {
                     const relRes = await api.get('/AtletaTutor');
-                    const relacion = relRes.find(r => r.idAtleta === parseInt(id));
+                    const relacion = relRes.find(r => getParticipanteId(r) === parseInt(id) || (r.idAtleta ?? r.IdAtleta) === parseInt(id));
                     if (relacion) {
-                        const tutorRes = await api.get(`/Persona/${relacion.idTutor}`);
+                        const idTutor = relacion.idTutor ?? relacion.IdTutor;
+                        const tutorRes = await api.get(`/Persona/${idTutor}`);
                         setTutorData({
-                            documento: tutorRes.documento,
-                            nombre: tutorRes.nombre,
-                            apellido: tutorRes.apellido,
-                            telefono: tutorRes.telefono,
-                            email: tutorRes.email,
-                            parentesco: relacion.idParentesco,
+                            documento: tutorRes.documento ?? tutorRes.Documento ?? '',
+                            nombre: tutorRes.nombre ?? tutorRes.Nombre ?? '',
+                            apellido: tutorRes.apellido ?? tutorRes.Apellido ?? '',
+                            telefono: tutorRes.telefono ?? tutorRes.Telefono ?? '',
+                            email: tutorRes.email ?? tutorRes.Email ?? '',
+                            parentesco: relacion.parentesco ?? relacion.Parentesco ?? relacion.idParentesco ?? 0,
                             existe: true,
-                            idPersona: relacion.idTutor
+                            idPersona: idTutor
                         });
                         setTutorLater(false);
                     }
@@ -170,7 +174,7 @@ const AtletasForm = () => {
                 telefono: persona.telefono || persona.Telefono || '',
                 email: persona.email || persona.Email || '',
                 existe: true,
-                idPersona: persona.idPersona || persona.IdPersona
+                idPersona: getParticipanteId(persona)
             }));
             setTutorSearchStatus('found');
         } catch (error) {
@@ -194,7 +198,7 @@ const AtletasForm = () => {
                             telefono: found.telefono || found.Telefono || '',
                             email: found.email || found.Email || '',
                             existe: true,
-                            idPersona: found.idPersona || found.IdPersona
+                            idPersona: getParticipanteId(found)
                         }));
                         setTutorSearchStatus('found');
                         return; // Éxito en fallback
@@ -250,15 +254,15 @@ const AtletasForm = () => {
                 Nombre: formData.nombre,
                 Apellido: formData.apellido,
                 Documento: formData.documento,
-                Sexo: parseInt(formData.sexo),
+                SexoId: parseInt(formData.sexo),
                 FechaNacimiento: fechaNacimientoISO,
                 Email: emailFinal,
                 Telefono: telefonoFinal,
                 Direccion: direccionFinal
             };
 
-            const getAtletaPayload = (idPersona) => ({
-                IdPersona: idPersona,
+            const getDatosDeportivos = (participanteId = 0) => ({
+                ParticipanteId: participanteId,
                 IdClub: formData.idClub ? parseInt(formData.idClub) : null,
                 Categoria: parseInt(formData.categoria) || 0,
                 BecadoEnard: formData.becadoEnard,
@@ -270,44 +274,46 @@ const AtletasForm = () => {
                 FechaAptoMedico: null
             });
 
+            const getAtletaPayload = (participanteId) => getDatosDeportivos(participanteId);
+
             if (id) {
 
                 await api.put(`/Persona/${id}`, personaPayload);
                 await api.put(`/Atleta/${id}`, getAtletaPayload(parseInt(id)));
                 idPersona = parseInt(id);
             } else {
-                // Nuevo Atleta: Buscar o Crear Persona
-                try {
-                    const personaExistente = await api.get(`/Persona/documento/${formData.documento}`, { silentErrors: true });
-                    if (personaExistente && (personaExistente.idPersona || personaExistente.IdPersona)) {
-                        idPersona = personaExistente.idPersona || personaExistente.IdPersona;
-                        await api.put(`/Persona/${idPersona}`, personaPayload);
-                    }
-                } catch (error) {
-                    console.log('ℹ️ Persona no encontrada, se creará una nueva.');
-                }
+                const fullPayload = {
+                    PersonaAtleta: personaPayload,
+                    DatosDeportivos: getDatosDeportivos(0),
+                    EsMenor: esMenor,
+                    TutorFederacion: (esMenor && !tutorLater && tutorData.documento) ? {
+                        IdPersonaTutor: tutorData.idPersona || null,
+                        PersonaTutor: tutorData.idPersona ? null : {
+                            Nombre: tutorData.nombre,
+                            Apellido: tutorData.apellido,
+                            Documento: tutorData.documento.replace(/[\s.]/g, ''),
+                            SexoId: 1,
+                            FechaNacimiento: new Date('1980-01-01').toISOString(),
+                            Email: tutorData.email || '',
+                            Telefono: tutorData.telefono || '',
+                            Direccion: ''
+                        },
+                        Parentesco: parseInt(tutorData.parentesco) || 0
+                    } : null
+                };
 
+                const atletaResponse = await api.post('/Atleta/full', fullPayload);
+                idPersona = getParticipanteId(atletaResponse) ?? atletaResponse?.participanteId ?? atletaResponse?.ParticipanteId;
                 if (!idPersona) {
-                    const personaResponse = await api.post('/Persona', personaPayload);
-                    idPersona = personaResponse.IdPersona || personaResponse.idPersona;
-                }
-
-                // Asegurar registro de Atleta
-                try {
-                    await api.get(`/Atleta/${idPersona}`, { silentErrors: true });
-                    await api.put(`/Atleta/${idPersona}`, getAtletaPayload(idPersona));
-                } catch (error) {
-                    await api.post('/Atleta', getAtletaPayload(idPersona));
+                    throw new Error('No se pudo obtener el ID del atleta creado.');
                 }
             }
 
-            // --- PROCESAMIENTO DEL TUTOR (Común para Nuevo y Editar) ---
-            if (esMenor && !tutorLater && tutorData.documento) {
-                console.log('🔍 Procesando tutor...');
+            // Tutor ya procesado en /Atleta/full para altas nuevas; solo flujo manual en edición
+            if (id && esMenor && !tutorLater && tutorData.documento) {
                 let idTutorPersona = tutorData.idPersona;
                 const sanitizedTutorDni = tutorData.documento.replace(/[\s.]/g, '');
 
-                // 1. Asegurar Persona del Tutor
                 if (!idTutorPersona) {
                     try {
                         let found = null;
@@ -321,7 +327,7 @@ const AtletasForm = () => {
                         }
 
                         if (found) {
-                            idTutorPersona = found.idPersona || found.IdPersona;
+                            idTutorPersona = getParticipanteId(found);
                         } else {
                             const tutorPersonaPayload = {
                                 Nombre: tutorData.nombre,
@@ -334,7 +340,7 @@ const AtletasForm = () => {
                                 Direccion: ""
                             };
                             const res = await api.post('/Persona', tutorPersonaPayload);
-                            idTutorPersona = res.idPersona || res.IdPersona;
+                            idTutorPersona = getParticipanteId(res);
                         }
                     } catch (err) {
                         console.error("Error asegurando persona del tutor:", err);
@@ -342,35 +348,31 @@ const AtletasForm = () => {
                 }
 
                 if (idTutorPersona) {
-                    // 2. Asegurar Rol de Tutor
                     try {
                         await api.get(`/Tutor/${idTutorPersona}`, { silentErrors: true });
                     } catch (e) {
                         const tutorRolePayload = {
-                            IdPersona: idTutorPersona,
-                            TipoTutor: PARENTESCO_MAP[tutorData.parentesco] || 'Padre/Madre',
-                            NombrePersona: `${tutorData.nombre || ''} ${tutorData.apellido || ''}`.trim(),
-                            Documento: sanitizedTutorDni,
-                            Telefono: tutorData.telefono || '',
-                            Email: tutorData.email || ''
+                            ParticipanteId: idTutorPersona,
+                            TipoTutor: PARENTESCO_MAP[tutorData.parentesco] || 'Padre/Madre'
                         };
                         await api.post('/Tutor', tutorRolePayload);
                     }
 
-                    // 3. Vincular Atleta y Tutor
                     try {
                         const relRes = await api.get('/AtletaTutor');
-                        const existingRel = Array.isArray(relRes) ? relRes.find(r => (r.idAtleta || r.IdAtleta) === idPersona) : null;
+                        const existingRel = Array.isArray(relRes)
+                            ? relRes.find(r => (getParticipanteId(r) ?? r.idAtleta ?? r.IdAtleta) === idPersona)
+                            : null;
 
                         const relPayload = {
-                            IdAtleta: idPersona,
+                            ParticipanteId: idPersona,
                             IdTutor: idTutorPersona,
-                            IdParentesco: parseInt(tutorData.parentesco)
+                            Parentesco: parseInt(tutorData.parentesco)
                         };
 
                         if (existingRel) {
-                            const idRel = existingRel.idAtletaTutor || existingRel.IdAtletaTutor;
-                            await api.delete(`/AtletaTutor/${idRel}`);
+                            const idRel = existingRel.idAtletaTutor ?? existingRel.IdAtletaTutor;
+                            if (idRel) await api.delete(`/AtletaTutor/${idRel}`);
                         }
                         await api.post('/AtletaTutor', relPayload);
                     } catch (err) {

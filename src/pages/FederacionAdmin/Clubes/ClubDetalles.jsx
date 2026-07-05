@@ -46,13 +46,47 @@ const ClubDetalles = () => {
 
     const loadClubDetalles = async () => {
         try {
-            const [clubData, atletasData, entrenadoresData, delegadosData, eventosData] = await Promise.all([
-                api.get(`/Clubes/${id}`),
-                api.get(`/Participantes/club/${id}`).catch(() => []),
-                api.get(`/Clubes/${id}/Entrenadores`).catch(() => []),
-                api.get(`/Clubes/${id}/Delegados`).catch(() => []),
-                api.get(`/Clubes/${id}/Eventos`).catch(() => [])
-            ]);
+            const clubIdInt = parseInt(id);
+            const clubData = await api.get(`/Clubes/${id}`);
+            
+            // Variables para los datos
+            let atletasData = [], entrenadoresData = [], delegadosData = [], eventosData = [];
+
+            // Entrenadores: Intenta endpoint anidado, si falla (404 en prod), usa fallback
+            try {
+                entrenadoresData = await api.get(`/Clubes/${id}/Entrenadores`, { silentErrors: true });
+                if (!Array.isArray(entrenadoresData)) throw new Error("Not array");
+            } catch (e) {
+                const todos = await api.get(`/Entrenador`, { silentErrors: true }).catch(() => []);
+                entrenadoresData = (Array.isArray(todos) ? todos : []).filter(x => x.idClub === clubIdInt || x.IdClub === clubIdInt);
+            }
+
+            // Delegados: Intenta endpoint anidado, si falla (404 en prod), usa fallback
+            try {
+                delegadosData = await api.get(`/Clubes/${id}/Delegados`, { silentErrors: true });
+                if (!Array.isArray(delegadosData)) throw new Error("Not array");
+            } catch (e) {
+                const todos = await api.get(`/DelegadoClub`, { silentErrors: true }).catch(() => []);
+                delegadosData = (Array.isArray(todos) ? todos : []).filter(x => x.idClub === clubIdInt || x.IdClub === clubIdInt);
+            }
+
+            // Eventos: Intenta endpoint anidado, si falla (404 en prod), usa fallback
+            try {
+                eventosData = await api.get(`/Clubes/${id}/Eventos`, { silentErrors: true });
+                if (!Array.isArray(eventosData)) throw new Error("Not array");
+            } catch (e) {
+                const todos = await api.get(`/Evento`, { silentErrors: true }).catch(() => []);
+                eventosData = (Array.isArray(todos) ? todos : []).filter(x => x.clubId === clubIdInt || x.ClubId === clubIdInt);
+            }
+
+            // Atletas / Participantes
+            try {
+                atletasData = await api.get(`/Participantes/club/${id}`, { silentErrors: true });
+                if (!Array.isArray(atletasData) || atletasData.length === 0) throw new Error("Fallback Atletas");
+            } catch (e) {
+                const todos = await api.get(`/Atleta`, { silentErrors: true }).catch(() => []);
+                atletasData = (Array.isArray(todos) ? todos : []).filter(x => x.idClub === clubIdInt || x.IdClub === clubIdInt);
+            }
 
             // Normalizar clubData
             const normalizedClub = {
@@ -66,10 +100,10 @@ const ClubDetalles = () => {
             };
 
             setClub(normalizedClub);
-            setAtletas(atletasData || []);
-            setEntrenadores(entrenadoresData || []);
-            setDelegados(delegadosData || []);
-            setEventos(eventosData || []);
+            setAtletas(atletasData);
+            setEntrenadores(entrenadoresData);
+            setDelegados(delegadosData);
+            setEventos(eventosData);
             setInscripciones([]);
         } catch (error) {
             console.error('Error cargando detalles del club:', error);
@@ -646,7 +680,7 @@ const ClubDetalles = () => {
                                                 try {
                                                     const fullAtleta = await api.get(`/Atleta/${athlete.idPersona}`);
                                                     const payload = {
-                                                        IdPersona: fullAtleta.idPersona || fullAtleta.IdPersona,
+                                                        ParticipanteId: fullAtleta.participanteId ?? fullAtleta.ParticipanteId ?? fullAtleta.idPersona ?? fullAtleta.IdPersona,
                                                         IdClub: parseInt(id),
                                                         Categoria: fullAtleta.categoria || 0,
                                                         BecadoEnard: fullAtleta.becadoEnard,

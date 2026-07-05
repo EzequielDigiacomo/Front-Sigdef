@@ -162,8 +162,23 @@ const FederacionView = () => {
 
             setFederacion(fedData);
 
-            const atletasArr = Array.isArray(atletasData) ? atletasData : [];
-            const clubesArr = Array.isArray(clubesData) ? clubesData : [];
+            let atletasArr = Array.isArray(atletasData) ? atletasData : [];
+            let clubesArr = Array.isArray(clubesData) ? clubesData : [];
+
+            // Filtrar clubes por federación (necesario porque SuperAdmin recibe todos)
+            clubesArr = clubesArr.filter(c => 
+                String(c.idFederacion ?? c.federacionId ?? c.FederacionId ?? '') === String(fedId)
+            );
+            
+            const clubIds = clubesArr.map(c => c.idClub ?? c.id ?? c.Id);
+
+            // Filtrar atletas (por idFederacion directo si existe, o por pertenecer a un club de la federación)
+            atletasArr = atletasArr.filter(a => {
+                const aFed = String(a.idFederacion ?? a.federacionId ?? a.FederacionId ?? '');
+                if (aFed === String(fedId)) return true;
+                const aClub = a.idClub ?? a.clubId ?? a.ClubId;
+                return clubIds.includes(aClub);
+            });
 
             setStats({
                 atletas: atletasArr.length,
