@@ -439,17 +439,21 @@ const FederacionesManagement = () => {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                                 <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Plan de Suscripción</label>
                                 <select 
-                                    value={selectedFedConfig.planSaaSId || 1} 
-                                    onChange={(e) => handleAsignarPlan(selectedFedConfig.idFederacion, parseInt(e.target.value))}
+                                    value={selectedFedConfig.planSaaSId ?? selectedFedConfig.PlanSaaSId ?? 1} 
+                                    onChange={(e) => handleAsignarPlan(selectedFedConfig.idFederacion, parseInt(e.target.value, 10))}
                                     disabled={updatingSaaS}
                                     style={{
                                         width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid var(--border-color)',
                                         backgroundColor: 'rgba(0,0,0,0.3)', color: 'var(--text-primary)', fontSize: '0.85rem'
                                     }}
                                 >
-                                    {planes.map(p => (
-                                        <option key={p.id} value={p.id}>{p.nombre}</option>
-                                    ))}
+                                    {planes.map((p) => {
+                                        const planId = p.id ?? p.Id;
+                                        const planNombre = p.nombre ?? p.Nombre ?? `Plan ${planId}`;
+                                        return (
+                                            <option key={planId} value={planId}>{planNombre}</option>
+                                        );
+                                    })}
                                 </select>
                             </div>
 

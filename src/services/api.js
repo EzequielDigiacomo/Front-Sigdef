@@ -1,6 +1,7 @@
 import { PARENTESCO_MAP } from '../utils/enums';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5029/api';
+const CLIENT_APP = 'sigdef';
 
 const DEFAULT_TIMEOUT = 30000;
 const MAX_RETRIES = 2;
@@ -94,6 +95,11 @@ const fetchWithTimeout = async (resource, options = {}) => {
 const normalizeEndpoint = (endpoint) => {
     if (endpoint === '/Club') return '/Clubes';
     if (endpoint.startsWith('/Club/')) return endpoint.replace('/Club/', '/Clubes/');
+    // Compatibilidad con rutas legacy del backend unificado
+    if (endpoint === '/federacion' || endpoint === '/Federacion') return '/Federaciones';
+    if (endpoint.startsWith('/federacion/') || endpoint.startsWith('/Federacion/')) {
+        return endpoint.replace(/^\/[Ff]ederacion\//, '/Federaciones/');
+    }
     return endpoint;
 };
 
@@ -103,7 +109,10 @@ const request = async (endpoint, options = {}, retries = MAX_RETRIES) => {
     const url = `${API_URL}${finalEndpoint}`;
 
     const token = getAuthToken();
-    const headers = { ...fetchOptions.headers };
+    const headers = {
+        'X-Client-App': CLIENT_APP,
+        ...fetchOptions.headers,
+    };
     if (token) {
         headers.Authorization = `Bearer ${token}`;
     }

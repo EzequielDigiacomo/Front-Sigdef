@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../services/api';
-
-import { jwtDecode } from "jwt-decode";
+import { jwtDecode } from 'jwt-decode';
+import { normalizePlan, canAccessSigdef } from '../utils/planHelpers';
 
 const AuthContext = createContext();
 
@@ -32,49 +32,74 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        const restoreSession = async () => {
+            const storedUser = localStorage.getItem('user');
 
-        const storedUser = localStorage.getItem('user');
+            if (!storedUser) {
+                setLoading(false);
+                return;
+            }
 
-        if (storedUser) {
             try {
                 const parsedUser = JSON.parse(storedUser);
 
-                if (parsedUser.token && isTokenValid(parsedUser.token)) {
-                    setUser(parsedUser);
-                    console.log('Sesión válida restaurada');
-                } else {
-
-                    console.log('Token expirado o inválido, limpiando sesión');
+                if (!parsedUser.token || !isTokenValid(parsedUser.token)) {
                     localStorage.removeItem('user');
+                    setLoading(false);
+                    return;
                 }
+
+                let plan = normalizePlan(parsedUser.plan || parsedUser.Plan);
+
+                try {
+                    const me = await api.get('/auth/me');
+                    plan = normalizePlan(me?.plan || me?.Plan) || plan;
+                } catch {
+                    /* usar plan de localStorage si /me falla */
+                }
+
+                const restoredUser = {
+                    ...parsedUser,
+                    plan,
+                };
+
+                if (restoredUser.role !== 'SUPERADMIN' && plan && !canAccessSigdef(plan)) {
+                    localStorage.removeItem('user');
+                    setLoading(false);
+                    return;
+                }
+
+                setUser(restoredUser);
+                localStorage.setItem('user', JSON.stringify(restoredUser));
             } catch (error) {
-                console.error('Error al parsear usuario almacenado:', error);
+                console.error('Error al restaurar sesión:', error);
                 localStorage.removeItem('user');
             }
-        }
 
-        setLoading(false);
+            setLoading(false);
+        };
+
+        restoreSession();
     }, []);
 
     const login = async (username, password) => {
         try {
             const response = await api.post('/auth/login', { username, password });
 
-            const { 
-                token: responseToken, 
+            const {
+                token: responseToken,
                 Token: responseTokenPascal,
-                idPersona, 
-                username: responseUsername, 
-                estaActivo, 
-                nombreCompleto, 
-                email, 
-                rol, 
+                idPersona,
+                username: responseUsername,
+                email,
+                rol,
                 rolFederacion,
-                idClub, 
+                idClub,
                 idFederacion,
                 clubId,
                 nombre,
-                apellido
+                apellido,
+                nombreCompleto,
             } = response;
 
             const token = responseToken || responseTokenPascal;
@@ -102,6 +127,14 @@ export const AuthProvider = ({ children }) => {
                 mappedRole = 'FEDERACION';
             }
 
+            const plan = normalizePlan(response.plan || response.Plan);
+
+            if (mappedRole !== 'SUPERADMIN' && plan && !canAccessSigdef(plan)) {
+                throw new Error(
+                    `Tu plan actual (${plan.nombre}) no incluye acceso a SIGDEF. Necesitás un plan SIGDEF o Pack Dúo.`
+                );
+            }
+
             const finalFederacionId = idFederacion || response.IdFederacion || jwtFederacionId;
             const finalClubId = idClub || clubId;
             const finalNombreCompleto = nombreCompleto || (nombre && apellido ? `${nombre} ${apellido}` : nombre || '');
@@ -114,16 +147,17 @@ export const AuthProvider = ({ children }) => {
                 email: email || '',
                 role: mappedRole,
                 idClub: finalClubId,
-                idFederacion: finalFederacionId ? parseInt(finalFederacionId) : null,
-                plan: response.plan || null
+                idFederacion: finalFederacionId ? parseInt(finalFederacionId, 10) : null,
+                plan,
             };
+
             setUser(loggedUser);
             localStorage.setItem('user', JSON.stringify(loggedUser));
 
             return true;
         } catch (error) {
             console.error('Error during login:', error);
-            return false;
+            throw error;
         }
     };
 

@@ -27,14 +27,10 @@ const Login = () => {
         try {
             const success = await login(username, password);
             if (success) {
-
-                console.log('Login exitoso, redirigiendo...');
                 navigate('/', { replace: true });
-            } else {
-                setError('Credenciales inválidas. Verifique usuario y contraseña.');
             }
         } catch (err) {
-            setError('Ocurrió un error al iniciar sesión');
+            setError(err.message || 'Ocurrió un error al iniciar sesión');
         } finally {
             setIsLoading(false);
         }

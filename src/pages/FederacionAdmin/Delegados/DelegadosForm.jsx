@@ -100,7 +100,7 @@ const DelegadosForm = () => {
     const loadFederacion = async () => {
         try {
             const fedId = user?.idFederacion || 1;
-            const data = await api.get(`/Federacion/${fedId}`);
+            const data = await api.get(`/Federaciones/${fedId}`);
             setFederacionNombre(data?.nombre || data?.Nombre || `Federación ID ${fedId}`);
             setFormData(prev => ({ ...prev, idFederacion: fedId }));
         } catch (error) {

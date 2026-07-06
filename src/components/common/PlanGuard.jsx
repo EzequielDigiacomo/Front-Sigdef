@@ -1,35 +1,36 @@
 import React from 'react';
 import { ShieldOff, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { normalizePlan } from '../../utils/planHelpers';
 
 /**
- * PlanGuard: Muestra una pantalla de "Plan no compatible" si el usuario
- * no tiene acceso al sistema según su plan SaaS.
- * Uso: <PlanGuard requiereSigdef> ó <PlanGuard requiereSportTrack> ó <PlanGuard requiereControlesLive>
+ * PlanGuard: bloquea acceso si el plan SaaS no incluye el módulo requerido.
  */
 const PlanGuard = ({ children, requiereSigdef, requiereSportTrack, requiereControlesLive, user }) => {
-    const plan = user?.plan;
+    const plan = normalizePlan(user?.plan);
     const rol = user?.role || user?.rol || '';
     const isSuperAdmin = rol === 'SUPERADMIN' || rol === 'SuperAdmin';
 
-    // SuperAdmin siempre pasa
     if (isSuperAdmin) return children;
 
-    // Sin plan asignado → bloquear (no debería ocurrir si el backend está correcto)
     if (!plan) {
         return <PlanBloqueado motivo="Tu cuenta no tiene un plan SaaS asignado. Contactá al administrador." />;
     }
 
     if (requiereSigdef && !plan.accesoSigdef) {
-        return <PlanBloqueado motivo="Tu plan actual no incluye acceso al sistema SIGDEF. Para habilitar este acceso, actualizá tu plan." />;
+        return (
+            <PlanBloqueado
+                motivo={`Tu plan actual (${plan.nombre}) no incluye acceso a SIGDEF. Necesitás un plan SIGDEF o Pack Dúo.`}
+            />
+        );
     }
 
     if (requiereSportTrack && !plan.accesoSportTrack) {
-        return <PlanBloqueado motivo="Tu plan actual no incluye acceso al sistema SportTrack. Para habilitar este acceso, actualizá tu plan." />;
+        return <PlanBloqueado motivo="Tu plan actual no incluye acceso al sistema SportTrack. Actualizá tu plan." />;
     }
 
     if (requiereControlesLive && !plan.accesoControlesLive) {
-        return <PlanBloqueado motivo="Los paneles de control en vivo (Largador, Cronometrista, Juez de Control) están disponibles únicamente en los planes de nivel L. Contactá al administrador para actualizar tu plan." />;
+        return <PlanBloqueado motivo="Los paneles de control en vivo están disponibles únicamente en planes de nivel L." />;
     }
 
     return children;
