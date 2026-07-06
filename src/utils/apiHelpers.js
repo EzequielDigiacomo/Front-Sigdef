@@ -1,3 +1,15 @@
+/** Agrega ?idFederacion= para vistas SuperAdmin scoped por federación */
+export function withFederationScope(endpoint, fedId) {
+    if (fedId == null || fedId === '') return endpoint;
+    const id = encodeURIComponent(String(fedId));
+    return endpoint.includes('?') ? `${endpoint}&idFederacion=${id}` : `${endpoint}?idFederacion=${id}`;
+}
+
+/** Normaliza id de federación en objetos club */
+export function getClubFederationId(club) {
+    return club?.idFederacion ?? club?.federacionId ?? club?.FederacionId ?? null;
+}
+
 /** Lee un campo con soporte camelCase / PascalCase */
 export const pick = (obj, ...keys) => {
     if (!obj) return undefined;

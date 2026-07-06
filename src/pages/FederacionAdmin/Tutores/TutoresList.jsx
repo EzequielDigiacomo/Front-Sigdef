@@ -10,6 +10,7 @@ import { Plus, Edit, Trash2, Search, UserCheck, Eye, UserPlus, FileText, Chevron
 import { useSort } from '../../../hooks/useSort';
 import Modal from '../../../components/common/Modal';
 import * as XLSX from 'xlsx';
+import { withFederationScope } from '../../../utils/apiHelpers';
 import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
 import '../Atletas/Atletas.css';
@@ -156,7 +157,7 @@ const TutoresList = () => {
 
     useEffect(() => {
         loadTutores();
-    }, []);
+    }, [fedId]);
 
     const loadTutores = async () => {
         try {
@@ -164,8 +165,8 @@ const TutoresList = () => {
             const [tutoresRes, relacionesRes, atletasRes, clubesRes, personasRes] = await Promise.all([
                 api.get('/Tutor').catch(() => []),
                 api.get('/AtletaTutor').catch(() => []),
-                api.get('/Atleta').catch(() => []),
-                api.get('/Club').catch(() => []),
+                api.get(withFederationScope('/Atleta', fedId)).catch(() => []),
+                api.get(withFederationScope('/Clubes', fedId)).catch(() => []),
                 api.get('/Persona').catch(() => [])
             ]);
             
@@ -193,9 +194,27 @@ const TutoresList = () => {
                     nombrePersona: tutor.nombrePersona || tutor.NombrePersona || 'Tutor'
                 };
             });
-            setTutores(tutoresEnriquecidos);
+            const atletaIds = new Set(
+                atletasEnriquecidos.map((a) => a.idPersona ?? a.participanteId ?? a.ParticipanteId)
+            );
+            let relacionesFiltradas = relacionesRes || [];
+            let tutoresFinal = tutoresEnriquecidos;
+
+            if (fedId && atletaIds.size > 0) {
+                relacionesFiltradas = relacionesFiltradas.filter((rel) =>
+                    atletaIds.has(rel.idAtleta ?? rel.IdAtleta)
+                );
+                const tutorIds = new Set(
+                    relacionesFiltradas.map((rel) => rel.idTutor ?? rel.IdTutor)
+                );
+                tutoresFinal = tutoresEnriquecidos.filter((t) =>
+                    tutorIds.has(t.idPersona ?? t.participanteId ?? t.ParticipanteId)
+                );
+            }
+
+            setTutores(tutoresFinal);
             setAtletas(atletasEnriquecidos);
-            setAtletaTutorRelaciones(relacionesRes);
+            setAtletaTutorRelaciones(relacionesFiltradas);
         } catch (error) {
             console.error('Error general en loadTutores:', error);
         } finally {

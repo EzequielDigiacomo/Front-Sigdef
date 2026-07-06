@@ -7,6 +7,7 @@ import FormField from '../../../components/forms/FormField';
 import { Plus, Edit, Trash2, Search, Users, Target, Briefcase, ArrowLeft } from 'lucide-react';
 import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
+import { withFederationScope, getClubFederationId } from '../../../utils/apiHelpers';
 import { getCategoriaLabel, getEstadoPagoColor, getEstadoPagoLabel } from '../../../utils/enums';
 import './Clubes.css';
 
@@ -25,7 +26,7 @@ const ClubesList = () => {
 
     const loadData = async () => {
         try {
-            const clubesData = await api.get('/Clubes');
+            const clubesData = await api.get(withFederationScope('/Clubes', fedId));
             const normalizedClubes = Array.isArray(clubesData) ? clubesData.map(c => ({
                 idClub: c.idClub ?? c.id ?? c.Id,
                 nombre: c.nombre ?? c.Nombre,
@@ -33,11 +34,10 @@ const ClubesList = () => {
                 email: c.email ?? c.Email,
                 telefono: c.telefono ?? c.Telefono,
                 direccion: c.direccion ?? c.Direccion,
-                idFederacion: c.idFederacion ?? c.federacionId ?? c.FederacionId,
+                idFederacion: getClubFederationId(c),
                 estadoMatricula: c.estadoMatricula ?? c.EstadoMatricula ?? 0
             })) : [];
 
-            // Si estamos en modo SuperAdmin con una federación específica, filtrar
             if (fedId) {
                 const filtrados = normalizedClubes.filter(c =>
                     String(c.idFederacion ?? '') === String(fedId)

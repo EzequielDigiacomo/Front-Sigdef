@@ -6,9 +6,10 @@ import Button from '../../../components/common/Button';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import { ArrowLeft, Save, Search } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
+import { withFederationScope } from '../../../utils/apiHelpers';
 
 const DelegadosForm = () => {
-    const { id } = useParams();
+    const { id, fedId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
@@ -57,7 +58,7 @@ const DelegadosForm = () => {
         if (id) {
             loadDelegado();
         }
-    }, [id]);
+    }, [id, fedId]);
 
     const loadDelegado = async () => {
         setLoading(true);
@@ -99,21 +100,21 @@ const DelegadosForm = () => {
 
     const loadFederacion = async () => {
         try {
-            const fedId = user?.idFederacion || 1;
-            const data = await api.get(`/Federaciones/${fedId}`);
-            setFederacionNombre(data?.nombre || data?.Nombre || `Federación ID ${fedId}`);
-            setFormData(prev => ({ ...prev, idFederacion: fedId }));
+            const effectiveFedId = fedId || user?.idFederacion;
+            if (!effectiveFedId) return;
+            const data = await api.get(`/Federaciones/${effectiveFedId}`);
+            setFederacionNombre(data?.nombre || data?.Nombre || `Federación ID ${effectiveFedId}`);
+            setFormData(prev => ({ ...prev, idFederacion: parseInt(effectiveFedId, 10) }));
         } catch (error) {
-            console.error(`Error cargando federación individual ${user?.idFederacion || 1}:`, error);
-            setFederacionNombre(`Federación (ID ${user?.idFederacion || 1})`);
-            setFormData(prev => ({ ...prev, idFederacion: user?.idFederacion || 1 }));
+            console.error('Error cargando federación:', error);
         }
     };
 
     const loadClubes = async () => {
         try {
-            const data = await api.get('/Club');
-            setClubes(data);
+            const effectiveFedId = fedId || user?.idFederacion;
+            const data = await api.get(withFederationScope('/Clubes', effectiveFedId));
+            setClubes(data || []);
         } catch (error) {
             console.error('Error cargando clubes:', error);
             showModal('Error', 'No se pudieron cargar los clubes.', 'danger');

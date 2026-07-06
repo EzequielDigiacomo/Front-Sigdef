@@ -1,26 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import { Users, Award, ChevronRight, User, Plus } from 'lucide-react';
 import { CATEGORIA_MAP } from '../../../utils/enums';
+import { withFederationScope } from '../../../utils/apiHelpers';
 import './EntrenadorSeleccion.css?v=2';
 
 const EntrenadorSeleccionList = () => {
+    const { fedId } = useParams();
+    const isSuperAdminView = Boolean(fedId);
     const [stats, setStats] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [fedId]);
 
     const fetchData = async () => {
         setLoading(true);
         try {
             const [coachesData, athletesData] = await Promise.all([
-                api.get('/Entrenador/seleccion').catch(() => []),
-                api.get('/Atleta').catch(() => [])
+                api.get(withFederationScope('/Entrenador/seleccion', fedId)).catch(() => []),
+                api.get(withFederationScope('/Atleta', fedId)).catch(() => [])
             ]);
 
             const selectionAthletes = (athletesData || []).filter(a => a.perteneceSeleccion);

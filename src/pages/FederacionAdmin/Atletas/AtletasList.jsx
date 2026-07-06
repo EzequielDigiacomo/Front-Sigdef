@@ -9,6 +9,7 @@ import DocumentUploadModal from '../../../components/common/DocumentUploadModal'
 import DocumentViewerModal from '../../../components/common/DocumentViewerModal';
 import { Plus, Edit, Trash2, Search, FileText, Eye, ChevronUp, ChevronDown, ChevronsUpDown, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useSort } from '../../../hooks/useSort';
+import { withFederationScope } from '../../../utils/apiHelpers';
 import { getCategoriaLabel, getEstadoPagoLabel, getEstadoPagoColor } from '../../../utils/enums';
 import './Atletas.css';
 import Modal from '../../../components/common/Modal';
@@ -80,7 +81,7 @@ const AtletasList = () => {
 
     const loadClubs = async () => {
         try {
-            const data = await api.get('/Club');
+            const data = await api.get(withFederationScope('/Clubes', fedId));
             setClubs(data || []);
         } catch (error) {
             console.error('Error cargando clubes:', error);
@@ -109,7 +110,7 @@ const AtletasList = () => {
         setConfirmModal(prev => ({ ...prev, isOpen: false }));
         setBulkUpdating(true);
         try {
-            const allAtletas = await api.get('/Atleta');
+            const allAtletas = await api.get(withFederationScope('/Atleta', fedId));
             const clubAtletas = allAtletas.filter(a => (a.idClub || a.IdClub) === parseInt(selectedClubForBulk));
             
             let count = 0;
@@ -149,7 +150,10 @@ const AtletasList = () => {
             
             // Intentar endpoint paginado primero
             try {
-                const response = await api.get(`/Atleta/paged?pageNumber=${currentPage}&pageSize=${itemsPerPage}&searchTerm=${debouncedSearchTerm}`);
+                const response = await api.get(withFederationScope(
+                    `/Atleta/paged?pageNumber=${currentPage}&pageSize=${itemsPerPage}&searchTerm=${encodeURIComponent(debouncedSearchTerm)}`,
+                    fedId
+                ));
                 
                 if (response && response.data) {
                     setAtletas(response.data);
@@ -162,7 +166,7 @@ const AtletasList = () => {
             }
 
             // Fallback: usar /Atleta completo con paginación client-side
-            const allAtletas = await api.get('/Atleta');
+            const allAtletas = await api.get(withFederationScope('/Atleta', fedId));
             let atletasArray = Array.isArray(allAtletas) ? allAtletas : [];
 
             // Si estamos en modo SuperAdmin (fedId presente), filtramos por federación
@@ -253,7 +257,7 @@ const AtletasList = () => {
 
     const exportToExcel = async () => {
         try {
-            const response = await api.get('/Atleta/paged?pageNumber=1&pageSize=5000');
+            const response = await api.get(withFederationScope('/Atleta/paged?pageNumber=1&pageSize=5000', fedId));
             const dataToExport = (response.data || []).map(atleta => ({
                 'Nombre Completo': atleta.nombrePersona,
                 'DNI': atleta.documento,

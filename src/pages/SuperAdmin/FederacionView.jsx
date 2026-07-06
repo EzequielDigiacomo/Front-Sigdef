@@ -5,6 +5,7 @@ import {
     ArrowLeft, Users, Shield, DollarSign, Award, Briefcase,
     UserCheck, Lock, Eye, AlertCircle, Building2
 } from 'lucide-react';
+import { withFederationScope, getClubFederationId } from '../../utils/apiHelpers';
 
 // Banner visual que recuerda que el SuperAdmin está viendo una federación ajena
 const SuperAdminContextBanner = ({ federacionNombre, onBack }) => (
@@ -156,8 +157,8 @@ const FederacionView = () => {
             // Cargar federación + datos de la fed en paralelo
             const [fedData, atletasData, clubesData] = await Promise.all([
                 api.get(`/Federaciones/${fedId}`).catch(() => null),
-                api.get('/Atleta').catch(() => []),
-                api.get('/Club').catch(() => [])
+                api.get(withFederationScope('/Atleta', fedId)).catch(() => []),
+                api.get(withFederationScope('/Clubes', fedId)).catch(() => [])
             ]);
 
             setFederacion(fedData);
@@ -166,8 +167,8 @@ const FederacionView = () => {
             let clubesArr = Array.isArray(clubesData) ? clubesData : [];
 
             // Filtrar clubes por federación (necesario porque SuperAdmin recibe todos)
-            clubesArr = clubesArr.filter(c => 
-                String(c.idFederacion ?? c.federacionId ?? c.FederacionId ?? '') === String(fedId)
+            clubesArr = clubesArr.filter(c =>
+                String(getClubFederationId(c) ?? '') === String(fedId)
             );
             
             const clubIds = clubesArr.map(c => c.idClub ?? c.id ?? c.Id);

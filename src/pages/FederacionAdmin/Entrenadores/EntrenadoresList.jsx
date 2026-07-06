@@ -11,6 +11,7 @@ import DocumentViewerModal from '../../../components/common/DocumentViewerModal'
 import AssignCategoryModal from './components/AssignCategoryModal';
 import AddCoachToSelectionModal from './components/AddCoachToSelectionModal';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
+import { withFederationScope } from '../../../utils/apiHelpers';
 import { getCategoriaLabel } from '../../../utils/enums';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Button from '../../../components/common/Button';
@@ -48,14 +49,14 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [confirmationConfig, setConfirmationConfig] = useState({ type: 'info', title: '', message: '', onConfirm: () => { } });
 
-    useEffect(() => { fetchData(); }, []);
+    useEffect(() => { fetchData(); }, [fedId]);
 
     const fetchData = async () => {
         setLoading(true);
         try {
             const [entrenadoresData, clubesData, personasData] = await Promise.all([
-                api.get('/Entrenador'),
-                api.get('/Club'),
+                api.get(withFederationScope('/Entrenador', fedId)),
+                api.get(withFederationScope('/Clubes', fedId)),
                 api.get('/Persona')
             ]);
             const enrichedEntrenadores = (entrenadoresData || []).map(ent => {

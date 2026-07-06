@@ -5,6 +5,7 @@ import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import FormField from '../../../components/forms/FormField';
 import { Plus, Edit, Trash2, Search, Briefcase } from 'lucide-react';
+import { withFederationScope } from '../../../utils/apiHelpers';
 import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
 
@@ -25,13 +26,12 @@ const DelegadosList = () => {
 
     useEffect(() => {
         loadDelegados();
-    }, []);
+    }, [fedId]);
 
     const loadDelegados = async () => {
         try {
-            const data = await api.get('/Auth/usuarios');
-            // Filtrar usuarios que actúan como delegados
-            setDelegados(data.filter(u => u.rol === 'Club' || u.rol === 'Delegado' || u.rol === 'DelegadoClub'));
+            const data = await api.get(withFederationScope('/DelegadoClub', fedId));
+            setDelegados(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Error cargando delegados:', error);
         } finally {
@@ -42,7 +42,7 @@ const DelegadosList = () => {
     const handleDelete = async (id) => {
         if (window.confirm('¿Estás seguro de eliminar este delegado?')) {
             try {
-                await api.delete(`/Auth/usuarios/${id}`);
+                await api.delete(`/DelegadoClub/${id}`);
                 loadDelegados();
             } catch (error) {
                 console.error('Error eliminando delegado:', error);
@@ -97,7 +97,7 @@ const DelegadosList = () => {
                         ) : (
                             delegadosFiltrados.map((delegado) => (
                                 <MobileCard 
-                                    key={delegado.id || delegado.idPersona || delegado.IdPersona}
+                                    key={delegado.participanteId ?? delegado.idPersona ?? delegado.IdPersona}
                                     title={delegado.nombreCompleto || delegado.nombrePersona || delegado.NombrePersona || '-'}
                                     subtitle={delegado.clubNombre || delegado.nombreClub || delegado.NombreClub || 'Agente Libre'}
                                     details={[
