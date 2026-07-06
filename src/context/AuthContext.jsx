@@ -61,13 +61,15 @@ export const AuthProvider = ({ children }) => {
             const response = await api.post('/auth/login', { username, password });
 
             const { 
-                token, 
+                token: responseToken, 
+                Token: responseTokenPascal,
                 idPersona, 
                 username: responseUsername, 
                 estaActivo, 
                 nombreCompleto, 
                 email, 
                 rol, 
+                rolFederacion,
                 idClub, 
                 idFederacion,
                 clubId,
@@ -75,11 +77,16 @@ export const AuthProvider = ({ children }) => {
                 apellido
             } = response;
 
+            const token = responseToken || responseTokenPascal;
+            if (!token) {
+                throw new Error('El servidor no devolvió token de autenticación');
+            }
+
             const decoded = jwtDecode(token);
             const jwtRoleClaim = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decoded['role'];
             const jwtFederacionId = decoded['FederacionId'];
 
-            const roleClaim = jwtRoleClaim || rol;
+            const roleClaim = jwtRoleClaim || rol || rolFederacion;
 
             let mappedRole = 'FEDERACION';
 
