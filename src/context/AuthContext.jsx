@@ -129,9 +129,11 @@ export const AuthProvider = ({ children }) => {
 
             const plan = normalizePlan(response.plan || response.Plan);
 
-            if (mappedRole !== 'SUPERADMIN' && plan && !canAccessSigdef(plan)) {
+            if (mappedRole !== 'SUPERADMIN' && !canAccessSigdef(plan)) {
                 throw new Error(
-                    `Tu plan actual (${plan.nombre}) no incluye acceso a SIGDEF. Necesitás un plan SIGDEF o Pack Dúo.`
+                    plan
+                        ? `Tu plan actual (${plan.nombre}) no incluye acceso a SIGDEF. Necesitás un plan SIGDEF o Pack Dúo.`
+                        : 'Tu cuenta no tiene un plan SaaS asignado. Contactá al administrador.'
                 );
             }
 

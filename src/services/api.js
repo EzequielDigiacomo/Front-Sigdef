@@ -31,20 +31,42 @@ const handleResponse = async (response, options = {}) => {
         return null;
     }
 
-    if (response.status === 401) {
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        if (window.location.pathname !== '/login') {
-            window.location.href = '/login';
-        }
-        throw new Error('Su sesión ha expirado. Por favor inicie sesión nuevamente.');
-    }
-
     let responseText = '';
     try {
         responseText = await response.text();
     } catch (e) {
         console.warn('No se pudo leer el cuerpo de la respuesta');
+    }
+
+    if (response.status === 401) {
+        let serverMessage = '';
+        try {
+            const errorObj = JSON.parse(responseText);
+            serverMessage = errorObj.message || errorObj.Message || '';
+        } catch {
+            /* ignorar parse */
+        }
+
+        const hadSession = !!getAuthToken();
+        const isLoginRequest = response.url?.includes('/auth/login');
+
+        if (hadSession && !isLoginRequest) {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            if (window.location.pathname !== '/login') {
+                window.location.href = '/login';
+            }
+        }
+
+        if (serverMessage) {
+            throw new Error(serverMessage);
+        }
+
+        if (isLoginRequest) {
+            throw new Error('Usuario o contraseña incorrectos.');
+        }
+
+        throw new Error('Su sesión ha expirado. Por favor inicie sesión nuevamente.');
     }
 
     if (!response.ok) {
