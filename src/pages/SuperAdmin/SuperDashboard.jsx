@@ -1,11 +1,70 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
     Globe, Shield, Users, DollarSign, Activity, TrendingUp, 
-    Plus, FileText, CheckCircle2, AlertCircle, ArrowUpRight 
+    Plus, ArrowUpRight 
 } from 'lucide-react';
 import { api } from '../../services/api';
 import Button from '../../components/common/Button';
+
+const formatRelativeTime = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    const diffMs = Date.now() - date.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return 'Hace un momento';
+    if (diffMin < 60) return `Hace ${diffMin} min`;
+    const diffH = Math.floor(diffMin / 60);
+    if (diffH < 24) return `Hace ${diffH} hora${diffH > 1 ? 's' : ''}`;
+    const diffD = Math.floor(diffH / 24);
+    if (diffD < 7) return `Hace ${diffD} día${diffD > 1 ? 's' : ''}`;
+    return date.toLocaleString('es-AR');
+};
+
+const mapFederacionFromStatus = (c) => ({
+    idFederacion: c.clubId,
+    nombre: c.clubNombre || 'Federación',
+    sigla: c.sigla || (c.clubNombre || 'FED').substring(0, 3).toUpperCase(),
+    email: c.email || '',
+    telefono: c.telefono || '',
+    plan: c.planNombre || 'Sin plan',
+    estado: !c.activo
+        ? 'Suspendido'
+        : c.bloqueadoPorFaltaDePago
+            ? 'Pendiente de Pago'
+            : c.planAlDia
+                ? 'Activo'
+                : 'Vencido',
+    fechaRegistro: c.fechaAltaPlan
+        ? c.fechaAltaPlan.split('T')[0]
+        : 'Sin fecha',
+});
+
+const buildChartGeometry = (crecimiento) => {
+    if (!crecimiento?.length) return null;
+    const max = Math.max(...crecimiento.map((d) => d.cantidad ?? d.Cantidad ?? 0), 1);
+    const chartHeight = 140;
+    const baseY = 170;
+    const startX = 40;
+    const endX = 480;
+    const step = (endX - startX) / Math.max(crecimiento.length - 1, 1);
+
+    const points = crecimiento.map((d, i) => {
+        const qty = d.cantidad ?? d.Cantidad ?? 0;
+        return {
+            x: startX + i * step,
+            y: baseY - (qty / max) * chartHeight,
+            mes: d.mes ?? d.Mes ?? '',
+            qty,
+        };
+    });
+
+    const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+    const areaPath = `${linePath} L ${points[points.length - 1].x} ${baseY} L ${points[0].x} ${baseY} Z`;
+
+    return { points, linePath, areaPath };
+};
 
 const SuperDashboard = () => {
     const navigate = useNavigate();
@@ -15,81 +74,58 @@ const SuperDashboard = () => {
         totalClubes: 0,
         totalAtletas: 0,
         ingresosMensuales: 0,
-        porcentajeCrecimiento: 12.5
+        federacionesFacturando: 0,
+        porcentajeCrecimiento: 0,
     });
     const [federaciones, setFederaciones] = useState([]);
     const [auditLogs, setAuditLogs] = useState([]);
+    const [crecimiento, setCrecimiento] = useState([]);
+    const [distribucionPlanes, setDistribucionPlanes] = useState([]);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
                 setLoading(true);
-                let feds = [];
-                let clubesCount = 0;
-                let atletasCount = 0;
-                let apiSuccess = false;
-                try {
-                    const [allFeds, allClubs, allAthletes] = await Promise.all([
-                        api.get('/Federaciones'),
-                        api.get('/Clubes'),
-                        api.get('/Participantes')
-                    ]);
-                    feds = allFeds || [];
-                    clubesCount = allClubs ? allClubs.length : 0;
-                    atletasCount = allAthletes ? allAthletes.length : 0;
-                    apiSuccess = true;
-                } catch (e) {
-                    console.warn("No se pudo cargar desde los endpoints reales:", e);
-                }
 
-                // Si no hay datos, poblar con datos iniciales mock premium
-                const mockFederaciones = [
-                    { idFederacion: 1, nombre: 'Federación Argentina de Canoas', sigla: 'FAC', email: 'contacto@facanoas.org.ar', telefono: '11-4567-8901', plan: 'Enterprise', estado: 'Activo', fechaRegistro: '2026-01-10', costoMensual: 150000 },
-                    { idFederacion: 2, nombre: 'Federación Uruguaya de Canotaje', sigla: 'FUC', email: 'secretaria@fuc.org.uy', telefono: '+598 2 900 1234', plan: 'Premium', estado: 'Activo', fechaRegistro: '2026-02-15', costoMensual: 95000 },
-                    { idFederacion: 3, nombre: 'Federación Chilena de Canotaje', sigla: 'FEDECANOAS', email: 'contacto@fedecanoas.cl', telefono: '+56 2 2234 5678', plan: 'Básico', estado: 'Activo', fechaRegistro: '2026-03-01', costoMensual: 50000 },
-                    { idFederacion: 4, nombre: 'Federación Brasilera de Canotaje', sigla: 'CBCa', email: 'adm@cbca.org.br', telefono: '+55 41 3024 9900', plan: 'Enterprise', estado: 'Pendiente de Pago', fechaRegistro: '2026-04-20', costoMensual: 150000 }
-                ];
-
-                const finalFederaciones = apiSuccess ? feds.map((f, index) => ({
-                    idFederacion: f.id || f.idFederacion || index + 1,
-                    nombre: f.nombre || f.razonSocial || 'Federación Deportiva',
-                    sigla: f.sigla || f.nombre?.substring(0, 3).toUpperCase() || 'FED',
-                    email: f.email || 'contacto@federacion.org',
-                    telefono: f.telefono || 'Sin teléfono',
-                    plan: index % 3 === 0 ? 'Enterprise' : (index % 3 === 1 ? 'Premium' : 'Básico'),
-                    estado: (f.activo !== false && f.estaActivo !== false) ? 'Activo' : 'Suspendido',
-                    fechaRegistro: f.fechaCreacion ? f.fechaCreacion.split('T')[0] : '2026-05-01',
-                    costoMensual: index % 3 === 0 ? 150000 : (index % 3 === 1 ? 95000 : 50000)
-                })) : mockFederaciones;
-
-                setFederaciones(finalFederaciones);
-
-                // Calcular KPIs reales o simulados
-                const activeFeds = finalFederaciones.length;
-                const clubsTotalCount = apiSuccess ? clubesCount : (activeFeds * 12 + 8);
-                const athletesTotalCount = apiSuccess ? atletasCount : (clubsTotalCount * 25 + 140);
-                const monthlyIncome = apiSuccess ? finalFederaciones
-                    .filter(f => f.estado === 'Activo')
-                    .reduce((sum, f) => sum + (f.costoMensual || 0), 0) : 295000;
-
-                setStats({
-                    totalFederaciones: activeFeds,
-                    totalClubes: clubsTotalCount,
-                    totalAtletas: athletesTotalCount,
-                    ingresosMensuales: monthlyIncome,
-                    porcentajeCrecimiento: apiSuccess ? 0 : 14.8
-                });
-
-                // Logs de auditoría mock premium
-                setAuditLogs([
-                    { id: 1, accion: 'Alta de Federación', detalle: 'Creada Federación Brasilera (CBCa)', fecha: 'Hace 2 horas', usuario: 'superadmin', ip: '190.111.45.22' },
-                    { id: 2, accion: 'Suscripción Actualizada', detalle: 'FAC migró al plan Enterprise', fecha: 'Ayer', usuario: 'superadmin', ip: '190.111.45.22' },
-                    { id: 3, accion: 'Bloqueo de Cuenta', detalle: 'Federación de Remo (Inactiva)', fecha: 'Hace 3 días', usuario: 'system', ip: '127.0.0.1' },
-                    { id: 4, accion: 'Inicio de Sesión Exitoso', detalle: 'Superadmin logueado en la plataforma', fecha: 'Hace 5 horas', usuario: 'superadmin', ip: '186.22.105.80' }
+                const [metrics, clubesStatus, logs] = await Promise.all([
+                    api.get('/saas/global-metrics').catch(() => null),
+                    api.get('/saas/clubes-status').catch(() => null),
+                    api.get('/support/logs?limit=8').catch(() => null),
                 ]);
 
+                if (metrics) {
+                    setStats({
+                        totalFederaciones: metrics.totalFederaciones ?? metrics.TotalFederaciones ?? 0,
+                        totalClubes: metrics.totalClubesAfiliados ?? metrics.TotalClubesAfiliados ?? 0,
+                        totalAtletas: metrics.totalAtletasGlobales ?? metrics.TotalAtletasGlobales ?? 0,
+                        ingresosMensuales: Number(metrics.ingresosMensuales ?? metrics.IngresosMensuales ?? 0),
+                        federacionesFacturando: metrics.federacionesFacturando ?? metrics.FederacionesFacturando ?? 0,
+                        porcentajeCrecimiento: Number(metrics.porcentajeCrecimientoAtletas ?? metrics.PorcentajeCrecimientoAtletas ?? 0),
+                    });
+                    setCrecimiento(metrics.crecimientoMensual ?? metrics.CrecimientoMensual ?? []);
+                    setDistribucionPlanes(metrics.distribucionPlanes ?? metrics.DistribucionPlanes ?? []);
+                }
+
+                if (clubesStatus?.length) {
+                    setFederaciones(clubesStatus.map(mapFederacionFromStatus));
+                } else if (metrics) {
+                    setFederaciones([]);
+                }
+
+                if (logs?.length) {
+                    setAuditLogs(logs.map((log) => ({
+                        id: log.id ?? log.Id,
+                        accion: log.accion ?? log.Accion ?? 'Evento',
+                        detalle: log.detalle ?? log.Detalle ?? '',
+                        fecha: formatRelativeTime(log.fecha ?? log.Fecha),
+                        usuario: log.usuario ?? log.Usuario ?? 'Sistema',
+                        ip: log.ip ?? log.IP ?? '',
+                    })));
+                } else {
+                    setAuditLogs([]);
+                }
             } catch (err) {
-                console.error("Error al obtener estadísticas del Superadmin Dashboard:", err);
+                console.error('Error al obtener estadísticas del Superadmin Dashboard:', err);
             } finally {
                 setLoading(false);
             }
@@ -97,6 +133,14 @@ const SuperDashboard = () => {
 
         fetchDashboardData();
     }, []);
+
+    const chart = useMemo(() => buildChartGeometry(crecimiento), [crecimiento]);
+    const promedioClubes = stats.totalFederaciones > 0
+        ? Math.round(stats.totalClubes / stats.totalFederaciones)
+        : 0;
+    const crecimientoLabel = stats.porcentajeCrecimiento >= 0
+        ? `+${stats.porcentajeCrecimiento}%`
+        : `${stats.porcentajeCrecimiento}%`;
 
     if (loading) {
         return (
@@ -117,7 +161,6 @@ const SuperDashboard = () => {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-            {/* Header del Dashboard */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
                     <h1 className="text-gradient" style={{ fontSize: '2.2rem', fontWeight: '800', marginBottom: '0.25rem' }}>Consola de Superadmin</h1>
@@ -129,20 +172,17 @@ const SuperDashboard = () => {
                 </Button>
             </div>
 
-            {/* Fila de Tarjetas KPI */}
             <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
                 gap: '1.5rem'
             }}>
-                {/* Card 1: Federaciones */}
                 <div className="glass-panel" style={{
                     padding: '1.5rem',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
                     minHeight: '140px',
-                    transition: 'var(--transition)',
                     cursor: 'pointer'
                 }} onClick={() => navigate('/superadmin/federaciones')}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -156,15 +196,11 @@ const SuperDashboard = () => {
                             <Globe size={24} />
                         </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem', fontSize: '0.85rem' }}>
-                        <span style={{ color: 'var(--success)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.1rem' }}>
-                            <TrendingUp size={14} /> +100%
-                        </span>
-                        <span style={{ color: 'var(--text-secondary)' }}>desde inicio de año</span>
+                    <div style={{ marginTop: '1rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        {stats.federacionesFacturando} con suscripción activa al día
                     </div>
                 </div>
 
-                {/* Card 2: Clubes */}
                 <div className="glass-panel" style={{
                     padding: '1.5rem',
                     display: 'flex',
@@ -184,12 +220,11 @@ const SuperDashboard = () => {
                         </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem', fontSize: '0.85rem' }}>
-                        <span style={{ color: 'var(--success)', fontWeight: 'bold' }}>Promedio {Math.round(stats.totalClubes / stats.totalFederaciones)}</span>
+                        <span style={{ color: 'var(--success)', fontWeight: 'bold' }}>Promedio {promedioClubes}</span>
                         <span style={{ color: 'var(--text-secondary)' }}>clubes por federación</span>
                     </div>
                 </div>
 
-                {/* Card 3: Atletas */}
                 <div className="glass-panel" style={{
                     padding: '1.5rem',
                     display: 'flex',
@@ -201,7 +236,7 @@ const SuperDashboard = () => {
                         <div>
                             <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: '600' }}>Atletas Registrados</span>
                             <h3 style={{ fontSize: '2rem', fontWeight: '800', margin: '0.5rem 0 0 0', color: 'var(--text-primary)' }}>
-                                {stats.totalAtletas.toLocaleString()}
+                                {stats.totalAtletas.toLocaleString('es-AR')}
                             </h3>
                         </div>
                         <div style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', color: 'var(--warning)', padding: '0.75rem', borderRadius: 'var(--radius-md)' }}>
@@ -209,14 +244,19 @@ const SuperDashboard = () => {
                         </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem', fontSize: '0.85rem' }}>
-                        <span style={{ color: 'var(--success)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.1rem' }}>
-                            <TrendingUp size={14} /> +{stats.porcentajeCrecimiento}%
+                        <span style={{
+                            color: stats.porcentajeCrecimiento >= 0 ? 'var(--success)' : 'var(--danger)',
+                            fontWeight: 'bold',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.1rem'
+                        }}>
+                            <TrendingUp size={14} /> {crecimientoLabel}
                         </span>
-                        <span style={{ color: 'var(--text-secondary)' }}>este mes</span>
+                        <span style={{ color: 'var(--text-secondary)' }}>altas vs mes anterior</span>
                     </div>
                 </div>
 
-                {/* Card 4: Ingresos Suscripciones */}
                 <div className="glass-panel" style={{
                     padding: '1.5rem',
                     display: 'flex',
@@ -229,7 +269,7 @@ const SuperDashboard = () => {
                         <div>
                             <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: '600' }}>Ingresos Mensuales</span>
                             <h3 style={{ fontSize: '2rem', fontWeight: '800', margin: '0.5rem 0 0 0', color: 'var(--text-primary)' }}>
-                                ${stats.ingresosMensuales.toLocaleString()} ARS
+                                ${stats.ingresosMensuales.toLocaleString('es-AR')}
                             </h3>
                         </div>
                         <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', padding: '0.75rem', borderRadius: 'var(--radius-md)' }}>
@@ -237,115 +277,88 @@ const SuperDashboard = () => {
                         </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem', fontSize: '0.85rem' }}>
-                        <span style={{ color: 'var(--success)', fontWeight: 'bold' }}>100% Activo</span>
-                        <span style={{ color: 'var(--text-secondary)' }}>3 federaciones facturando</span>
+                        <span style={{ color: 'var(--success)', fontWeight: 'bold' }}>
+                            {stats.federacionesFacturando} facturando
+                        </span>
+                        <span style={{ color: 'var(--text-secondary)' }}>de {stats.totalFederaciones} federaciones</span>
                     </div>
                 </div>
             </div>
 
-            {/* Dos Columnas: Gráfico Interactivo de Registros y Alquileres vs Suscripciones */}
             <div style={{
                 display: 'grid',
                 gridTemplateColumns: '2fr 1fr',
                 gap: '1.5rem',
                 alignItems: 'stretch'
             }}>
-                {/* Gráfico y Evolución */}
                 <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                         <div>
                             <h3 style={{ fontSize: '1.15rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>Evolución de Registros en el Ecosistema</h3>
-                            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Mapeo del total de atletas agregados por mes en la SaaS</p>
-                        </div>
-                        <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--primary)' }}>
-                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--primary)' }}></span> Atletas
-                            </span>
+                            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Altas de atletas federados por mes (últimos 6 meses)</p>
                         </div>
                     </div>
 
-                    {/* Gráfico SVG de líneas Premium */}
                     <div style={{ flex: 1, width: '100%', minHeight: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <svg viewBox="0 0 500 200" style={{ width: '100%', height: '100%' }}>
-                            <defs>
-                                <linearGradient id="gradient-area" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.25" />
-                                    <stop offset="100%" stopColor="var(--primary)" stopOpacity="0.0" />
-                                </linearGradient>
-                            </defs>
-                            {/* Grid Lines */}
-                            <line x1="40" y1="20" x2="480" y2="20" stroke="var(--border-color)" strokeWidth="0.5" strokeDasharray="5 5" />
-                            <line x1="40" y1="70" x2="480" y2="70" stroke="var(--border-color)" strokeWidth="0.5" strokeDasharray="5 5" />
-                            <line x1="40" y1="120" x2="480" y2="120" stroke="var(--border-color)" strokeWidth="0.5" strokeDasharray="5 5" />
-                            <line x1="40" y1="170" x2="480" y2="170" stroke="var(--border-color)" strokeWidth="0.5" />
-
-                            {/* X-Axis labels */}
-                            <text x="40" y="190" fill="var(--text-secondary)" fontSize="10" textAnchor="middle">Ene</text>
-                            <text x="128" y="190" fill="var(--text-secondary)" fontSize="10" textAnchor="middle">Feb</text>
-                            <text x="216" y="190" fill="var(--text-secondary)" fontSize="10" textAnchor="middle">Mar</text>
-                            <text x="304" y="190" fill="var(--text-secondary)" fontSize="10" textAnchor="middle">Abr</text>
-                            <text x="392" y="190" fill="var(--text-secondary)" fontSize="10" textAnchor="middle">May</text>
-                            <text x="480" y="190" fill="var(--text-secondary)" fontSize="10" textAnchor="middle">Jun</text>
-
-                            {/* Area Path */}
-                            <path d="M 40 170 Q 128 140 216 110 T 304 80 T 392 50 T 480 30 L 480 170 Z" fill="url(#gradient-area)" />
-
-                            {/* Line Path */}
-                            <path d="M 40 170 Q 128 140 216 110 T 304 80 T 392 50 T 480 30" fill="none" stroke="var(--primary)" strokeWidth="3.5" strokeLinecap="round" />
-
-                            {/* Data points */}
-                            <circle cx="40" cy="170" r="4.5" fill="var(--bg-secondary)" stroke="var(--primary)" strokeWidth="2.5" />
-                            <circle cx="128" cy="140" r="4.5" fill="var(--bg-secondary)" stroke="var(--primary)" strokeWidth="2.5" />
-                            <circle cx="216" cy="110" r="4.5" fill="var(--bg-secondary)" stroke="var(--primary)" strokeWidth="2.5" />
-                            <circle cx="304" cy="80" r="4.5" fill="var(--bg-secondary)" stroke="var(--primary)" strokeWidth="2.5" />
-                            <circle cx="392" cy="50" r="4.5" fill="var(--bg-secondary)" stroke="var(--primary)" strokeWidth="2.5" />
-                            <circle cx="480" cy="30" r="4.5" fill="var(--bg-secondary)" stroke="var(--primary)" strokeWidth="2.5" />
-                        </svg>
+                        {chart ? (
+                            <svg viewBox="0 0 500 200" style={{ width: '100%', height: '100%' }}>
+                                <defs>
+                                    <linearGradient id="gradient-area" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.25" />
+                                        <stop offset="100%" stopColor="var(--primary)" stopOpacity="0.0" />
+                                    </linearGradient>
+                                </defs>
+                                <line x1="40" y1="20" x2="480" y2="20" stroke="var(--border-color)" strokeWidth="0.5" strokeDasharray="5 5" />
+                                <line x1="40" y1="70" x2="480" y2="70" stroke="var(--border-color)" strokeWidth="0.5" strokeDasharray="5 5" />
+                                <line x1="40" y1="120" x2="480" y2="120" stroke="var(--border-color)" strokeWidth="0.5" strokeDasharray="5 5" />
+                                <line x1="40" y1="170" x2="480" y2="170" stroke="var(--border-color)" strokeWidth="0.5" />
+                                {chart.points.map((p) => (
+                                    <text key={p.mes} x={p.x} y="190" fill="var(--text-secondary)" fontSize="10" textAnchor="middle">{p.mes}</text>
+                                ))}
+                                <path d={chart.areaPath} fill="url(#gradient-area)" />
+                                <path d={chart.linePath} fill="none" stroke="var(--primary)" strokeWidth="3.5" strokeLinecap="round" />
+                                {chart.points.map((p) => (
+                                    <circle key={`pt-${p.mes}`} cx={p.x} cy={p.y} r="4.5" fill="var(--bg-secondary)" stroke="var(--primary)" strokeWidth="2.5" />
+                                ))}
+                            </svg>
+                        ) : (
+                            <p style={{ color: 'var(--text-secondary)' }}>Sin datos de crecimiento todavía.</p>
+                        )}
                     </div>
                 </div>
 
-                {/* Resumen de Planes de Alquiler */}
                 <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
                     <h3 style={{ fontSize: '1.15rem', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '1rem' }}>Planes Activos</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1, justifyContent: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-primary)' }}>
-                            <div>
-                                <h4 style={{ fontWeight: 'bold', color: 'var(--text-primary)', fontSize: '0.9rem' }}>Enterprise</h4>
-                                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>$150.000 / mes</span>
-                            </div>
-                            <span style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)', fontWeight: 'bold', fontSize: '0.8rem', padding: '0.2rem 0.6rem', borderRadius: '20px' }}>
-                                2 federaciones
-                            </span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-primary)' }}>
-                            <div>
-                                <h4 style={{ fontWeight: 'bold', color: 'var(--text-primary)', fontSize: '0.9rem' }}>Premium</h4>
-                                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>$95.000 / mes</span>
-                            </div>
-                            <span style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', fontWeight: 'bold', fontSize: '0.8rem', padding: '0.2rem 0.6rem', borderRadius: '20px' }}>
-                                1 federación
-                            </span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-primary)' }}>
-                            <div>
-                                <h4 style={{ fontWeight: 'bold', color: 'var(--text-primary)', fontSize: '0.9rem' }}>Básico</h4>
-                                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>$50.000 / mes</span>
-                            </div>
-                            <span style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', color: 'var(--warning)', fontWeight: 'bold', fontSize: '0.8rem', padding: '0.2rem 0.6rem', borderRadius: '20px' }}>
-                                1 federación
-                            </span>
-                        </div>
+                        {distribucionPlanes.length === 0 ? (
+                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No hay planes asignados.</p>
+                        ) : distribucionPlanes.map((plan) => {
+                            const nombre = plan.nombre ?? plan.Nombre ?? 'Plan';
+                            const cantidad = plan.cantidad ?? plan.Cantidad ?? 0;
+                            const precio = Number(plan.precio ?? plan.Precio ?? 0);
+                            return (
+                                <div key={nombre} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-primary)' }}>
+                                    <div>
+                                        <h4 style={{ fontWeight: 'bold', color: 'var(--text-primary)', fontSize: '0.9rem' }}>{nombre}</h4>
+                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                            ${precio.toLocaleString('es-AR')} / mes
+                                        </span>
+                                    </div>
+                                    <span style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)', fontWeight: 'bold', fontSize: '0.8rem', padding: '0.2rem 0.6rem', borderRadius: '20px' }}>
+                                        {cantidad} federación{cantidad !== 1 ? 'es' : ''}
+                                    </span>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </div>
 
-            {/* Fila de Federaciones e Historial de Auditoría */}
             <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
                 gap: '1.5rem'
             }}>
-                {/* Sección Federaciones de Canotaje Alquilando */}
                 <div className="glass-panel" style={{ padding: '1.5rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                         <div>
@@ -361,7 +374,9 @@ const SuperDashboard = () => {
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                        {federaciones.slice(0, 3).map((fed) => (
+                        {federaciones.length === 0 ? (
+                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No hay federaciones registradas.</p>
+                        ) : federaciones.slice(0, 3).map((fed) => (
                             <div key={fed.idFederacion} style={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -369,7 +384,6 @@ const SuperDashboard = () => {
                                 padding: '0.75rem',
                                 border: '1px solid var(--border-color)',
                                 borderRadius: 'var(--radius-md)',
-                                transition: 'var(--transition)'
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                     <div style={{
@@ -406,7 +420,6 @@ const SuperDashboard = () => {
                     </div>
                 </div>
 
-                {/* Sección Registro de Auditoría Global */}
                 <div className="glass-panel" style={{ padding: '1.5rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                         <div>
@@ -422,7 +435,9 @@ const SuperDashboard = () => {
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                        {auditLogs.map((log) => (
+                        {auditLogs.length === 0 ? (
+                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Sin actividad registrada.</p>
+                        ) : auditLogs.map((log) => (
                             <div key={log.id} style={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -432,8 +447,8 @@ const SuperDashboard = () => {
                                 borderRadius: 'var(--radius-md)'
                             }}>
                                 <div style={{
-                                    color: log.accion.includes('Bloqueo') || log.accion.includes('Error') ? 'var(--danger)' : 'var(--primary)',
-                                    backgroundColor: log.accion.includes('Bloqueo') || log.accion.includes('Error') ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)',
+                                    color: log.accion.includes('Bloqueo') || log.accion.includes('Error') || log.accion.includes('FAILED') ? 'var(--danger)' : 'var(--primary)',
+                                    backgroundColor: log.accion.includes('Bloqueo') || log.accion.includes('Error') || log.accion.includes('FAILED') ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)',
                                     padding: '0.4rem',
                                     borderRadius: '50%',
                                     display: 'flex',
@@ -457,7 +472,6 @@ const SuperDashboard = () => {
                 </div>
             </div>
 
-            {/* Tabla de Tarifas de Referencia (SaaS) */}
             <div className="glass-panel" style={{ padding: '1.5rem', marginTop: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                     <div>
