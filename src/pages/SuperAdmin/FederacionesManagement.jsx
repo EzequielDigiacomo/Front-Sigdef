@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
+import { fetchFederacionesList, fetchPlanes } from '../../services/saasService';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import SearchInput from '../../components/common/SearchInput';
@@ -53,7 +54,7 @@ const FederacionesManagement = () => {
 
     const loadPlanes = async () => {
         try {
-            const data = await api.get('/SaaS/planes') || [];
+            const data = await fetchPlanes();
             setPlanes(data);
         } catch (error) {
             console.error('Error cargando planes SaaS:', error);
@@ -63,47 +64,7 @@ const FederacionesManagement = () => {
     const loadFederaciones = async () => {
         try {
             setLoading(true);
-            const allFeds = await api.get('/Federaciones') || [];
-            
-            // Get plans if not loaded yet
-            let currentPlanes = planes;
-            if (currentPlanes.length === 0) {
-                try {
-                    const data = await api.get('/SaaS/planes') || [];
-                    setPlanes(data);
-                    currentPlanes = data;
-                } catch (err) {
-                    console.error('Error fetching planes inside loadFederaciones:', err);
-                }
-            }
-
-            const finalFeds = allFeds.map((f) => {
-                const plan = currentPlanes.find(p => p.id === f.planSaaSId) || currentPlanes[0] || { nombre: 'Básico', precio: 50000 };
-                return {
-                    idFederacion: f.idFederacion,
-                    nombre: f.nombre || 'Federación Deportiva',
-                    sigla: f.sigla || getSigla(f.nombre),
-                    email: f.email || 'contacto@federacion.org',
-                    telefono: f.telefono || 'Sin teléfono',
-                    planSaaSId: f.planSaaSId || 1,
-                    plan: plan.nombre,
-                    estado: f.activo ? 'Activo' : 'Suspendido',
-                    costoMensual: plan.precio,
-                    pais: f.direccion || 'Argentina',
-                    fechaAltaPlan: f.fechaAltaPlan,
-                    fechaVencimientoPlan: f.fechaVencimientoPlan,
-                    frecuenciaPago: f.frecuenciaPago || 'Mensual',
-                    bloqueadaPorFaltaDePago: f.bloqueadaPorFaltaDePago || false,
-                    activo: f.activo,
-                    cuit: f.cuit || '',
-                    bancoNombre: f.bancoNombre || '',
-                    tipoCuenta: f.tipoCuenta || '',
-                    numeroCuenta: f.numeroCuenta || '',
-                    titularCuenta: f.titularCuenta || '',
-                    emailCobro: f.emailCobro || ''
-                };
-            });
-
+            const finalFeds = await fetchFederacionesList();
             setFederaciones(finalFeds);
 
             // Update selected config ref if open

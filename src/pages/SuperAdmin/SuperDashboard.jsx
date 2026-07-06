@@ -4,7 +4,8 @@ import {
     Globe, Shield, Users, DollarSign, Activity, TrendingUp, 
     Plus, ArrowUpRight 
 } from 'lucide-react';
-import { api } from '../../services/api';
+import { fetchSuperAdminDashboard } from '../../services/saasService';
+import { getApiBaseUrl } from '../../services/api';
 import Button from '../../components/common/Button';
 
 const formatRelativeTime = (dateStr) => {
@@ -23,22 +24,14 @@ const formatRelativeTime = (dateStr) => {
 };
 
 const mapFederacionFromStatus = (c) => ({
-    idFederacion: c.clubId,
-    nombre: c.clubNombre || 'Federación',
-    sigla: c.sigla || (c.clubNombre || 'FED').substring(0, 3).toUpperCase(),
-    email: c.email || '',
-    telefono: c.telefono || '',
-    plan: c.planNombre || 'Sin plan',
-    estado: !c.activo
-        ? 'Suspendido'
-        : c.bloqueadoPorFaltaDePago
-            ? 'Pendiente de Pago'
-            : c.planAlDia
-                ? 'Activo'
-                : 'Vencido',
-    fechaRegistro: c.fechaAltaPlan
-        ? c.fechaAltaPlan.split('T')[0]
-        : 'Sin fecha',
+    idFederacion: c.idFederacion,
+    nombre: c.nombre,
+    sigla: c.sigla,
+    email: c.email,
+    telefono: c.telefono,
+    plan: c.plan,
+    estado: c.estado,
+    fechaRegistro: c.fechaRegistro,
 });
 
 const buildChartGeometry = (crecimiento) => {
@@ -81,36 +74,37 @@ const SuperDashboard = () => {
     const [auditLogs, setAuditLogs] = useState([]);
     const [crecimiento, setCrecimiento] = useState([]);
     const [distribucionPlanes, setDistribucionPlanes] = useState([]);
+    const [loadError, setLoadError] = useState('');
 
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
                 setLoading(true);
+                setLoadError('');
 
-                const [metrics, clubesStatus, logs] = await Promise.all([
-                    api.get('/saas/global-metrics').catch(() => null),
-                    api.get('/saas/clubes-status').catch(() => null),
-                    api.get('/support/logs?limit=8').catch(() => null),
-                ]);
+                const { metrics, federaciones: feds, logs, errors } = await fetchSuperAdminDashboard();
+
+                if (errors.length) {
+                    setLoadError(
+                        `No se pudieron cargar: ${errors.join(', ')}. ` +
+                        `API: ${getApiBaseUrl()}. Verificá que estés logueado como SuperAdmin.`
+                    );
+                }
 
                 if (metrics) {
                     setStats({
-                        totalFederaciones: metrics.totalFederaciones ?? metrics.TotalFederaciones ?? 0,
-                        totalClubes: metrics.totalClubesAfiliados ?? metrics.TotalClubesAfiliados ?? 0,
-                        totalAtletas: metrics.totalAtletasGlobales ?? metrics.TotalAtletasGlobales ?? 0,
-                        ingresosMensuales: Number(metrics.ingresosMensuales ?? metrics.IngresosMensuales ?? 0),
-                        federacionesFacturando: metrics.federacionesFacturando ?? metrics.FederacionesFacturando ?? 0,
-                        porcentajeCrecimiento: Number(metrics.porcentajeCrecimientoAtletas ?? metrics.PorcentajeCrecimientoAtletas ?? 0),
+                        totalFederaciones: metrics.totalFederaciones,
+                        totalClubes: metrics.totalClubes,
+                        totalAtletas: metrics.totalAtletas,
+                        ingresosMensuales: metrics.ingresosMensuales,
+                        federacionesFacturando: metrics.federacionesFacturando,
+                        porcentajeCrecimiento: metrics.porcentajeCrecimiento,
                     });
-                    setCrecimiento(metrics.crecimientoMensual ?? metrics.CrecimientoMensual ?? []);
-                    setDistribucionPlanes(metrics.distribucionPlanes ?? metrics.DistribucionPlanes ?? []);
+                    setCrecimiento(metrics.crecimiento);
+                    setDistribucionPlanes(metrics.distribucionPlanes);
                 }
 
-                if (clubesStatus?.length) {
-                    setFederaciones(clubesStatus.map(mapFederacionFromStatus));
-                } else if (metrics) {
-                    setFederaciones([]);
-                }
+                setFederaciones(feds.map(mapFederacionFromStatus));
 
                 if (logs?.length) {
                     setAuditLogs(logs.map((log) => ({
@@ -126,6 +120,7 @@ const SuperDashboard = () => {
                 }
             } catch (err) {
                 console.error('Error al obtener estadísticas del Superadmin Dashboard:', err);
+                setLoadError(err.message || 'Error al conectar con la API');
             } finally {
                 setLoading(false);
             }
@@ -171,6 +166,19 @@ const SuperDashboard = () => {
                     Dar de Alta Federación
                 </Button>
             </div>
+
+            {loadError && (
+                <div style={{
+                    padding: '1rem 1.25rem',
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: 'var(--danger)',
+                    fontSize: '0.9rem',
+                }}>
+                    {loadError}
+                </div>
+            )}
 
             <div style={{
                 display: 'grid',

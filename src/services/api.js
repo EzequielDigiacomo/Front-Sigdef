@@ -1,14 +1,26 @@
 import { PARENTESCO_MAP } from '../utils/enums';
 
-// --- CONFIGURACIÓN DE API ---
-// Usa la variable de entorno si existe, sino usa localhost por defecto
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5029/api';
 
-const DEFAULT_TIMEOUT = 30000; // 30 segundos
+const DEFAULT_TIMEOUT = 30000;
 const MAX_RETRIES = 2;
 
 const defaultHeaders = {
     'Content-Type': 'application/json',
+};
+
+const getAuthToken = () => {
+    try {
+        const raw = localStorage.getItem('user');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed?.token) return parsed.token;
+            if (parsed?.Token) return parsed.Token;
+        }
+    } catch {
+        /* ignorar */
+    }
+    return localStorage.getItem('token') || null;
 };
 
 const handleResponse = async (response, options = {}) => {
@@ -31,18 +43,19 @@ const handleResponse = async (response, options = {}) => {
     try {
         responseText = await response.text();
     } catch (e) {
-        console.warn('⚠️ No se pudo leer el cuerpo de la respuesta');
+        console.warn('No se pudo leer el cuerpo de la respuesta');
     }
 
     if (!response.ok) {
         if (!silentErrors) {
-            console.error('❌ Error del servidor:', response.status, responseText);
+            console.error('Error del servidor:', response.status, responseText, 'URL:', response.url);
         }
-        
+
         try {
             const errorObj = JSON.parse(responseText);
             throw new Error(errorObj.message || errorObj.error || `Error ${response.status}`);
         } catch (e) {
+            if (e.message && !e.message.startsWith('Error ')) throw e;
             throw new Error(responseText || `Error ${response.status}: ${response.statusText}`);
         }
     }
@@ -51,72 +64,71 @@ const handleResponse = async (response, options = {}) => {
 
     try {
         return JSON.parse(responseText);
-    } catch (error) {
+    } catch {
         return { message: responseText, success: true };
     }
 };
 
 const fetchWithTimeout = async (resource, options = {}) => {
     const { timeout = DEFAULT_TIMEOUT } = options;
-    
+
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
-    
+
     try {
         const response = await fetch(resource, {
             ...options,
-            signal: controller.signal
+            signal: controller.signal,
         });
         clearTimeout(id);
         return response;
     } catch (error) {
         clearTimeout(id);
         if (error.name === 'AbortError') {
-            throw new Error('La petición ha tardado demasiado tiempo (Timeout)');
+            throw new Error('La petición ha tardó demasiado tiempo (Timeout)');
         }
         throw error;
     }
 };
 
+const normalizeEndpoint = (endpoint) => {
+    if (endpoint === '/Club') return '/Clubes';
+    if (endpoint.startsWith('/Club/')) return endpoint.replace('/Club/', '/Clubes/');
+    return endpoint;
+};
+
 const request = async (endpoint, options = {}, retries = MAX_RETRIES) => {
     const { silentErrors = false, ...fetchOptions } = options;
-    
-    // Reescribir endpoints de /Club a /Clubes para interactuar con la API real
-    let finalEndpoint = endpoint;
-    if (endpoint === '/Club') {
-        finalEndpoint = '/Clubes';
-    } else if (endpoint.startsWith('/Club/')) {
-        finalEndpoint = endpoint.replace('/Club/', '/Clubes/');
-    }
-
+    const finalEndpoint = normalizeEndpoint(endpoint);
     const url = `${API_URL}${finalEndpoint}`;
-    
-    const token = JSON.parse(localStorage.getItem('user'))?.token;
+
+    const token = getAuthToken();
+    const headers = { ...fetchOptions.headers };
     if (token) {
-        fetchOptions.headers = {
-            ...fetchOptions.headers,
-            'Authorization': `Bearer ${token}`
-        };
+        headers.Authorization = `Bearer ${token}`;
     }
 
     try {
-        const response = await fetchWithTimeout(url, fetchOptions);
-        
+        const response = await fetchWithTimeout(url, {
+            ...fetchOptions,
+            headers,
+            credentials: 'include',
+        });
+
         if (response.status >= 500 && retries > 0) {
             console.warn(`Retrying... (${MAX_RETRIES - retries + 1})`);
-            await new Promise(res => setTimeout(res, 1000));
+            await new Promise((res) => setTimeout(res, 1000));
             return request(endpoint, options, retries - 1);
         }
-        
+
         let data = await handleResponse(response, { silentErrors });
 
-        // Normalización de Clubes para asegurar compatibilidad del front (idClub, siglas) con la API real (id, sigla)
-        if (endpoint.startsWith('/Club') || endpoint.startsWith('/Clubes')) {
+        if (finalEndpoint.startsWith('/Clubes')) {
             if (Array.isArray(data)) {
-                data = data.map(c => ({
+                data = data.map((c) => ({
                     ...c,
                     idClub: c.idClub ?? c.id ?? c.Id,
-                    siglas: c.sigla ?? c.Sigla ?? c.siglas ?? c.Siglas ?? ''
+                    siglas: c.sigla ?? c.Sigla ?? c.siglas ?? c.Siglas ?? '',
                 }));
             } else if (data && typeof data === 'object') {
                 data.idClub = data.idClub ?? data.id ?? data.Id;
@@ -129,33 +141,42 @@ const request = async (endpoint, options = {}, retries = MAX_RETRIES) => {
         if (retries > 0 && error.message.includes('Timeout')) {
             return request(endpoint, options, retries - 1);
         }
-        if (!silentErrors) console.error(`💥 Error en ${url}:`, error);
+        if (!silentErrors) console.error(`Error en ${url}:`, error);
         throw error;
     }
 };
 
 export const api = {
     get: (endpoint, options = {}) => request(endpoint, { method: 'GET', ...options }),
-    
-    post: (endpoint, data, options = {}) => request(endpoint, { 
-        method: 'POST', 
+
+    post: (endpoint, data, options = {}) => request(endpoint, {
+        method: 'POST',
         headers: defaultHeaders,
         body: JSON.stringify(data),
-        ...options 
+        ...options,
     }),
-    
-    put: (endpoint, data, options = {}) => request(endpoint, { 
-        method: 'PUT', 
+
+    put: (endpoint, data, options = {}) => request(endpoint, {
+        method: 'PUT',
         headers: defaultHeaders,
         body: JSON.stringify(data),
-        ...options 
+        ...options,
     }),
-    
+
+    patch: (endpoint, data, options = {}) => request(endpoint, {
+        method: 'PATCH',
+        headers: data ? defaultHeaders : undefined,
+        body: data ? JSON.stringify(data) : undefined,
+        ...options,
+    }),
+
     delete: (endpoint, options = {}) => request(endpoint, { method: 'DELETE', ...options }),
-    
-    upload: (endpoint, formData, options = {}) => request(endpoint, { 
-        method: 'POST', 
+
+    upload: (endpoint, formData, options = {}) => request(endpoint, {
+        method: 'POST',
         body: formData,
-        ...options 
-    })
+        ...options,
+    }),
 };
+
+export const getApiBaseUrl = () => API_URL;
