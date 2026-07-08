@@ -42,12 +42,13 @@ const Login = () => {
                 <div className="login-header">
                     <div className="login-logo">
                         <img 
-                            src={isNative ? "/logo_icon.png" : "/logo_full.png"} 
+                            src="/logo_icon.png" 
                             alt="Logo" 
-                            className={isNative ? "mobile-logo-img" : "web-logo-img"} 
+                            className="web-logo-img" 
+                            style={{ height: '50px', width: 'auto' }}
                         />
                     </div>
-                    <h2 className="text-gradient">{isNative ? 'SIGDEF Mobile' : 'Bienvenido a SIGDEF'}</h2>
+                    <h2 className="text-gradient-green">{isNative ? 'SIGDEF Mobile' : 'Bienvenido a SIGDEF'}</h2>
                     <p className="login-subtitle">
                         {isNative ? 'Tu deporte, en tu bolsillo' : 'Sistema de Gestión Deportiva'}
                     </p>
