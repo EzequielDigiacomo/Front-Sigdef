@@ -9,6 +9,7 @@ import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
 import { withFederationScope, getClubFederationId } from '../../../utils/apiHelpers';
 import { getCategoriaLabel, getEstadoPagoColor, getEstadoPagoLabel } from '../../../utils/enums';
+import ClubDetailModal from './components/ClubDetailModal';
 import './Clubes.css';
 
 const ClubesList = () => {
@@ -18,6 +19,8 @@ const ClubesList = () => {
     const [clubes, setClubes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedClub, setSelectedClub] = useState(null);
+    const [showDetailModal, setShowDetailModal] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -54,7 +57,8 @@ const ClubesList = () => {
     };
 
     const handleCardClick = (club) => {
-        navigate(`detalles/${club.idClub}`);
+        setSelectedClub(club);
+        setShowDetailModal(true);
     };
 
     const handleEditClick = (e, clubId) => {
@@ -182,6 +186,14 @@ const ClubesList = () => {
                     </div>
                 )}
             </Card>
+
+            <ClubDetailModal
+                isOpen={showDetailModal}
+                onClose={() => { setShowDetailModal(false); setSelectedClub(null); }}
+                club={selectedClub}
+                fedId={fedId}
+                returnPath={isSuperAdminView ? `/superadmin/federacion/${fedId}/clubes` : '/dashboard/clubes'}
+            />
         </div>
     );
 };

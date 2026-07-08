@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../../services/api';
 import DataTable from '../../../components/common/DataTable';
 import Card from '../../../components/common/Card';
-import { Award, Search, Filter, Edit, Trash2, CheckCircle, AlertTriangle, Plus, Eye, UserCog, UserPlus } from 'lucide-react';
+import { Award, Search, Filter, Edit, Trash2, CheckCircle, AlertTriangle, Plus, Eye, UserCog, UserPlus, ArrowLeft } from 'lucide-react';
 import FormField from '../../../components/forms/FormField';
 import FormSelect from '../../../components/forms/FormSelect';
 import Pagination from '../../../components/common/Pagination';
@@ -17,6 +17,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Button from '../../../components/common/Button';
 import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
+import EntrenadorDetailModal from './components/EntrenadorDetailModal';
 
 const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'seleccion'
     const { isNative } = useDevice();
@@ -44,6 +45,10 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
 
     // Add Coach to Selection Modal State
     const [showAddCoachModal, setShowAddCoachModal] = useState(false);
+
+    // Detail modal
+    const [selectedEntrenador, setSelectedEntrenador] = useState(null);
+    const [showDetailModal, setShowDetailModal] = useState(false);
 
     // Confirmation Modal State
     const [showConfirmation, setShowConfirmation] = useState(false);
@@ -98,6 +103,11 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
     const handlePageChange = (pageNumber) => { setCurrentPage(pageNumber); };
+
+    const handleRowClick = (row) => {
+        setSelectedEntrenador(row);
+        setShowDetailModal(true);
+    };
 
     const handleEdit = (id) => {
         const path = isSuperAdminView
@@ -180,6 +190,27 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
 
     return (
         <div className={`page-container ${isNative ? 'mobile-view' : ''}`}>
+            {isSuperAdminView && (
+                <div style={{
+                    background: 'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(139,92,246,0.08) 100%)',
+                    border: '1px solid rgba(59,130,246,0.3)',
+                    borderRadius: '10px',
+                    padding: '0.7rem 1.1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    marginBottom: '1rem',
+                }}>
+                    <button
+                        type="button"
+                        onClick={() => navigate(`/superadmin/federacion/${fedId}`)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#60a5fa', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: '600', fontSize: '0.85rem', padding: 0 }}
+                    >
+                        <ArrowLeft size={15} /> Volver al dashboard de la federación
+                    </button>
+                </div>
+            )}
+
             <div className="page-header">
                 <div>
                     <h1 className="page-title">
@@ -201,6 +232,16 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
                             <Plus size={20} /> {isNative ? 'Crear' : 'Crear Entrenador Nuevo'}
                         </Button>
                     </div>
+                )}
+                {viewMode === 'club' && (
+                    <Button onClick={() => {
+                        const path = isSuperAdminView
+                            ? `/superadmin/federacion/${fedId}/entrenadores/nuevo`
+                            : '/dashboard/entrenadores/nuevo';
+                        navigate(path, { state: { returnPath: location.pathname } });
+                    }}>
+                        <Plus size={20} /> {isNative ? 'Crear' : 'Nuevo Entrenador'}
+                    </Button>
                 )}
             </div>
 
@@ -238,16 +279,24 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
                                     actions={
                                         <div className="flex gap-2">
                                             <Button variant="ghost" size="sm" icon={Edit} onClick={() => handleEdit(coach.idPersona)} />
-                                            <Button variant="ghost" size="sm" icon={Eye} onClick={() => { setSelectedEntrenadorForDocs(coach); setShowViewerModal(true); }} />
+                                            <Button variant="ghost" size="sm" icon={Eye} onClick={() => handleRowClick(coach)} />
                                         </div>
                                     }
+                                    onClick={() => handleRowClick(coach)}
                                 />
                             ))
                         )}
                     </div>
                 ) : (
                     <>
-                        <DataTable columns={columns} data={currentData} loading={loading} emptyMessage="No se encontraron entrenadores." />
+                        <DataTable
+                            columns={columns}
+                            data={currentData}
+                            loading={loading}
+                            emptyMessage="No se encontraron entrenadores."
+                            onRowClick={handleRowClick}
+                            keyField="idPersona"
+                        />
                         <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
                     </>
                 )}
@@ -322,6 +371,15 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
                 confirmText={confirmationConfig.confirmText || 'Confirmar'}
                 cancelText={confirmationConfig.cancelText || 'Cancelar'}
                 showCancel={confirmationConfig.showCancel !== false}
+            />
+
+            <EntrenadorDetailModal
+                isOpen={showDetailModal}
+                onClose={() => { setShowDetailModal(false); setSelectedEntrenador(null); }}
+                entrenador={selectedEntrenador}
+                viewMode={viewMode}
+                fedId={fedId}
+                returnPath={location.pathname}
             />
         </div>
     );

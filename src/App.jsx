@@ -5,6 +5,7 @@ import MainLayout from './components/layout/MainLayout';
 import MainLayoutClub from './components/layout/MainLayoutClub';
 import MainLayoutSuper from './components/layout/MainLayoutSuper';
 import Login from './pages/Login';
+import Home from './pages/Home';
 
 // Importaciones del Portal de Superadmin
 import SuperDashboard from './pages/SuperAdmin/SuperDashboard';
@@ -13,6 +14,8 @@ import FederacionesForm from './pages/SuperAdmin/FederacionesForm';
 import FederacionView from './pages/SuperAdmin/FederacionView';
 import Suscripciones from './pages/SuperAdmin/Suscripciones';
 import Auditoria from './pages/SuperAdmin/Auditoria';
+import SuperAdminPlanes from './pages/SuperAdmin/SuperAdminPlanes';
+import SuperAdminModulePicker from './pages/SuperAdmin/SuperAdminModulePicker';
 import PlanGuard from './components/common/PlanGuard';
 
 import Dashboard from './pages/Dashboard';
@@ -103,7 +106,7 @@ const RootRedirect = () => {
   if (loading) return <div>Cargando...</div>;
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   if (user.role === 'CLUB') {
@@ -124,7 +127,7 @@ function App() {
         <Router>
           <Routes>
             { }
-            <Route path="/" element={<RootRedirect />} />
+            <Route path="/" element={<Home />} />
 
             <Route path="/login" element={<LoginRoute />} />
 
@@ -239,6 +242,8 @@ function App() {
               <Route path="federaciones/editar/:id" element={<FederacionesForm />} />
               <Route path="suscripciones" element={<Suscripciones />} />
               <Route path="auditoria" element={<Auditoria />} />
+              <Route path="planes" element={<SuperAdminPlanes />} />
+              <Route path="modulos/:moduleKey" element={<SuperAdminModulePicker />} />
 
               {/* Vista SuperAdmin dentro de una federación específica */}
               <Route path="federacion/:fedId" element={<FederacionView />} />
@@ -252,6 +257,7 @@ function App() {
               <Route path="federacion/:fedId/entrenadores" element={<EntrenadoresList viewMode="club" />} />
               <Route path="federacion/:fedId/entrenadores/nuevo" element={<ClubEntrenadoresForm />} />
               <Route path="federacion/:fedId/entrenadores/editar/:id" element={<ClubEntrenadoresForm />} />
+              <Route path="federacion/:fedId/entrenadores-seleccion" element={<EntrenadoresList viewMode="seleccion" />} />
               <Route path="federacion/:fedId/selecciones" element={<EntrenadoresSeleccionList />} />
               <Route path="federacion/:fedId/selecciones/categoria/:categoryId" element={<SeleccionCategoriaDetalle />} />
               <Route path="federacion/:fedId/entrenadores-seleccion/nuevo" element={<EntrenadoresSeleccionForm />} />

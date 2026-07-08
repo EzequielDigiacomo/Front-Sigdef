@@ -8,7 +8,7 @@ import SearchInput from '../../components/common/SearchInput';
 import { Plus, Edit, Trash2, Globe, Mail, Phone, ShieldCheck, ShieldAlert, Award, LogIn, Settings, X, XCircle, Check, Calendar } from 'lucide-react';
 import Modal from '../../components/common/Modal';
 
-const FederacionesManagement = () => {
+const FederacionesManagement = ({ planesOnly = false }) => {
     const navigate = useNavigate();
     const [federaciones, setFederaciones] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -192,13 +192,21 @@ const FederacionesManagement = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                    <h2 className="text-gradient" style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '0.25rem' }}>Gestión de Federaciones</h2>
-                    <p style={{ color: 'var(--text-secondary)' }}>Da de alta, edita, audita o suspende las federaciones inquilinas del ecosistema.</p>
+                    <h2 className="text-gradient" style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '0.25rem' }}>
+                        {planesOnly ? 'Planes SaaS' : 'Gestión de Federaciones'}
+                    </h2>
+                    <p style={{ color: 'var(--text-secondary)' }}>
+                        {planesOnly
+                            ? 'Asigná y configurá el plan de cada federación inquilina.'
+                            : 'Da de alta, edita, audita o suspende las federaciones inquilinas del ecosistema.'}
+                    </p>
                 </div>
-                <Button variant="primary" onClick={() => navigate('/superadmin/federaciones/nueva')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Plus size={18} />
-                    Alta de Federación
-                </Button>
+                {!planesOnly && (
+                    <Button variant="primary" onClick={() => navigate('/superadmin/federaciones/nueva')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Plus size={18} />
+                        Alta de Federación
+                    </Button>
+                )}
             </div>
 
             <div style={{ display: 'flex', gap: '1.5rem', width: '100%', alignItems: 'flex-start' }}>
