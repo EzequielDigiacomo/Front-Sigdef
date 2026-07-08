@@ -88,29 +88,32 @@ const ClubAtletasForm = () => {
     const loadAtleta = async () => {
         try {
             const data = await api.get(`/Atleta/${id}`);
+             const persona = data.participante || data.Participante || data.persona || {};
+            const athleteId = data.idPersona || data.IdPersona || data.participanteId || data.ParticipanteId;
+            
             setFormData({
-                nombre: data.persona?.nombre || '',
-                apellido: data.persona?.apellido || '',
-                documento: data.persona?.documento || '',
-                fechaNacimiento: data.persona?.fechaNacimiento ? data.persona.fechaNacimiento.split('T')[0] : '',
-                email: data.persona?.email || '',
-                telefono: data.persona?.telefono || '',
-                direccion: data.persona?.direccion || '',
-                categoria: data.categoria || 0,
-                becadoEnard: data.becadoEnard || false,
-                becadoSdn: data.becadoSdn || false,
-                montoBeca: data.montoBeca || 0,
-                presentoAptoMedico: data.presentoAptoMedico || false,
-                estadoPago: data.estadoPago || 0,
-                perteneceSeleccion: data.perteneceSeleccion || false,
-                sexo: data.persona?.sexo || 1,
+                nombre: persona.nombre || persona.Nombre || '',
+                apellido: persona.apellido || persona.Apellido || '',
+                documento: persona.documento || persona.Documento || persona.dni || persona.Dni || '',
+                fechaNacimiento: (persona.fechaNacimiento || persona.FechaNacimiento) ? (persona.fechaNacimiento || persona.FechaNacimiento).split('T')[0] : '',
+                email: persona.email || persona.Email || '',
+                telefono: persona.telefono || persona.Telefono || '',
+                direccion: persona.direccion || persona.Direccion || '',
+                categoria: data.categoria || data.Categoria || 0,
+                becadoEnard: data.becadoEnard || data.BecadoEnard || false,
+                becadoSdn: data.becadoSdn || data.BecadoSdn || false,
+                montoBeca: data.montoBeca || data.MontoBeca || 0,
+                presentoAptoMedico: data.presentoAptoMedico || data.PresentoAptoMedico || false,
+                estadoPago: data.estadoPago || data.EstadoPago || 0,
+                perteneceSeleccion: data.perteneceSeleccion || data.PerteneceSeleccion || false,
+                sexo: persona.sexo?.id || persona.Sexo?.Id || persona.sexoId || persona.SexoId || (typeof persona.sexo === 'number' ? persona.sexo : 1),
             });
 
-            if (data.idPersona) {
+            if (athleteId) {
                 try {
                     // Fetch all relations and filter (reliable fallback)
                     const relaciones = await api.get('/AtletaTutor');
-                    const relacion = relaciones.find(r => r.idAtleta === data.idPersona);
+                    const relacion = relaciones.find(r => (r.idAtleta || r.IdAtleta) === athleteId);
 
                     if (relacion) {
                         try {
@@ -203,7 +206,7 @@ const ClubAtletasForm = () => {
                     apellido: formData.apellido,
                     documento: formData.documento,
                     fechaNacimiento: formData.fechaNacimiento,
-                    sexo: parseInt(formData.sexo),
+                    sexoId: parseInt(formData.sexo),
                     email: formData.email || "",
                     telefono: formData.telefono || "",
                     direccion: formData.direccion || ""

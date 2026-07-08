@@ -158,7 +158,7 @@ const ClubTutoresForm = () => {
                 email: formData.email || "",
                 telefono: formData.telefono || "",
                 direccion: formData.direccion || "",
-                sexo: parseInt(formData.sexo)
+                sexoId: parseInt(formData.sexo)
             };
 
             const tutorPayload = {
@@ -221,7 +221,7 @@ const ClubTutoresForm = () => {
                 if (!idPersona) {
                     console.log('➕ Creando nueva persona...');
                     const nuevaPersona = await api.post('/Persona', personaPayload);
-                    idPersona = nuevaPersona.idPersona || nuevaPersona.IdPersona;
+                    idPersona = nuevaPersona.participanteId || nuevaPersona.ParticipanteId || nuevaPersona.idPersona || nuevaPersona.IdPersona;
 
                     console.log('➕ Creando tutor...');
                     await api.post('/Tutor', {

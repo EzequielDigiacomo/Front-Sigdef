@@ -148,7 +148,7 @@ const RegisterPersonForm = ({ onUserCreated }) => {
                 Nombre: formData.nombre,
                 Apellido: formData.apellido,
                 Documento: formData.documento,
-                Sexo: parseInt(formData.sexo),
+                SexoId: parseInt(formData.sexo),
                 FechaNacimiento: formData.fechaNacimiento ? new Date(formData.fechaNacimiento).toISOString() : new Date().toISOString(),
                 Email: formData.email || null,
                 Telefono: formData.telefono || null,
@@ -163,7 +163,7 @@ const RegisterPersonForm = ({ onUserCreated }) => {
             } else {
                 console.log("🆕 Creando nueva persona...");
                 const nuevaPersona = await api.post('/Persona', personaPayload);
-                currentIdPersona = nuevaPersona.idPersona || nuevaPersona.IdPersona || nuevaPersona.id || nuevaPersona.Id;
+                currentIdPersona = nuevaPersona.participanteId || nuevaPersona.ParticipanteId || nuevaPersona.idPersona || nuevaPersona.IdPersona || nuevaPersona.id || nuevaPersona.Id;
             }
 
             if (!currentIdPersona) throw new Error("No se pudo obtener el ID de la persona.");
@@ -195,6 +195,8 @@ const RegisterPersonForm = ({ onUserCreated }) => {
             if (formData.rol === 'Entrenador') {
                 console.log("🧢 Registrando Entrenador...");
                 await api.post('/Entrenador', {
+                    participanteId: currentIdPersona,
+                    ParticipanteId: currentIdPersona,
                     idPersona: currentIdPersona,
                     idClub: clubIdInt > 0 ? clubIdInt : null,
                     licencia: formData.licencia || "N/A"

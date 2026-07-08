@@ -90,7 +90,7 @@ const ClubAtletas = () => {
     const [loadingTutores, setLoadingTutores] = useState(false);
 
     useEffect(() => {
-        const clubId = user?.IdClub || user?.idClub || user?.club?.id;
+        const clubId = user?.IdClub || user?.idClub || user?.clubId || user?.club?.id;
         if (clubId) fetchAtletas(clubId);
     }, [user]);
 
@@ -103,16 +103,30 @@ const ClubAtletas = () => {
                 data = await api.get(`/Atleta/club/${clubId}`, { silentErrors: true });
             } catch (e1) {
                 data = await api.get('/Atleta');
-                data = data.filter(a => String(a.idClub) === String(clubId));
             }
+            // Filter by club ID supporting all common property casing
+            const filteredData = (data || []).filter(a => {
+                const athleteClubId = a.idClub ?? a.IdClub ?? a.clubId ?? a.ClubId;
+                return String(athleteClubId) === String(clubId);
+            });
+
             const personas = await personasPromise;
-            const personasMap = new Map(personas.map(p => [p.idPersona, p]));
-            const enrichedData = (data || []).map(atleta => {
-                const persona = personasMap.get(atleta.idPersona);
+            const personasMap = new Map(personas.map(p => [
+                p.participanteId ?? p.ParticipanteId ?? p.idPersona ?? p.IdPersona ?? p.id,
+                p
+            ]));
+            const enrichedData = filteredData.map(atleta => {
+                const athleteId = atleta.idPersona ?? atleta.IdPersona ?? atleta.participanteId ?? atleta.ParticipanteId;
+                const persona = personasMap.get(athleteId) || atleta.participante || atleta.Participante;
+                
+                const firstName = persona?.nombre ?? persona?.Nombre ?? '';
+                const lastName = persona?.apellido ?? persona?.Apellido ?? '';
+                const doc = persona?.documento ?? persona?.Documento ?? persona?.dni ?? persona?.Dni ?? '';
+
                 return {
                     ...atleta,
-                    nombrePersona: persona ? `${persona.nombre} ${persona.apellido}` : (atleta.nombrePersona || '-'),
-                    documento: persona ? persona.documento : (atleta.documento || '-')
+                    nombrePersona: firstName && lastName ? `${firstName} ${lastName}` : (atleta.nombrePersona || '-'),
+                    documento: doc || (atleta.documento || '-')
                 };
             });
             setAtletas(enrichedData);
@@ -121,6 +135,110 @@ const ClubAtletas = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const fetchClubTutores = async () => {
+        setLoadingTutores(true);
+        try {
+            const [allTutores, allPersonas] = await Promise.all([
+                api.get('/Tutor'),
+                api.get('/Persona')
+            ]);
+            const personasMap = new Map(allPersonas.map(p => [p.idPersona, p]));
+            const mapped = allTutores.map(t => {
+                const persona = personasMap.get(t.idPersona);
+                return {
+                    idPersona: t.idPersona,
+                    nombreCompleto: persona ? `${persona.nombre} ${persona.apellido}` : 'Sin nombre',
+                    documento: persona ? persona.dni || persona.documento : ''
+                };
+            });
+            setExistingTutores(mapped);
+        } catch (error) {
+            console.error('Error fetching tutores:', error);
+        } finally {
+            setLoadingTutores(false);
+        }
+    };
+
+    const handleAssignTutor = async () => {
+        if (!selectedTutorIdToAssign || !atletaDetails) return;
+        try {
+            await api.post('/AtletaTutor', {
+                idAtleta: atletaDetails.idPersona,
+                idTutor: parseInt(selectedTutorIdToAssign),
+                parentesco: 1 // Default: Tutor Legal/Otro
+            });
+            setShowSelectTutorModal(false);
+            setSelectedTutorIdToAssign('');
+            
+            // Refresh list
+            const clubId = user?.IdClub || user?.idClub || user?.clubId || user?.club?.id;
+            if (clubId) {
+                await fetchAtletas(clubId);
+            }
+            
+            // Refresh detailed modal
+            const refreshedAtleta = await api.get(`/Atleta/${atletaDetails.idPersona}`);
+            if (refreshedAtleta) {
+                handleCardClick(refreshedAtleta);
+            } else {
+                setShowModal(false);
+            }
+        } catch (error) {
+            console.error('Error assigning tutor:', error);
+            alert('Error al asignar el tutor. Verifica si ya está asignado.');
+        }
+    };
+
+    const handleUnlinkTutor = async () => {
+        if (!atletaDetails || !atletaDetails.tutor) return;
+        const idTutor = atletaDetails.tutor.idPersona;
+        const idRelacion = atletaDetails.tutor.idRelacion;
+        
+        setFeedbackModal({
+            isOpen: true,
+            title: 'Desvincular Tutor',
+            message: '¿Estás seguro de desvincular este tutor del atleta?',
+            type: 'info',
+            confirmText: 'Desvincular',
+            onConfirm: async () => {
+                setFeedbackModal(prev => ({ ...prev, isOpen: false }));
+                setLoading(true);
+                try {
+                    if (idRelacion) {
+                        await api.delete(`/AtletaTutor/${idRelacion}`);
+                    } else {
+                        await api.delete(`/AtletaTutor/${atletaDetails.idPersona}/${idTutor}`);
+                    }
+                    
+                    const clubId = user?.IdClub || user?.idClub || user?.clubId || user?.club?.id;
+                    if (clubId) {
+                        await fetchAtletas(clubId);
+                        setShowModal(false);
+                    }
+                    
+                    setFeedbackModal({
+                        isOpen: true,
+                        title: 'Éxito',
+                        message: 'Tutor desvinculado correctamente.',
+                        type: 'success',
+                        showCancel: false
+                    });
+                } catch (error) {
+                    console.error('Error desvinculando tutor:', error);
+                    setFeedbackModal({
+                        isOpen: true,
+                        title: 'Error',
+                        message: 'No se pudo desvincular el tutor.',
+                        type: 'danger',
+                        showCancel: false
+                    });
+                } finally {
+                    setLoading(false);
+                }
+            }
+        });
     };
 
     const handleBulkUpdate = async () => {
@@ -188,7 +306,41 @@ const ClubAtletas = () => {
         setLoadingDetails(true);
         try {
             const persona = await api.get(`/Persona/${atleta.idPersona}`);
-            setAtletaDetails({ ...atleta, personaCompleta: persona });
+            
+            // Resolve tutor details if any
+            let tutorDetailsObj = null;
+            const tutorInfo = (atleta.tutores || atleta.Tutores)?.[0];
+            if (tutorInfo) {
+                const tutorId = tutorInfo.idTutor || tutorInfo.IdTutor;
+                if (tutorId) {
+                    try {
+                        const tutorPersona = await api.get(`/Persona/${tutorId}`);
+                        tutorDetailsObj = {
+                            idPersona: tutorId,
+                            idRelacion: tutorInfo.id || tutorInfo.idAtletaTutor || tutorInfo.IdAtletaTutor,
+                            nombre: tutorPersona ? `${tutorPersona.nombre} ${tutorPersona.apellido}` : tutorInfo.nombreTutor,
+                            telefono: tutorPersona?.telefono || '',
+                            email: tutorPersona?.email || ''
+                        };
+                    } catch (tutorError) {
+                        console.error('Error fetching tutor details:', tutorError);
+                        tutorDetailsObj = {
+                            idPersona: tutorId,
+                            nombre: tutorInfo.nombreTutor || 'Tutor',
+                            telefono: '',
+                            email: ''
+                        };
+                    }
+                }
+            }
+
+            setAtletaDetails({ 
+                ...atleta, 
+                personaCompleta: persona,
+                tutor: tutorDetailsObj
+            });
+        } catch (err) {
+            console.error("Error loading athlete details:", err);
         } finally {
             setLoadingDetails(false);
         }
@@ -317,7 +469,9 @@ const ClubAtletas = () => {
                                 </div>
                                 <div className="detail-row">
                                     <span className="label">Sexo:</span>
-                                    <span className="value">{atletaDetails.personaCompleta?.sexo || 'No especificado'}</span>
+                                    <span className="value">
+                                        {atletaDetails.personaCompleta?.sexo?.nombre || atletaDetails.personaCompleta?.sexo?.Nombre || atletaDetails.personaCompleta?.sexo || 'No especificado'}
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -588,14 +742,21 @@ const ClubAtletas = () => {
                 type="danger"
             />
 
-            <ConfirmationModal
+             <ConfirmationModal
                 isOpen={feedbackModal.isOpen}
                 onClose={() => setFeedbackModal({ ...feedbackModal, isOpen: false })}
-                onConfirm={() => setFeedbackModal({ ...feedbackModal, isOpen: false })}
+                onConfirm={() => {
+                    if (feedbackModal.onConfirm) {
+                        feedbackModal.onConfirm();
+                    } else {
+                        setFeedbackModal({ ...feedbackModal, isOpen: false });
+                    }
+                }}
                 title={feedbackModal.title}
                 message={feedbackModal.message}
-                confirmText="Entendido"
-                showCancel={false}
+                confirmText={feedbackModal.confirmText || "Entendido"}
+                cancelText="Cancelar"
+                showCancel={feedbackModal.showCancel !== false && !!feedbackModal.onConfirm}
                 type={feedbackModal.type || 'info'}
             />
 

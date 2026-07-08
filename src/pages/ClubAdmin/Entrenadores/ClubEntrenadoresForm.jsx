@@ -80,7 +80,7 @@ const ClubEntrenadoresForm = () => {
                 email: persona.email || '',
                 telefono: persona.telefono || '',
                 direccion: persona.direccion || '',
-                sexo: persona.sexo || 1,
+                 sexo: persona.sexo?.id || persona.Sexo?.Id || persona.sexoId || persona.SexoId || (typeof persona.sexo === 'number' ? persona.sexo : 1),
                 licencia: data.licencia || '',
                 perteneceSeleccion: data.perteneceSeleccion || false,
                 categoriaSeleccion: data.categoriaSeleccion || '',
@@ -113,7 +113,7 @@ const ClubEntrenadoresForm = () => {
         e.preventDefault();
         setLoading(true);
 
-        const targetClubId = location.state?.clubId || user.clubId;
+        const targetClubId = location.state?.clubId || user?.IdClub || user?.idClub || user?.clubId || user?.club?.id;
         // Verify we have a club ID if creating new
         if (!id && !targetClubId) {
             alert('Error: No se ha especificado un Club para este entrenador.');
@@ -132,7 +132,7 @@ const ClubEntrenadoresForm = () => {
                 email: formData.email || "",
                 telefono: formData.telefono || "",
                 direccion: formData.direccion || "",
-                sexo: parseInt(formData.sexo)
+                sexoId: parseInt(formData.sexo)
             };
 
             if (id) {
@@ -140,7 +140,9 @@ const ClubEntrenadoresForm = () => {
                 await api.put(`/Persona/${id}`, personaPayload);
                 idPersona = parseInt(id);
 
-                const entrenadorPayload = {
+                 const entrenadorPayload = {
+                    participanteId: idPersona,
+                    ParticipanteId: idPersona,
                     idPersona: idPersona,
                     idClub: targetClubId, // Use determined clubId
                     licencia: formData.licencia,
@@ -172,10 +174,12 @@ const ClubEntrenadoresForm = () => {
 
                 if (!idPersona) {
                     const personaResponse = await api.post('/Persona', personaPayload);
-                    idPersona = personaResponse.idPersona || personaResponse.IdPersona;
+                    idPersona = personaResponse.participanteId || personaResponse.ParticipanteId || personaResponse.idPersona || personaResponse.IdPersona;
                 }
 
                 const entrenadorPayload = {
+                    participanteId: idPersona,
+                    ParticipanteId: idPersona,
                     idPersona: idPersona,
                     idClub: targetClubId,
                     licencia: formData.licencia,

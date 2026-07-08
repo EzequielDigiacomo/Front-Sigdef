@@ -83,7 +83,7 @@ const TutoresForm = () => {
                     Direccion: formData.direccion
                 });
 
-                const idPersona = personaResponse.IdPersona || personaResponse.idPersona;
+                const idPersona = personaResponse.participanteId || personaResponse.ParticipanteId || personaResponse.IdPersona || personaResponse.idPersona;
 
                 await api.post('/Tutor', {
                     IdPersona: idPersona

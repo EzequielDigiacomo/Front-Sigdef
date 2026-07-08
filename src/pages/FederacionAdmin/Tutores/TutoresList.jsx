@@ -780,7 +780,7 @@ const LinkAthleteModal = ({ isOpen, onClose, tutor, atletas, onSuccess }) => {
                             Documento: personaData.documento,
                             FechaNacimiento: personaData.fechaNacimiento ? personaData.fechaNacimiento.split('T')[0] : null,
                             Direccion: personaData.direccion,
-                            Sexo: personaData.sexo, // Check if Sexo is required/present
+                            SexoId: personaData.sexoId || personaData.SexoId || (typeof personaData.sexo === 'number' ? personaData.sexo : (personaData.sexo?.id || 1)),
                             Email: faltaEmail && emailTutor ? emailTutor : personaData.email,
                             Telefono: faltaTelefono && telefonoTutor ? telefonoTutor : personaData.telefono
                         };

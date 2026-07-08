@@ -134,7 +134,7 @@ const EntrenadorSeleccionForm = () => {
                     Nombre: formData.nombre,
                     Apellido: formData.apellido,
                     Documento: formData.documento,
-                    Sexo: parseInt(formData.sexo),
+                    SexoId: parseInt(formData.sexo),
                     FechaNacimiento: formData.fechaNacimiento ? new Date(formData.fechaNacimiento).toISOString() : new Date().toISOString(),
                     Email: formData.email || null,
                     Telefono: formData.telefono || null,
@@ -144,8 +144,12 @@ const EntrenadorSeleccionForm = () => {
                 await api.put(`/Persona/${id}`, personaData);
 
                 const entrenadorData = {
+                    ParticipanteId: parseInt(id),
+                    participanteId: parseInt(id),
                     IdPersona: parseInt(id),
-                    IdClub: formData.idClub ? parseInt(formData.idClub) : null,
+                    idPersona: parseInt(id),
+                    IdClub: (formData.idClub && formData.idClub !== "0") ? parseInt(formData.idClub) : null,
+                    idClub: (formData.idClub && formData.idClub !== "0") ? parseInt(formData.idClub) : null,
                     PerteneceSeleccion: true,
                     CategoriaSeleccion: formData.categoriaSeleccion.toString(),
                     Licencia: "N/A",
@@ -165,7 +169,7 @@ const EntrenadorSeleccionForm = () => {
                     Nombre: formData.nombre,
                     Apellido: formData.apellido,
                     Documento: formData.documento,
-                    Sexo: parseInt(formData.sexo),
+                    SexoId: parseInt(formData.sexo),
                     FechaNacimiento: formData.fechaNacimiento ? new Date(formData.fechaNacimiento).toISOString() : new Date().toISOString(),
                     Email: formData.email || null,
                     Telefono: formData.telefono || null,
@@ -175,7 +179,7 @@ const EntrenadorSeleccionForm = () => {
                 const personaResponse = await api.post('/Persona', personaData);
                 console.log('✅ Persona creada:', personaResponse);
 
-                const idPersona = personaResponse.idPersona || personaResponse.IdPersona || personaResponse.id;
+                const idPersona = personaResponse.participanteId || personaResponse.ParticipanteId || personaResponse.idPersona || personaResponse.IdPersona || personaResponse.id;
                 console.log('🆔 ID Persona obtenido:', idPersona);
 
                 if (!idPersona) {
@@ -183,8 +187,12 @@ const EntrenadorSeleccionForm = () => {
                 }
 
                 const entrenadorData = {
+                    ParticipanteId: parseInt(idPersona),
+                    participanteId: parseInt(idPersona),
                     IdPersona: parseInt(idPersona),
-                    IdClub: formData.idClub ? parseInt(formData.idClub) : null,
+                    idPersona: parseInt(idPersona),
+                    IdClub: (formData.idClub && formData.idClub !== "0") ? parseInt(formData.idClub) : null,
+                    idClub: (formData.idClub && formData.idClub !== "0") ? parseInt(formData.idClub) : null,
                     PerteneceSeleccion: true,
                     CategoriaSeleccion: formData.categoriaSeleccion.toString(),
                     Licencia: "N/A",

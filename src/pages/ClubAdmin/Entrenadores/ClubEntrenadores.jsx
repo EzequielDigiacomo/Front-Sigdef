@@ -45,16 +45,29 @@ const ClubEntrenadores = () => {
                 api.get('/Entrenador')
             ]);
 
-            const clubEntrenadores = todosEntrenadores.filter(e => String(e.idClub || e.IdClub) === String(clubId));
-            const personasMap = new Map(personas.map(p => [p.idPersona, p]));
+            const clubEntrenadores = todosEntrenadores.filter(e => {
+                const eClubId = e.idClub ?? e.IdClub;
+                return String(eClubId) === String(clubId);
+            });
+            const personasMap = new Map(personas.map(p => [
+                p.participanteId ?? p.ParticipanteId ?? p.idPersona ?? p.IdPersona ?? p.id,
+                p
+            ]));
 
             const enrichedData = clubEntrenadores.map(entrenador => {
-                const persona = personasMap.get(entrenador.idPersona);
+                const trainerId = entrenador.idPersona ?? entrenador.IdPersona ?? entrenador.participanteId ?? entrenador.ParticipanteId;
+                const persona = personasMap.get(trainerId) || entrenador.participante || entrenador.Participante;
+                
+                const firstName = persona?.nombre ?? persona?.Nombre ?? '';
+                const lastName = persona?.apellido ?? persona?.Apellido ?? '';
+                const doc = persona?.documento ?? persona?.Documento ?? persona?.dni ?? persona?.Dni ?? '';
+                const mail = persona?.email ?? persona?.Email ?? '';
+
                 return {
                     ...entrenador,
-                    nombrePersona: persona ? `${persona.nombre} ${persona.apellido}` : (entrenador.nombrePersona || '-'),
-                    documento: persona ? persona.documento : (entrenador.documento || '-'),
-                    email: persona ? persona.email : (entrenador.email || '-'),
+                    nombrePersona: firstName && lastName ? `${firstName} ${lastName}` : (entrenador.nombrePersona || '-'),
+                    documento: doc || (entrenador.documento || '-'),
+                    email: mail || (entrenador.email || '-'),
                 };
             });
 

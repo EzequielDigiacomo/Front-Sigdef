@@ -31,7 +31,6 @@ const ClubDashboard = () => {
     });
     const [loading, setLoading] = useState(true);
     const [actividadReciente, setActividadReciente] = useState([]);
-    const [proximosEventos, setProximosEventos] = useState([]);
     const [clubNombre, setClubNombre] = useState('...');
 
     useEffect(() => {
@@ -44,43 +43,30 @@ const ClubDashboard = () => {
         try {
             setLoading(true);
 
-            // 1. Obtener datos del Club
-            try {
-                const clubData = await api.get(`/Club/${user.idClub}`);
-                setClubNombre(clubData.nombre || clubData.Nombre || 'Mi Club');
-            } catch (err) {
-                console.error('Error fetching club name:', err);
-                setClubNombre('Mi Club');
-            }
-
-            // 2. Obtener estadísticas optimizadas
-            const [atletas, eventos, inscripciones] = await Promise.all([
-                api.get('/Atleta'),
-                api.get('/Evento'),
-                api.get('/Inscripcion')
+            // 1. Obtener datos del Club y atletas en paralelo
+            const [clubData, atletas] = await Promise.all([
+                api.get(`/Club/${user.idClub}`).catch(err => {
+                    console.error('Error fetching club info:', err);
+                    return { nombre: 'Mi Club' };
+                }),
+                api.get('/Atleta').catch(err => {
+                    console.error('Error fetching athletes:', err);
+                    return [];
+                })
             ]);
 
+            setClubNombre(clubData.nombre || clubData.Nombre || 'Mi Club');
+
             const atletasDelClub = atletas.filter(a => (a.idClub || a.IdClub) == user.idClub);
-            const eventosDelClub = eventos.filter(e => (e.idClub || e.IdClub) == user.idClub);
-
-            // Filtramos inscripciones de atletas de este club
-            const atletaIds = new Set(atletasDelClub.map(a => a.idPersona || a.IdPersona));
-            const inscripcionesDelClub = inscripciones.filter(i => atletaIds.has(i.idAtleta || i.IdAtleta));
-
-            const hoy = new Date();
-            const eventosProximos = eventos.filter(e => {
-                const fechaEvento = new Date(e.fechaInicio || e.FechaInicio);
-                return fechaEvento >= hoy;
-            });
 
             setStats({
                 totalAtletas: atletasDelClub.length,
-                eventosCreados: eventosDelClub.length,
-                inscripcionesActivas: inscripcionesDelClub.length,
-                proximosEventos: eventosProximos.length
+                eventosCreados: 0,
+                inscripcionesActivas: 0,
+                proximosEventos: 0
             });
 
-            // 3. Procesar actividad reciente
+            // 2. Procesar actividad reciente (solo atletas)
             const actividades = [];
 
             // Atletas recientes
@@ -96,20 +82,7 @@ const ClubDashboard = () => {
                     });
                 });
 
-            // Eventos recientes
-            eventosDelClub
-                .sort((a, b) => new Date(b.fechaCreacion || b.FechaCreacion || 0) - new Date(a.fechaCreacion || a.FechaCreacion || 0))
-                .slice(0, 2)
-                .forEach(evento => {
-                    actividades.push({
-                        tipo: 'evento',
-                        titulo: `Evento creado: ${evento.nombre || evento.Nombre}`,
-                        fecha: evento.fechaCreacion || evento.FechaCreacion || new Date().toISOString()
-                    });
-                });
-
             setActividadReciente(actividades.sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 5));
-            setProximosEventos(eventosProximos.sort((a, b) => new Date(a.fechaInicio || a.FechaInicio) - new Date(b.fechaInicio || b.FechaInicio)).slice(0, 5));
 
         } catch (error) {
             console.error('Error al cargar estadísticas:', error);

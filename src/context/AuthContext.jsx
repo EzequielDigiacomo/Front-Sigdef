@@ -137,8 +137,8 @@ export const AuthProvider = ({ children }) => {
                 );
             }
 
-            const finalFederacionId = idFederacion || response.IdFederacion || jwtFederacionId;
-            const finalClubId = idClub || clubId;
+            const finalFederacionId = idFederacion || response.IdFederacion || response.federacionId || jwtFederacionId;
+            const finalClubId = idClub || clubId || response.ClubId || response.clubId;
             const finalNombreCompleto = nombreCompleto || (nombre && apellido ? `${nombre} ${apellido}` : nombre || '');
 
             const loggedUser = {

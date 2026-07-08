@@ -84,6 +84,8 @@ const AssignCoachModal = ({ isOpen, onClose, onSuccess, categoryId, categoryLabe
         try {
             // Prepare the DTO with the correct format expected by the backend
             const entrenadorData = {
+                participanteId: selectedCoach.idPersona,
+                ParticipanteId: selectedCoach.idPersona,
                 idPersona: selectedCoach.idPersona,
                 idClub: selectedCoach.idClub || null,
                 licencia: selectedCoach.licencia || '',

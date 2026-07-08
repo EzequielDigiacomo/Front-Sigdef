@@ -99,6 +99,8 @@ const AddCoachToSelectionModal = ({ isOpen, onClose, onSuccess }) => {
         try {
             // Prepare the DTO to mark coach as part of selection
             const entrenadorData = {
+                participanteId: selectedCoach.idPersona,
+                ParticipanteId: selectedCoach.idPersona,
                 idPersona: selectedCoach.idPersona,
                 idClub: selectedCoach.idClub || null,
                 licencia: selectedCoach.licencia || '',

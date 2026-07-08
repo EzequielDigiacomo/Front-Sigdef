@@ -42,9 +42,7 @@ const Dashboard = () => {
                     route: '/dashboard/eventos'
                 },
         */
-    ]);
-    const [proximosEventos, setProximosEventos] = useState([]);
-    const [loading, setLoading] = useState(true);
+    ]);    const [loading, setLoading] = useState(true);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     useEffect(() => {
@@ -63,61 +61,13 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                setLoading(true); // Ensure loading state shows during refresh
-                // 1. Lanzar peticiones BASE en paralelo
-                const [atletasData, clubesData, eventosResumen, inscripcionesData] = await Promise.all([
+                setLoading(true);
+                // 1. Lanzar peticiones BASE en paralelo (Solo atletas y clubes, no eventos)
+                const [atletasData, clubesData] = await Promise.all([
                     api.get('/Atleta').catch(err => { console.error('Error atletas', err); return []; }),
-                    api.get('/Club').catch(err => { console.error('Error clubes', err); return []; }),
-                    api.get('/Evento').catch(err => { console.error('Error eventos', err); return []; }),
-                    api.get('/Inscripcion').catch(err => { console.error('Error inscripciones', err); return []; })
+                    api.get('/Club').catch(err => { console.error('Error clubes', err); return []; })
                 ]);
 
-                // Función auxiliar para procesar eventos
-                const procesarEventos = (listaEventos) => {
-                    return listaEventos.map(evento => {
-                        const inscripcionesEvento = inscripcionesData.filter(i => i.idEvento === (evento.idEvento || evento.IdEvento));
-                        const atletasInscritos = inscripcionesEvento.map(i => i.idAtleta || i.IdAtleta);
-                        const clubesInscritos = new Set();
-                        inscripcionesEvento.forEach(inscripcion => {
-                            const atleta = atletasData.find(a => (a.idPersona || a.IdPersona) === (inscripcion.idAtleta || inscripcion.IdAtleta));
-                            if (atleta && (atleta.idClub || atleta.IdClub)) clubesInscritos.add(atleta.idClub || atleta.IdClub);
-                        });
-
-                        const hoy = new Date();
-                        const fechaFin = new Date(evento.fechaFin || evento.FechaFin);
-                        let estadoTexto = 'Pendiente';
-                        let estadoColor = 'warning';
-                        const fechaFinNorm = new Date(fechaFin.getFullYear(), fechaFin.getMonth(), fechaFin.getDate());
-                        const hoyNorm = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
-
-                        if (fechaFinNorm < hoyNorm) {
-                            estadoTexto = 'Finalizado';
-                            estadoColor = 'secondary';
-                        } else if (evento.estado === 1 || evento.Estado === 1) {
-                            estadoTexto = 'Confirmado';
-                            estadoColor = 'success';
-                        }
-
-                        return {
-                            ...evento,
-                            totalAtletas: atletasInscritos.length,
-                            totalClubes: clubesInscritos.size,
-                            estadoTexto,
-                            estadoColor
-                        };
-                    }).sort((a, b) => {
-                        const now = new Date();
-                        const endA = new Date(a.fechaFin || a.FechaFin);
-                        const endB = new Date(b.fechaFin || b.FechaFin);
-                        const isPastA = endA < now;
-                        const isPastB = endB < now;
-                        if (isPastA && !isPastB) return 1;
-                        if (!isPastA && isPastB) return -1;
-                        return endA - endB;
-                    });
-                };
-
-                const eventosBasicos = procesarEventos(eventosResumen);
                 const totalAtletas = atletasData.length;
                 const totalClubes = clubesData.length;
                 const atletasConDeuda = atletasData.filter(a => (a.estadoPago || a.EstadoPago) === 2).length;
@@ -126,24 +76,9 @@ const Dashboard = () => {
                     { label: 'Total Atletas', value: totalAtletas, icon: Users, color: 'var(--primary)', route: '/dashboard/atletas' },
                     { label: 'Clubes Registrados', value: totalClubes, icon: Shield, color: 'var(--success)', route: '/dashboard/clubes' },
                     { label: 'Atletas con Deuda', value: atletasConDeuda, icon: DollarSign, color: 'var(--danger)', route: '/dashboard/atletas?filter=deuda' },
-                    //                    { label: 'Próximos Eventos', value: eventosBasicos.filter(e => new Date(e.fechaFin || e.FechaFin) >= new Date()).length, icon: Calendar, color: 'var(--warning)', route: '/dashboard/eventos' },
                 ]);
 
-                setProximosEventos(eventosBasicos.slice(0, 10));
                 setLoading(false);
-
-                // Carga de detalles en segundo plano
-                const eventosDetallados = await Promise.all(eventosResumen.map(async (ev) => {
-                    try {
-                        return await api.get(`/Evento/${ev.idEvento || ev.IdEvento}`);
-                    } catch (err) {
-                        return ev;
-                    }
-                }));
-
-                const eventosCompletos = procesarEventos(eventosDetallados);
-                setProximosEventos(eventosCompletos.slice(0, 10));
-
             } catch (error) {
                 console.error("Error general en dashboard:", error);
                 setLoading(false);
@@ -151,11 +86,7 @@ const Dashboard = () => {
         };
 
         fetchData();
-    }, [refreshTrigger]); // Depend on refreshTrigger
-
-    const handleEventoClick = (idEvento) => {
-        navigate(`/dashboard/eventos/${idEvento}`);
-    };
+    }, [refreshTrigger]);
 
     const navCards = [
         { label: 'Clubes', icon: Shield, path: '/dashboard/clubes', color: '#3b82f6', description: 'Gestión de clubes y sedes' },

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import MobileNavBar from './MobileNavBar';
@@ -13,14 +13,10 @@ const MainLayout = () => {
     const [searchOpen, setSearchOpen] = useState(false);
     const { isNative } = useDevice();
     const { user } = useAuth();
-    const location = useLocation();
-
-    // Ocultar Sidebar y Navbar si estamos en la raíz del Dashboard de Federación
-    const isDashboardRoot = location.pathname === '/dashboard';
 
     return (
-        <div className={`app-container ${isDashboardRoot ? 'no-nav' : ''} ${isNative ? 'is-mobile' : ''}`}>
-            {!isDashboardRoot && !isNative && (
+        <div className={`app-container ${isNative ? 'is-mobile' : ''}`}>
+            {!isNative && (
                 <div className="sidebar-wrapper">
                     <Sidebar
                         isOpen={sidebarOpen}
@@ -28,13 +24,11 @@ const MainLayout = () => {
                     />
                 </div>
             )}
-            <div className={`main-content ${isDashboardRoot || isNative ? 'full-width' : ''}`}>
-                {!isDashboardRoot && (
-                    <Navbar
-                        toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-                        hideSidebarToggle={isNative}
-                    />
-                )}
+            <div className={`main-content ${isNative ? 'full-width' : ''}`}>
+                <Navbar
+                    toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+                    hideSidebarToggle={isNative}
+                />
                 <main className="page-content container">
                     <Outlet />
                 </main>
