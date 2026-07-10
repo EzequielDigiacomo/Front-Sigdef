@@ -210,6 +210,34 @@
     border: 1px solid var(--border-color);
 }
 
+.badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.badge-success {
+    background-color: #10b981;
+    color: #ffffff;
+}
+
+.badge-danger {
+    background-color: #ef4444;
+    color: #ffffff;
+}
+
+.badge-info {
+    background-color: #0ea5e9;
+    color: #ffffff;
+}
+
+.badge-secondary {
+    background-color: #64748b;
+    color: #ffffff;
+}
+
 .filters-bar {
     margin-bottom: 1rem;
     width: 100%;

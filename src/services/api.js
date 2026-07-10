@@ -74,12 +74,19 @@ const handleResponse = async (response, options = {}) => {
             console.error('Error del servidor:', response.status, responseText, 'URL:', response.url);
         }
 
+        if (!responseText) {
+            throw new Error(`Error ${response.status}: ${response.statusText || 'Sin respuesta del servidor'}`);
+        }
+
         try {
             const errorObj = JSON.parse(responseText);
             throw new Error(errorObj.message || errorObj.error || `Error ${response.status}`);
         } catch (e) {
-            if (e.message && !e.message.startsWith('Error ')) throw e;
-            throw new Error(responseText || `Error ${response.status}: ${response.statusText}`);
+            if (e.message && !e.message.startsWith('Error ') && !e.message.includes('Unexpected end')) throw e;
+            if (e instanceof SyntaxError) {
+                throw new Error(responseText || `Error ${response.status}: ${response.statusText}`);
+            }
+            throw e;
         }
     }
 

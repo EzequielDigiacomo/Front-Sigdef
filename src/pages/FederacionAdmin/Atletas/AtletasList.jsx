@@ -19,6 +19,38 @@ import * as XLSX from 'xlsx';
 import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
 
+/** Misma fuente que SportTrack: nombre de catálogo; fallback al enum SIGDEF. */
+const formatCategoria = (atleta) => {
+    const nombre = atleta?.categoriaNombre ?? atleta?.CategoriaNombre;
+    if (nombre) return nombre;
+    const categoria = atleta?.categoria ?? atleta?.Categoria;
+    if (categoria != null && categoria !== '') {
+        return getCategoriaLabel(categoria);
+    }
+    const categoriaId = atleta?.categoriaId ?? atleta?.CategoriaId;
+    if (categoriaId != null) {
+        return getCategoriaLabel(categoriaId);
+    }
+    return '-';
+};
+
+const normalizeAtleta = (a) => ({
+    ...a,
+    idPersona: a.idPersona ?? a.IdPersona ?? a.participanteId ?? a.ParticipanteId,
+    nombrePersona: a.nombrePersona ?? a.NombrePersona ?? '-',
+    documento: a.documento ?? a.Documento ?? '-',
+    nombreClub: a.nombreClub ?? a.NombreClub ?? 'Agente Libre',
+    categoria: a.categoria ?? a.Categoria ?? null,
+    categoriaId: a.categoriaId ?? a.CategoriaId ?? null,
+    categoriaNombre: a.categoriaNombre ?? a.CategoriaNombre ?? null,
+    perteneceSeleccion: a.perteneceSeleccion ?? a.PerteneceSeleccion ?? false,
+    estadoPago: a.estadoPago ?? a.EstadoPago,
+    fechaCreacion: a.fechaCreacion ?? a.FechaCreacion,
+    tutorInfo: a.tutorInfo ?? a.TutorInfo ?? null,
+    edad: a.edad ?? a.Edad ?? null,
+    cantidadDocumentos: a.cantidadDocumentos ?? a.CantidadDocumentos ?? 0,
+});
+
 const AtletasList = () => {
     const { isNative } = useDevice();
     const { fedId } = useParams();                          // Presente cuando el SuperAdmin entra a /superadmin/federacion/:fedId/atletas
@@ -156,7 +188,7 @@ const AtletasList = () => {
                 ));
                 
                 if (response && response.data) {
-                    setAtletas(response.data);
+                    setAtletas((response.data || []).map(normalizeAtleta));
                     setTotalPages(response.totalPages || 1);
                     setTotalRecords(response.totalRecords || 0);
                     return;
@@ -190,26 +222,28 @@ const AtletasList = () => {
             }
 
             // Normalizar campos
-            const normalized = atletasArray.map(a => ({
-                idPersona: a.idPersona || a.IdPersona,
-                nombrePersona: a.nombrePersona || (a.persona ? `${a.persona.nombre} ${a.persona.apellido}` : '-'),
-                documento: a.documento || a.persona?.documento || '-',
-                nombreClub: a.nombreClub || a.club?.nombre || 'Agente Libre',
-                categoria: a.categoria ?? a.Categoria,
-                perteneceSeleccion: a.perteneceSeleccion || a.PerteneceSeleccion || false,
-                estadoPago: a.estadoPago ?? a.EstadoPago,
-                fechaCreacion: a.fechaCreacion || a.FechaCreacion,
-                tutorInfo: a.tutores?.[0] ? {
-                    nombre: a.tutores[0].nombreTutor?.split(' ')[0] || '',
-                    apellido: a.tutores[0].nombreTutor?.split(' ').slice(1).join(' ') || '',
-                    documento: '',
-                    telefono: ''
-                } : null,
-                edad: a.persona?.fechaNacimiento 
-                    ? (new Date()).getFullYear() - new Date(a.persona.fechaNacimiento).getFullYear()
-                    : null,
-                cantidadDocumentos: 0
-            }));
+            const normalized = atletasArray.map(a => {
+                const base = normalizeAtleta(a);
+                return {
+                    ...base,
+                    nombrePersona: base.nombrePersona !== '-'
+                        ? base.nombrePersona
+                        : (a.persona ? `${a.persona.nombre} ${a.persona.apellido}` : '-'),
+                    documento: base.documento !== '-'
+                        ? base.documento
+                        : (a.persona?.documento || '-'),
+                    nombreClub: a.nombreClub || a.club?.nombre || base.nombreClub,
+                    tutorInfo: base.tutorInfo || (a.tutores?.[0] ? {
+                        nombre: a.tutores[0].nombreTutor?.split(' ')[0] || '',
+                        apellido: a.tutores[0].nombreTutor?.split(' ').slice(1).join(' ') || '',
+                        documento: '',
+                        telefono: ''
+                    } : null),
+                    edad: base.edad ?? (a.persona?.fechaNacimiento
+                        ? (new Date()).getFullYear() - new Date(a.persona.fechaNacimiento).getFullYear()
+                        : null),
+                };
+            });
 
             // Filtrar por búsqueda
             const filtered = debouncedSearchTerm
@@ -263,7 +297,7 @@ const AtletasList = () => {
                 'DNI': atleta.documento,
                 'Edad': atleta.edad,
                 'Club': atleta.nombreClub,
-                'Categoría': atleta.categoria != null ? getCategoriaLabel(atleta.categoria) : '-',
+                'Categoría': formatCategoria(atleta),
                 'Fecha Alta': atleta.fechaCreacion ? new Date(atleta.fechaCreacion).toLocaleDateString('es-AR') : '-',
                 'Tutor': atleta.tutorInfo ? `${atleta.tutorInfo.nombre} ${atleta.tutorInfo.apellido}` : '-',
                 'Selección': atleta.perteneceSeleccion ? 'Sí' : 'No',
@@ -348,7 +382,7 @@ const AtletasList = () => {
                                 badge={atleta.perteneceSeleccion ? <span className="badge badge-success">Selección</span> : null}
                                 details={[
                                     { label: 'DNI', value: atleta.documento },
-                                    { label: 'Categoría', value: atleta.categoria != null ? getCategoriaLabel(atleta.categoria) : '-' },
+                                    { label: 'Categoría', value: formatCategoria(atleta) },
                                     { label: 'Pago', value: (
                                         <span className={`badge badge-${getEstadoPagoColor(atleta.estadoPago)}`} style={{ fontSize: '10px', padding: '1px 6px' }}>
                                             {getEstadoPagoLabel(atleta.estadoPago)}
@@ -513,7 +547,7 @@ const AtletasList = () => {
                                             <td>{atleta.documento}</td>
                                             <td>{atleta.edad !== null ? `${atleta.edad} ` : '-'}</td>
                                             <td>{atleta.nombreClub || '-'}</td>
-                                            <td>{atleta.categoria != null ? getCategoriaLabel(atleta.categoria) : '-'}</td>
+                                            <td>{formatCategoria(atleta)}</td>
                                             <td>
                                                 {atleta.fechaCreacion ? (
                                                     <div style={{ fontSize: '0.85rem' }}>

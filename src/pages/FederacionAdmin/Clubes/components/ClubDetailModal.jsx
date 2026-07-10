@@ -3,11 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Edit, Mail, Phone, MapPin, Users, Target } from 'lucide-react';
 import Modal from '../../../../components/common/Modal';
 import Button from '../../../../components/common/Button';
-import { getEstadoPagoLabel, getEstadoPagoColor } from '../../../../utils/enums';
 
 const ClubDetailModal = ({ isOpen, onClose, club, fedId, returnPath }) => {
     const navigate = useNavigate();
     if (!club) return null;
+
+    const alDia = club.pagoAfiliacionAlDia !== false;
+    const afiliacionLabel = alDia ? 'Al Día (Anual)' : 'Deudor';
+    const afiliacionClass = alDia ? 'badge-success' : 'badge-danger';
 
     const editPath = fedId
         ? `/superadmin/federacion/${fedId}/clubes/editar/${club.idClub}`
@@ -38,8 +41,8 @@ const ClubDetailModal = ({ isOpen, onClose, club, fedId, returnPath }) => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <span className="badge badge-info" style={{ fontSize: '0.85rem' }}>{club.siglas || '—'}</span>
-                    <span className={`badge badge-${getEstadoPagoColor(club.estadoMatricula)}`}>
-                        {getEstadoPagoLabel(club.estadoMatricula)}
+                    <span className={`badge ${afiliacionClass}`}>
+                        {afiliacionLabel}
                     </span>
                 </div>
 

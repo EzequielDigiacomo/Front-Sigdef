@@ -41,6 +41,7 @@ import SeleccionCategoriaDetalle from './pages/FederacionAdmin/EntrenadorSelecci
 import EntrenadoresList from './pages/FederacionAdmin/Entrenadores/EntrenadoresList';
 import UserManagement from './pages/FederacionAdmin/Usuarios/UserManagement';
 import FederacionDetalles from './pages/FederacionAdmin/Federacion/FederacionDetalles';
+import PagosClubes from './pages/FederacionAdmin/Pagos/PagosClubes';
 
 import ClubDashboard from './pages/ClubAdmin/Dashboard/ClubDashboard';
 import ClubInfo from './pages/ClubAdmin/Info/ClubInfo';
@@ -192,8 +193,7 @@ function App() {
               <Route path="entrenadores-seleccion/nuevo" element={<EntrenadoresSeleccionForm />} />
               <Route path="entrenadores-seleccion/editar/:id" element={<EntrenadoresSeleccionForm />} />
 
-              { }
-              <Route path="pagos" element={<div>Página de Pagos (En construcción)</div>} />
+              <Route path="pagos" element={<PagosClubes />} />
               <Route path="federacion" element={<FederacionDetalles />} />
               <Route path="usuarios" element={<UserManagement />} />
             </Route>
@@ -268,7 +268,7 @@ function App() {
               <Route path="federacion/:fedId/tutores" element={<TutoresList />} />
               <Route path="federacion/:fedId/tutores/nuevo" element={<TutoresForm />} />
               <Route path="federacion/:fedId/tutores/:id/edit" element={<TutoresForm />} />
-              <Route path="federacion/:fedId/pagos" element={<div style={{padding:'2rem',color:'var(--text-secondary)'}}>Módulo de Pagos (próximamente)</div>} />
+              <Route path="federacion/:fedId/pagos" element={<PagosClubes />} />
             </Route>
 
             { }

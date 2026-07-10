@@ -7,10 +7,12 @@ import FormField from '../../../components/forms/FormField';
 import { Plus, Edit, Trash2, Search, Users, Target, Briefcase, ArrowLeft } from 'lucide-react';
 import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
-import { withFederationScope, getClubFederationId } from '../../../utils/apiHelpers';
-import { getCategoriaLabel, getEstadoPagoColor, getEstadoPagoLabel } from '../../../utils/enums';
+import { withFederationScope, getClubFederationId, pick } from '../../../utils/apiHelpers';
 import ClubDetailModal from './components/ClubDetailModal';
 import './Clubes.css';
+
+const getAfiliacionLabel = (alDia) => (alDia ? 'Al Día (Anual)' : 'Deudor');
+const getAfiliacionBadgeClass = (alDia) => (alDia ? 'badge-success' : 'badge-danger');
 
 const ClubesList = () => {
     const { isNative } = useDevice();
@@ -38,7 +40,10 @@ const ClubesList = () => {
                 telefono: c.telefono ?? c.Telefono,
                 direccion: c.direccion ?? c.Direccion,
                 idFederacion: getClubFederationId(c),
-                estadoMatricula: c.estadoMatricula ?? c.EstadoMatricula ?? 0
+                pagoAfiliacionAlDia: pick(c, 'pagoAfiliacionAlDia', 'PagoAfiliacionAlDia') !== false,
+                cantidadAtletas: pick(c, 'cantidadAtletas', 'CantidadAtletas') ?? 0,
+                cantidadEntrenadores: pick(c, 'cantidadEntrenadores', 'CantidadEntrenadores') ?? 0,
+                tieneDelegado: !!pick(c, 'tieneDelegado', 'TieneDelegado'),
             })) : [];
 
             if (fedId) {
@@ -127,8 +132,8 @@ const ClubesList = () => {
                                 badge={
                                     <div className="flex gap-2">
                                         <span className="badge badge-info"><Users size={12} /> {club.cantidadAtletas || 0}</span>
-                                        <span className={`badge badge-${getEstadoPagoColor(club.estadoMatricula)}`}>
-                                            {getEstadoPagoLabel(club.estadoMatricula)}
+                                        <span className={`badge ${getAfiliacionBadgeClass(club.pagoAfiliacionAlDia)}`}>
+                                            {getAfiliacionLabel(club.pagoAfiliacionAlDia)}
                                         </span>
                                     </div>
                                 }
@@ -161,8 +166,8 @@ const ClubesList = () => {
                                             <h3 className="club-card-title">{club.nombre}</h3>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <span className="club-card-siglas">{club.siglas}</span>
-                                                <span className={`badge badge-${getEstadoPagoColor(club.estadoMatricula)}`} style={{ fontSize: '0.7rem', padding: '2px 8px' }}>
-                                                    {getEstadoPagoLabel(club.estadoMatricula)}
+                                                <span className={`badge ${getAfiliacionBadgeClass(club.pagoAfiliacionAlDia)}`} style={{ fontSize: '0.7rem', padding: '2px 8px' }}>
+                                                    {getAfiliacionLabel(club.pagoAfiliacionAlDia)}
                                                 </span>
                                             </div>
                                         </div>

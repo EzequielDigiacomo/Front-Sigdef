@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { api } from '../../../services/api';
 import { useNavigate } from 'react-router-dom';
-import { Users, Plus, Search, Edit, Trash2, Phone, Mail, MapPin, User, Calendar, Award, DollarSign, Eye, FileText } from 'lucide-react';
-import { QRCodeCanvas } from 'qrcode.react';
+import { Users, Plus, Search, Edit, Trash2, Phone, Mail, MapPin, User, Award, Eye, FileText, CheckCircle2, RotateCcw } from 'lucide-react';
 import Button from '../../../components/common/Button';
 import Card from '../../../components/common/Card';
 import FormField from '../../../components/forms/FormField';
@@ -14,9 +13,40 @@ import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
 import DocumentUploadModal from '../../../components/common/DocumentUploadModal';
 import DocumentViewerModal from '../../../components/common/DocumentViewerModal';
-import { getEstadoPagoLabel, getEstadoPagoColor, getCategoriaLabel, CATEGORIA_MAP, PARENTESCO_MAP } from '../../../utils/enums';
-import { getCategoryByAge } from '../../../utils/categoryConfig';
+import { getEstadoPagoLabel, getEstadoPagoColor, getCategoriaLabel, PARENTESCO_MAP } from '../../../utils/enums';
 import './ClubAtletas.css';
+
+const ESTADO_PAGO_PAGADO = 1;
+const ESTADO_PAGO_PENDIENTE = 0;
+
+/** Misma fuente que SportTrack / admin: nombre de catálogo; fallback al enum. */
+const formatCategoria = (atleta) => {
+    const nombre = atleta?.categoriaNombre ?? atleta?.CategoriaNombre;
+    if (nombre) return nombre;
+    const categoria = atleta?.categoria ?? atleta?.Categoria;
+    if (categoria != null && categoria !== '' && categoria !== 0) {
+        return getCategoriaLabel(categoria);
+    }
+    const categoriaId = atleta?.categoriaId ?? atleta?.CategoriaId;
+    if (categoriaId != null && categoriaId !== 0) {
+        return getCategoriaLabel(categoriaId);
+    }
+    return '-';
+};
+
+const buildAtletaUpdatePayload = (atleta, estadoPago) => ({
+    participanteId: atleta.idPersona ?? atleta.participanteId ?? atleta.ParticipanteId,
+    idClub: atleta.idClub ?? atleta.IdClub ?? null,
+    estadoPago,
+    perteneceSeleccion: atleta.perteneceSeleccion ?? atleta.PerteneceSeleccion ?? false,
+    categoria: atleta.categoria ?? atleta.Categoria ?? null,
+    becadoEnard: atleta.becadoEnard ?? atleta.BecadoEnard ?? false,
+    becadoSdn: atleta.becadoSdn ?? atleta.BecadoSdn ?? false,
+    montoBeca: atleta.montoBeca ?? atleta.MontoBeca ?? 0,
+    presentoAptoMedico: atleta.presentoAptoMedico ?? atleta.PresentoAptoMedico ?? false,
+    fechaAptoMedico: atleta.fechaAptoMedico ?? atleta.FechaAptoMedico ?? null,
+    fechaCreacion: atleta.fechaCreacion ?? atleta.FechaCreacion ?? new Date().toISOString(),
+});
 
 const ClubAtletas = () => {
     const { isNative } = useDevice();
@@ -38,50 +68,7 @@ const ClubAtletas = () => {
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [showViewerModal, setShowViewerModal] = useState(false);
     const [selectedAtletaForDocs, setSelectedAtletaForDocs] = useState(null);
-
-    // Payment State
-    const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-    const [showQRModal, setShowQRModal] = useState(false);
-    const [qrLink, setQrLink] = useState('');
-
-    const handlePagarAfiliacionAtleta = async (atleta) => {
-        try {
-            setIsProcessingPayment(true);
-            const currentYear = new Date().getFullYear();
-
-            const pagoData = {
-                concepto: `Afiliación Anual Atleta ${currentYear} - ${atleta.nombrePersona}`,
-                monto: 30000,
-                idClub: user.idClub,
-                idPersona: atleta.idPersona,
-                estado: 0 // Pendiente
-            };
-
-            const response = await api.post('/PagoTransaccion/preferencia', pagoData);
-
-            if (response.paymentUrl) {
-                setQrLink(response.paymentUrl);
-                setShowQRModal(true);
-            } else {
-                setFeedbackModal({
-                    isOpen: true,
-                    title: 'Error',
-                    message: 'No se pudo generar el link de pago',
-                    type: 'danger'
-                });
-            }
-        } catch (error) {
-            console.error('Error al iniciar pago:', error);
-            setFeedbackModal({
-                isOpen: true,
-                title: 'Error',
-                message: 'Error al iniciar el proceso de pago',
-                type: 'danger'
-            });
-        } finally {
-            setIsProcessingPayment(false);
-        }
-    };
+    const [updatingPagoId, setUpdatingPagoId] = useState(null);
 
     // States for "Assign Existing Tutor"
     const [showSelectTutorModal, setShowSelectTutorModal] = useState(false);
@@ -125,8 +112,17 @@ const ClubAtletas = () => {
 
                 return {
                     ...atleta,
+                    idPersona: athleteId,
                     nombrePersona: firstName && lastName ? `${firstName} ${lastName}` : (atleta.nombrePersona || '-'),
-                    documento: doc || (atleta.documento || '-')
+                    documento: doc || (atleta.documento || '-'),
+                    categoria: atleta.categoria ?? atleta.Categoria ?? null,
+                    categoriaId: atleta.categoriaId ?? atleta.CategoriaId ?? persona?.categoriaId ?? persona?.CategoriaId ?? null,
+                    categoriaNombre:
+                        atleta.categoriaNombre
+                        ?? atleta.CategoriaNombre
+                        ?? persona?.categoriaNombre
+                        ?? persona?.CategoriaNombre
+                        ?? null,
                 };
             });
             setAtletas(enrichedData);
@@ -241,6 +237,66 @@ const ClubAtletas = () => {
         });
     };
 
+    const handleToggleEstadoPago = async (atleta, e) => {
+        e?.stopPropagation?.();
+        const id = atleta.idPersona ?? atleta.participanteId;
+        if (!id) return;
+
+        const current = atleta.estadoPago ?? atleta.EstadoPago ?? ESTADO_PAGO_PENDIENTE;
+        const nextStatus = current === ESTADO_PAGO_PAGADO ? ESTADO_PAGO_PENDIENTE : ESTADO_PAGO_PAGADO;
+
+        setUpdatingPagoId(id);
+        try {
+            await api.put(`/Atleta/${id}`, buildAtletaUpdatePayload(atleta, nextStatus));
+            setAtletas((prev) =>
+                prev.map((a) =>
+                    String(a.idPersona) === String(id) ? { ...a, estadoPago: nextStatus } : a
+                )
+            );
+            if (atletaDetails && String(atletaDetails.idPersona) === String(id)) {
+                setAtletaDetails((prev) => ({ ...prev, estadoPago: nextStatus }));
+            }
+            if (selectedAtleta && String(selectedAtleta.idPersona) === String(id)) {
+                setSelectedAtleta((prev) => ({ ...prev, estadoPago: nextStatus }));
+            }
+        } catch (error) {
+            console.error('Error actualizando estado de pago:', error);
+            setFeedbackModal({
+                isOpen: true,
+                title: 'Error',
+                message: error.message || 'No se pudo actualizar el estado de pago.',
+                type: 'danger',
+                showCancel: false,
+            });
+        } finally {
+            setUpdatingPagoId(null);
+        }
+    };
+
+    const renderEstadoPagoCell = (atleta) => {
+        const estado = atleta.estadoPago ?? ESTADO_PAGO_PENDIENTE;
+        const isPagado = estado === ESTADO_PAGO_PAGADO;
+        const id = atleta.idPersona;
+        const busy = updatingPagoId === id;
+
+        return (
+            <div className="estado-pago-cell" onClick={(e) => e.stopPropagation()}>
+                <span className={`badge badge-${getEstadoPagoColor(estado)}`}>
+                    {getEstadoPagoLabel(estado)}
+                </span>
+                <button
+                    type="button"
+                    className={`estado-pago-toggle ${isPagado ? 'is-pagado' : 'is-pendiente'}`}
+                    title={isPagado ? 'Marcar como pendiente' : 'Marcar como pagado'}
+                    disabled={busy}
+                    onClick={(e) => handleToggleEstadoPago(atleta, e)}
+                >
+                    {busy ? '…' : isPagado ? <RotateCcw size={12} /> : <CheckCircle2 size={12} />}
+                </button>
+            </div>
+        );
+    };
+
     const handleBulkUpdate = async () => {
         const clubId = user?.IdClub || user?.idClub || user?.club?.id;
         if (!clubId) return;
@@ -256,8 +312,8 @@ const ClubAtletas = () => {
                 setLoading(true);
                 try {
                     for (const atleta of atletas) {
-                        if (atleta.estadoPago !== 1) {
-                            await api.put(`/Atleta/${atleta.idPersona}`, { ...atleta, estadoPago: 1 });
+                        if (atleta.estadoPago !== ESTADO_PAGO_PAGADO) {
+                            await api.put(`/Atleta/${atleta.idPersona}`, buildAtletaUpdatePayload(atleta, ESTADO_PAGO_PAGADO));
                         }
                     }
                     setFeedbackModal({
@@ -352,8 +408,11 @@ const ClubAtletas = () => {
         setAtletaDetails(null);
     };
 
-    const getCategoriaTexto = (categoria) => {
-        return getCategoriaLabel(categoria);
+    const getCategoriaTexto = (atletaOrCategoria) => {
+        if (atletaOrCategoria != null && typeof atletaOrCategoria === 'object') {
+            return formatCategoria(atletaOrCategoria);
+        }
+        return formatCategoria({ categoria: atletaOrCategoria });
     };
 
     const filteredAtletas = atletas.filter(atleta => (atleta.nombrePersona || '').toLowerCase().includes(searchTerm.toLowerCase()));
@@ -391,18 +450,41 @@ const ClubAtletas = () => {
                                     key={atleta.idPersona}
                                     title={atleta.nombrePersona}
                                     subtitle={atleta.documento}
-                                    badge={<span className={`badge badge-${getEstadoPagoColor(atleta.estadoPago)}`}>
-                                        {getEstadoPagoLabel(atleta.estadoPago)}
-                                    </span>}
+                                    badge={renderEstadoPagoCell(atleta)}
                                     details={[
-                                        { label: 'Categoría', value: getCategoriaLabel(atleta.categoria) },
+                                        { label: 'Categoría', value: formatCategoria(atleta) },
                                         { label: 'Apto', value: atleta.presentoAptoMedico ? '✅' : '❌' }
                                     ]}
                                     actions={
-                                        <Button variant="ghost" size="sm" icon={Edit} onClick={(e) => {
-                                            e.stopPropagation();
-                                            navigate(`/club/atletas/editar/${atleta.idPersona}`);
-                                        }} />
+                                        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                icon={Eye}
+                                                title="Ver documentos"
+                                                onClick={() => {
+                                                    setSelectedAtletaForDocs(atleta);
+                                                    setShowViewerModal(true);
+                                                }}
+                                            />
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                icon={FileText}
+                                                title="Subir documento"
+                                                onClick={() => {
+                                                    setSelectedAtletaForDocs(atleta);
+                                                    setShowUploadModal(true);
+                                                }}
+                                            />
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                icon={Edit}
+                                                title="Editar"
+                                                onClick={() => navigate(`/club/atletas/editar/${atleta.idPersona}`)}
+                                            />
+                                        </div>
                                     }
                                     onClick={() => handleCardClick(atleta)}
                                 />
@@ -414,21 +496,68 @@ const ClubAtletas = () => {
                         columns={[
                             { key: 'nombrePersona', label: 'Nombre' },
                             { key: 'documento', label: 'DNI' },
-                            { key: 'categoria', label: 'Categoría', render: (value) => getCategoriaTexto(value) },
+                            { key: 'categoria', label: 'Categoría', render: (_value, row) => formatCategoria(row) },
                             {
                                 key: 'estadoPago', label: 'Estado Pago',
-                                render: (value) => <span className={`badge badge-${getEstadoPagoColor(value)}`}>{getEstadoPagoLabel(value)}</span>
+                                render: (_value, row) => renderEstadoPagoCell(row)
                             },
                             { key: 'perteneceSeleccion', label: 'Selección', render: (value) => value ? '⭐ Sí' : 'No' },
-                            { key: 'presentoAptoMedico', label: 'Apto Médico', render: (value) => value ? '✅ Presentado' : '❌ Pendiente' }
+                            { key: 'presentoAptoMedico', label: 'Apto Médico', render: (value) => value ? '✅ Presentado' : '❌ Pendiente' },
+                            {
+                                key: 'documentacion',
+                                label: 'Documentación',
+                                align: 'center',
+                                render: (_value, atleta) => (
+                                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                                        <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            icon={Eye}
+                                            title="Ver documentos"
+                                            onClick={() => {
+                                                setSelectedAtletaForDocs(atleta);
+                                                setShowViewerModal(true);
+                                            }}
+                                        />
+                                        <Button
+                                            variant="primary"
+                                            size="sm"
+                                            icon={Plus}
+                                            title="Subir documento"
+                                            onClick={() => {
+                                                setSelectedAtletaForDocs(atleta);
+                                                setShowUploadModal(true);
+                                            }}
+                                        />
+                                    </div>
+                                )
+                            },
                         ]}
                         data={filteredAtletas}
                         loading={loading}
                         onRowClick={handleCardClick}
                         actions={(atleta) => (
-                            <div className="flex gap-2">
-                                <Button variant="secondary" size="sm" icon={Edit} onClick={(e) => { e.stopPropagation(); navigate(`/club/atletas/editar/${atleta.idPersona}`); }} />
-                                <Button variant="danger" size="sm" icon={Trash2} onClick={(e) => { e.stopPropagation(); handleDeleteClick(atleta); }} />
+                            <div className="flex gap-2 atleta-grid-actions">
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    icon={Edit}
+                                    title="Editar"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/club/atletas/editar/${atleta.idPersona}`);
+                                    }}
+                                />
+                                <Button
+                                    variant="danger"
+                                    size="sm"
+                                    icon={Trash2}
+                                    title="Eliminar"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteClick(atleta);
+                                    }}
+                                />
                             </div>
                         )}
                     />
@@ -499,17 +628,15 @@ const ClubAtletas = () => {
                             <div className="detail-grid">
                                 <div className="detail-row">
                                     <span className="label">Categoría:</span>
-                                    <span className="value">{getCategoriaTexto(atletaDetails.categoria)}</span>
+                                    <span className="value">{formatCategoria(atletaDetails)}</span>
                                 </div>
                                 <div className="detail-row">
                                     <span className="label">Pertenece a Selección:</span>
                                     <span className="value">{atletaDetails.perteneceSeleccion ? '⭐ Sí' : 'No'}</span>
                                 </div>
-                                <div className="detail-row">
+                                <div className="detail-row" style={{ alignItems: 'center' }}>
                                     <span className="label">Estado de Pago:</span>
-                                    <span className={`badge badge-${getEstadoPagoColor(atletaDetails.estadoPago)}`}>
-                                        {getEstadoPagoLabel(atletaDetails.estadoPago)}
-                                    </span>
+                                    {renderEstadoPagoCell(atletaDetails)}
                                 </div>
                                 <div className="detail-row">
                                     <span className="label">Apto Médico:</span>
@@ -518,25 +645,6 @@ const ClubAtletas = () => {
                                             ? `✅ Presentado (${new Date(atletaDetails.fechaAptoMedico).toLocaleDateString('es-AR')})`
                                             : '❌ Pendiente'}
                                     </span>
-                                </div>
-                                <div className="detail-row" style={{ alignItems: 'center' }}>
-                                    <span className="label">Cuota Anual:</span>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                        <span className={`badge badge-${getEstadoPagoColor(atletaDetails.estadoPago)}`}>
-                                            {getEstadoPagoLabel(atletaDetails.estadoPago)}
-                                        </span>
-                                        {atletaDetails.estadoPago !== 1 && (
-                                            <Button
-                                                variant="primary"
-                                                size="sm"
-                                                onClick={() => handlePagarAfiliacionAtleta(atletaDetails)}
-                                                disabled={isProcessingPayment}
-                                                style={{ fontSize: '0.8rem', padding: '0.25rem 0.75rem' }}
-                                            >
-                                                {isProcessingPayment ? '...' : 'Pagar ($30.000)'} <DollarSign size={14} />
-                                            </Button>
-                                        )}
-                                    </div>
                                 </div>
                                 {atletaDetails.montoBeca > 0 && (
                                     <div className="detail-row">
@@ -696,34 +804,6 @@ const ClubAtletas = () => {
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
                         <Button variant="secondary" onClick={() => setShowSelectTutorModal(false)}>Cancelar</Button>
                         <Button variant="primary" onClick={handleAssignTutor} disabled={!selectedTutorIdToAssign}>Asignar</Button>
-                    </div>
-                </div>
-            </Modal>
-
-            {/* QR Modal */}
-            <Modal
-                isOpen={showQRModal}
-                onClose={() => setShowQRModal(false)}
-                title="Escanear QR para Pagar"
-            >
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem', gap: '1.5rem' }}>
-                    <p style={{ textAlign: 'center', color: '#ccc' }}>
-                        Escanea este código QR con la App de Mercado Pago o tu billetera virtual favorita.
-                    </p>
-
-                    <div style={{ background: 'white', padding: '1rem', borderRadius: '12px' }}>
-                        {qrLink && <QRCodeCanvas value={qrLink} size={250} />}
-                    </div>
-
-                    <div style={{ width: '100%', textAlign: 'center' }}>
-                        <p style={{ marginBottom: '1rem', fontSize: '0.9rem' }}>¿Prefieres pagar en el navegador?</p>
-                        <Button
-                            variant="primary"
-                            onClick={() => window.open(qrLink, '_blank')}
-                            style={{ width: '100%' }}
-                        >
-                            Ir a Mercado Pago
-                        </Button>
                     </div>
                 </div>
             </Modal>
