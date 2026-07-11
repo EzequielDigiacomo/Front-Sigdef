@@ -50,24 +50,35 @@ const ClubEntrenadores = () => {
                 return String(eClubId) === String(clubId);
             });
             const personasMap = new Map(personas.map(p => [
-                p.participanteId ?? p.ParticipanteId ?? p.idPersona ?? p.IdPersona ?? p.id,
+                String(p.participanteId ?? p.ParticipanteId ?? p.idPersona ?? p.IdPersona ?? p.id),
                 p
             ]));
 
             const enrichedData = clubEntrenadores.map(entrenador => {
-                const trainerId = entrenador.idPersona ?? entrenador.IdPersona ?? entrenador.participanteId ?? entrenador.ParticipanteId;
-                const persona = personasMap.get(trainerId) || entrenador.participante || entrenador.Participante;
-                
+                const trainerId = entrenador.participanteId ?? entrenador.ParticipanteId ?? entrenador.idPersona ?? entrenador.IdPersona;
+                const persona = personasMap.get(String(trainerId)) || entrenador.participante || entrenador.Participante || {};
+
                 const firstName = persona?.nombre ?? persona?.Nombre ?? '';
                 const lastName = persona?.apellido ?? persona?.Apellido ?? '';
-                const doc = persona?.documento ?? persona?.Documento ?? persona?.dni ?? persona?.Dni ?? '';
-                const mail = persona?.email ?? persona?.Email ?? '';
+                const doc = entrenador.documento || entrenador.Documento
+                    || persona?.documento || persona?.Documento || persona?.dni || persona?.Dni || '';
+                const mail = entrenador.email || entrenador.Email
+                    || persona?.email || persona?.Email || '';
+                const tel = entrenador.telefono || entrenador.Telefono
+                    || persona?.telefono || persona?.Telefono || '';
+                const licencia = entrenador.licencia || entrenador.Licencia || '';
 
                 return {
                     ...entrenador,
-                    nombrePersona: firstName && lastName ? `${firstName} ${lastName}` : (entrenador.nombrePersona || '-'),
-                    documento: doc || (entrenador.documento || '-'),
-                    email: mail || (entrenador.email || '-'),
+                    idPersona: trainerId,
+                    participanteId: trainerId,
+                    nombrePersona: firstName && lastName
+                        ? `${firstName} ${lastName}`
+                        : (entrenador.nombrePersona || entrenador.NombrePersona || '-'),
+                    documento: doc || '-',
+                    email: mail || '-',
+                    telefono: tel || '-',
+                    licencia: licencia || '-',
                 };
             });
 
@@ -155,9 +166,10 @@ const ClubEntrenadores = () => {
                 <DataTable
                     columns={[
                         { key: 'nombrePersona', label: 'Nombre' },
-                        { key: 'documento', label: 'DNI' },
+                        { key: 'documento', label: 'DNI', render: (val) => val || '-' },
                         { key: 'licencia', label: 'Licencia', render: (val) => val || '-' },
-                        { key: 'email', label: 'Email' },
+                        { key: 'email', label: 'Email', render: (val) => val || '-' },
+                        { key: 'telefono', label: 'Teléfono', render: (val) => val || '-' },
                         {
                             key: 'documentacion', label: 'Documentación',
                             render: (value, entrenador) => (

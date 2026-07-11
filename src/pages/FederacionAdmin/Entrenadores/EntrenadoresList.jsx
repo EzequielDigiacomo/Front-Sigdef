@@ -64,9 +64,44 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
                 api.get(withFederationScope('/Clubes', fedId)),
                 api.get('/Persona')
             ]);
-            const enrichedEntrenadores = (entrenadoresData || []).map(ent => {
-                const persona = (personasData || []).find(p => p.idPersona === ent.idPersona);
-                return { ...ent, ...persona, id: ent.idPersona };
+
+            const personasMap = new Map(
+                (personasData || []).map((p) => {
+                    const id = p.participanteId ?? p.ParticipanteId ?? p.idPersona ?? p.IdPersona ?? p.id;
+                    return [String(id), p];
+                })
+            );
+
+            const enrichedEntrenadores = (entrenadoresData || []).map((ent) => {
+                const id = ent.participanteId ?? ent.ParticipanteId ?? ent.idPersona ?? ent.IdPersona;
+                const persona = personasMap.get(String(id)) || {};
+                const documento =
+                    ent.documento || ent.Documento ||
+                    persona.documento || persona.Documento || persona.dni || persona.Dni || '';
+                const email =
+                    ent.email || ent.Email ||
+                    persona.email || persona.Email || '';
+                const telefono =
+                    ent.telefono || ent.Telefono ||
+                    persona.telefono || persona.Telefono || '';
+                const licencia = ent.licencia || ent.Licencia || '';
+                const nombrePersona =
+                    ent.nombrePersona || ent.NombrePersona ||
+                    `${persona.nombre || persona.Nombre || ''} ${persona.apellido || persona.Apellido || ''}`.trim();
+
+                return {
+                    ...persona,
+                    ...ent,
+                    id,
+                    idPersona: id,
+                    participanteId: id,
+                    nombrePersona: nombrePersona || '-',
+                    documento: documento || '-',
+                    email: email || '-',
+                    telefono: telefono || '-',
+                    licencia: licencia || '-',
+                    nombreClub: ent.nombreClub || ent.NombreClub || '',
+                };
             });
             setEntrenadores(enrichedEntrenadores);
             setClubes(clubesData || []);
@@ -139,7 +174,7 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
 
     const columns = [
         { label: 'Nombre y Apellido', key: 'nombrePersona', render: (value, row) => <span className="font-medium text-primary">{row.nombrePersona || `${row.nombre || ''} ${row.apellido || ''}`}</span> },
-        { label: 'Documento', key: 'documento', align: 'center' },
+        { label: 'Documento', key: 'documento', align: 'center', render: (val) => val || '-' },
         { label: 'Club', key: 'nombreClub', render: (val) => val || 'Sin Club' },
         { label: 'Email', key: 'email', render: (val) => val || '-', align: 'center' },
         ...(viewMode === 'seleccion' ? [
@@ -159,8 +194,8 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
                 )
             }
         ] : [
-            { label: 'Licencia', key: 'licencia' },
-            { label: 'Teléfono', key: 'telefono' },
+            { label: 'Licencia', key: 'licencia', render: (val) => val || '-' },
+            { label: 'Teléfono', key: 'telefono', render: (val) => val || '-' },
             {
                 label: 'Documentación', key: 'documentacion',
                 align: 'center',

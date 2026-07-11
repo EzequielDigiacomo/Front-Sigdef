@@ -218,7 +218,7 @@ const Dashboard = () => {
                         onClick={() => handleCardClick(stat.route)}
                     >
                         <span className="dash-stat-icon" style={{ backgroundColor: `${stat.color}18`, color: stat.color }}>
-                            <stat.icon size={16} />
+                            <stat.icon size={20} />
                         </span>
                         <div className="dash-stat-info">
                             <strong className="dash-stat-value">{loading ? '…' : stat.value}</strong>
@@ -243,7 +243,7 @@ const Dashboard = () => {
                             onClick={() => handleCardClick(card.path)}
                         >
                             <span className="dash-module-icon" style={{ backgroundColor: `${card.color}18`, color: card.color }}>
-                                <card.icon size={18} />
+                                <card.icon size={22} />
                             </span>
                             <span className="dash-module-meta">
                                 <strong>{card.label}</strong>
