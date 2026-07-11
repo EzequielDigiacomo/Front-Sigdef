@@ -20,9 +20,9 @@ const EntrenadorSeleccionForm = () => {
         if (location.state?.returnPath) {
             navigate(location.state.returnPath);
         } else if (fedId) {
-            navigate(`/superadmin/federacion/${fedId}/selecciones`);
+            navigate(`/superadmin/federacion/${fedId}/entrenadores`);
         } else {
-            navigate('/dashboard/entrenadores-seleccion');
+            navigate('/dashboard/entrenadores');
         }
     };
 
@@ -56,36 +56,135 @@ const EntrenadorSeleccionForm = () => {
 
     useEffect(() => {
         loadClubes();
-        if (id) loadEntrenador();
+        if (id) {
+            // Prefill inmediato si venimos del modal/listado con datos
+            const prefill = location.state?.entrenador;
+            if (prefill) {
+                const nombreCompleto = (prefill.nombrePersona || '').trim();
+                const parts = nombreCompleto.split(/\s+/);
+                const nombreGuess = prefill.nombre || parts[0] || '';
+                const apellidoGuess =
+                    prefill.apellido || (parts.length > 1 ? parts.slice(1).join(' ') : '');
+
+                setFormData((prev) => ({
+                    ...prev,
+                    nombre: nombreGuess || prev.nombre,
+                    apellido: apellidoGuess || prev.apellido,
+                    documento: prefill.documento || prev.documento,
+                    email: prefill.email || prev.email,
+                    telefono: prefill.telefono || prev.telefono,
+                    idClub: prefill.idClub ?? prefill.IdClub ?? prev.idClub,
+                    categoriaSeleccion: String(prefill.categoriaSeleccion ?? prefill.CategoriaSeleccion ?? prev.categoriaSeleccion ?? '0'),
+                    becadoEnard: !!(prefill.becadoEnard ?? prefill.BecadoEnard ?? prev.becadoEnard),
+                    becadoSdn: !!(prefill.becadoSdn ?? prefill.BecadoSdn ?? prev.becadoSdn),
+                    montoBeca:
+                        prefill.montoBeca != null
+                            ? String(prefill.montoBeca)
+                            : prev.montoBeca,
+                    presentoAptoMedico: !!(
+                        prefill.presentoAptoMedico ??
+                        prefill.PresentoAptoMedico ??
+                        prev.presentoAptoMedico
+                    ),
+                }));
+            }
+            loadEntrenador();
+        }
     }, [id]);
 
     const loadClubes = async () => {
         try {
             const data = await api.get('/Club');
-            setClubes(data);
+            setClubes(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Error cargando clubes:', error);
         }
     };
 
+    const resolveSexoId = (value) => {
+        if (value == null || value === '') return 1;
+        if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value;
+        if (typeof value === 'object') {
+            const nested = value.id ?? value.Id ?? value.sexoId ?? value.SexoId;
+            return resolveSexoId(nested);
+        }
+        const parsed = parseInt(value, 10);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+    };
+
+    const buildPersonaPayload = () => ({
+        nombre: formData.nombre,
+        apellido: formData.apellido,
+        documento: formData.documento,
+        fechaNacimiento: formData.fechaNacimiento
+            ? new Date(formData.fechaNacimiento).toISOString()
+            : new Date().toISOString(),
+        email: formData.email || '',
+        telefono: formData.telefono || '',
+        direccion: formData.direccion || '',
+        sexoId: resolveSexoId(formData.sexo),
+    });
+
     const loadEntrenador = async () => {
         try {
             const data = await api.get(`/Entrenador/${id}`);
+            const participante = data.participante || data.Participante || {};
+
+            let personaExtra = {};
+            try {
+                personaExtra = await api.get(`/Persona/${id}`);
+            } catch {
+                /* opcional */
+            }
+
+            const sexoRaw =
+                personaExtra.sexoId ??
+                personaExtra.SexoId ??
+                personaExtra.sexo ??
+                personaExtra.Sexo ??
+                participante.sexoId ??
+                participante.SexoId ??
+                participante.sexo ??
+                participante.Sexo ??
+                1;
+
+            const fecha =
+                participante.fechaNacimiento ||
+                participante.FechaNacimiento ||
+                personaExtra.fechaNacimiento ||
+                personaExtra.FechaNacimiento ||
+                '';
+
             setFormData({
-                nombre: data.persona?.nombre || '',
-                apellido: data.persona?.apellido || '',
-                documento: data.persona?.documento || '',
-                sexo: data.persona?.sexo || 1,
-                fechaNacimiento: data.persona?.fechaNacimiento ? data.persona.fechaNacimiento.split('T')[0] : '',
-                email: data.persona?.email || '',
-                telefono: data.persona?.telefono || '',
-                direccion: data.persona?.direccion || '',
-                idClub: data.idClub || '',
-                categoriaSeleccion: data.categoriaSeleccion || '0',
-                becadoEnard: data.becadoEnard || false,
-                becadoSdn: data.becadoSdn || false,
-                montoBeca: data.montoBeca?.toString() || '',
-                presentoAptoMedico: data.presentoAptoMedico || false
+                nombre: participante.nombre || participante.Nombre || personaExtra.nombre || personaExtra.Nombre || '',
+                apellido: participante.apellido || participante.Apellido || personaExtra.apellido || personaExtra.Apellido || '',
+                documento:
+                    participante.documento ||
+                    participante.Documento ||
+                    personaExtra.documento ||
+                    personaExtra.Documento ||
+                    '',
+                sexo: resolveSexoId(sexoRaw),
+                fechaNacimiento: fecha ? String(fecha).split('T')[0] : '',
+                email: participante.email || participante.Email || personaExtra.email || personaExtra.Email || '',
+                telefono:
+                    participante.telefono ||
+                    participante.Telefono ||
+                    personaExtra.telefono ||
+                    personaExtra.Telefono ||
+                    '',
+                direccion:
+                    participante.direccion ||
+                    participante.Direccion ||
+                    personaExtra.direccion ||
+                    personaExtra.Direccion ||
+                    '',
+                idClub: data.idClub ?? data.IdClub ?? '',
+                categoriaSeleccion: String(data.categoriaSeleccion ?? data.CategoriaSeleccion ?? '0'),
+                becadoEnard: !!(data.becadoEnard ?? data.BecadoEnard),
+                becadoSdn: !!(data.becadoSdn ?? data.BecadoSdn),
+                montoBeca: (data.montoBeca ?? data.MontoBeca)?.toString?.() || String(data.montoBeca ?? data.MontoBeca ?? ''),
+                presentoAptoMedico: !!(data.presentoAptoMedico ?? data.PresentoAptoMedico),
             });
         } catch (error) {
             console.error('Error cargando entrenador:', error);
@@ -130,33 +229,27 @@ const EntrenadorSeleccionForm = () => {
 
                 console.log('🔄 Actualizando entrenador existente...');
 
-                const personaData = {
-                    Nombre: formData.nombre,
-                    Apellido: formData.apellido,
-                    Documento: formData.documento,
-                    SexoId: parseInt(formData.sexo),
-                    FechaNacimiento: formData.fechaNacimiento ? new Date(formData.fechaNacimiento).toISOString() : new Date().toISOString(),
-                    Email: formData.email || null,
-                    Telefono: formData.telefono || null,
-                    Direccion: formData.direccion || null
-                };
+                const personaData = buildPersonaPayload();
                 console.log('👤 Datos persona:', personaData);
                 await api.put(`/Persona/${id}`, personaData);
 
+                const clubId =
+                    formData.idClub && formData.idClub !== '0' && formData.idClub !== ''
+                        ? parseInt(formData.idClub, 10)
+                        : null;
+
                 const entrenadorData = {
-                    ParticipanteId: parseInt(id),
-                    participanteId: parseInt(id),
-                    IdPersona: parseInt(id),
-                    idPersona: parseInt(id),
-                    IdClub: (formData.idClub && formData.idClub !== "0") ? parseInt(formData.idClub) : null,
-                    idClub: (formData.idClub && formData.idClub !== "0") ? parseInt(formData.idClub) : null,
-                    PerteneceSeleccion: true,
-                    CategoriaSeleccion: formData.categoriaSeleccion.toString(),
-                    Licencia: "N/A",
-                    BecadoEnard: Boolean(formData.becadoEnard),
-                    BecadoSdn: Boolean(formData.becadoSdn),
-                    MontoBeca: getMontoBecaNumber(formData.montoBeca),
-                    PresentoAptoMedico: Boolean(formData.presentoAptoMedico)
+                    participanteId: parseInt(id, 10),
+                    ParticipanteId: parseInt(id, 10),
+                    idPersona: parseInt(id, 10),
+                    idClub: Number.isFinite(clubId) ? clubId : null,
+                    licencia: formData.licencia || 'N/A',
+                    perteneceSeleccion: true,
+                    categoriaSeleccion: String(formData.categoriaSeleccion ?? '0'),
+                    becadoEnard: Boolean(formData.becadoEnard),
+                    becadoSdn: Boolean(formData.becadoSdn),
+                    montoBeca: getMontoBecaNumber(formData.montoBeca),
+                    presentoAptoMedico: Boolean(formData.presentoAptoMedico),
                 };
                 console.log('🏃 Datos entrenador:', entrenadorData);
                 await api.put(`/Entrenador/${id}`, entrenadorData);
@@ -165,16 +258,7 @@ const EntrenadorSeleccionForm = () => {
 
                 console.log('🆕 Creando nuevo entrenador...');
 
-                const personaData = {
-                    Nombre: formData.nombre,
-                    Apellido: formData.apellido,
-                    Documento: formData.documento,
-                    SexoId: parseInt(formData.sexo),
-                    FechaNacimiento: formData.fechaNacimiento ? new Date(formData.fechaNacimiento).toISOString() : new Date().toISOString(),
-                    Email: formData.email || null,
-                    Telefono: formData.telefono || null,
-                    Direccion: formData.direccion || null
-                };
+                const personaData = buildPersonaPayload();
                 console.log('👤 Creando persona:', personaData);
                 const personaResponse = await api.post('/Persona', personaData);
                 console.log('✅ Persona creada:', personaResponse);
@@ -186,20 +270,23 @@ const EntrenadorSeleccionForm = () => {
                     throw new Error('No se pudo obtener el ID de la persona creada');
                 }
 
+                const clubId =
+                    formData.idClub && formData.idClub !== '0' && formData.idClub !== ''
+                        ? parseInt(formData.idClub, 10)
+                        : null;
+
                 const entrenadorData = {
-                    ParticipanteId: parseInt(idPersona),
-                    participanteId: parseInt(idPersona),
-                    IdPersona: parseInt(idPersona),
-                    idPersona: parseInt(idPersona),
-                    IdClub: (formData.idClub && formData.idClub !== "0") ? parseInt(formData.idClub) : null,
-                    idClub: (formData.idClub && formData.idClub !== "0") ? parseInt(formData.idClub) : null,
-                    PerteneceSeleccion: true,
-                    CategoriaSeleccion: formData.categoriaSeleccion.toString(),
-                    Licencia: "N/A",
-                    BecadoEnard: Boolean(formData.becadoEnard),
-                    BecadoSdn: Boolean(formData.becadoSdn),
-                    MontoBeca: getMontoBecaNumber(formData.montoBeca),
-                    PresentoAptoMedico: Boolean(formData.presentoAptoMedico)
+                    participanteId: parseInt(idPersona, 10),
+                    ParticipanteId: parseInt(idPersona, 10),
+                    idPersona: parseInt(idPersona, 10),
+                    idClub: Number.isFinite(clubId) ? clubId : null,
+                    licencia: formData.licencia || 'N/A',
+                    perteneceSeleccion: true,
+                    categoriaSeleccion: String(formData.categoriaSeleccion ?? '0'),
+                    becadoEnard: Boolean(formData.becadoEnard),
+                    becadoSdn: Boolean(formData.becadoSdn),
+                    montoBeca: getMontoBecaNumber(formData.montoBeca),
+                    presentoAptoMedico: Boolean(formData.presentoAptoMedico),
                 };
                 console.log('🏃 Creando entrenador:', entrenadorData);
                 await api.post('/Entrenador', entrenadorData);
@@ -357,8 +444,8 @@ const EntrenadorSeleccionForm = () => {
                                 <option value="">Seleccione un Club</option>
                                 <option value="0">--- Sin Club ---</option>
                                 {clubes.map(club => (
-                                    <option key={club.idClub} value={club.idClub}>
-                                        {club.nombre}
+                                    <option key={club.idClub ?? club.IdClub} value={club.idClub ?? club.IdClub}>
+                                        {club.nombre || club.Nombre}
                                     </option>
                                 ))}
                             </select>

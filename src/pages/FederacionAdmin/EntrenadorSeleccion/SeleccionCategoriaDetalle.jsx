@@ -4,8 +4,9 @@ import { api } from '../../../services/api';
 import DataTable from '../../../components/common/DataTable';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
-import { Users, ArrowLeft, Plus, Trash2, Edit, Eye, UserCog } from 'lucide-react';
-import { getCategoriaLabel } from '../../../utils/enums';
+import { ArrowLeft, Plus, Trash2, Edit, Eye, UserCog, X } from 'lucide-react';
+import { getCategoriaLabel, normalizeCategoriaId } from '../../../utils/enums';
+import { withFederationScope } from '../../../utils/apiHelpers';
 import AddAtletaSeleccionModal from './components/AddAtletaSeleccionModal';
 import AssignCoachModal from './components/AssignCoachModal';
 
@@ -15,10 +16,12 @@ import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import './SeleccionCategoriaDetalle.css';
 
 const SeleccionCategoriaDetalle = () => {
-    const { categoryId } = useParams();
+    const { categoryId, fedId } = useParams();
     const navigate = useNavigate();
     const [athletes, setAthletes] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [coaches, setCoaches] = useState([]);
+    const [loadingAthletes, setLoadingAthletes] = useState(true);
+    const [loadingCoaches, setLoadingCoaches] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
     const [showCoachModal, setShowCoachModal] = useState(false);
 
@@ -39,46 +42,134 @@ const SeleccionCategoriaDetalle = () => {
         onConfirm: () => { }
     });
 
-    const categoryLabel = getCategoriaLabel(parseInt(categoryId));
+    const categoryLabel = getCategoriaLabel(parseInt(categoryId, 10));
+    const categoryIdNum = parseInt(categoryId, 10);
+    const baseSelecciones = fedId
+        ? `/superadmin/federacion/${fedId}/selecciones`
+        : '/dashboard/selecciones';
 
     useEffect(() => {
-        fetchAthletes();
-    }, [categoryId]);
+        fetchData();
+    }, [categoryId, fedId]);
 
-    const fetchAthletes = async () => {
-        setLoading(true);
+    const mapCoachesForCategory = (coachesData) =>
+        (Array.isArray(coachesData) ? coachesData : [])
+            .filter((c) => {
+                const inSeleccion = !!(c.perteneceSeleccion ?? c.PerteneceSeleccion ?? true);
+                const cat = normalizeCategoriaId(c.categoriaSeleccion ?? c.CategoriaSeleccion);
+                return inSeleccion && cat === categoryIdNum;
+            })
+            .map((c) => {
+                const id = c.participanteId ?? c.ParticipanteId ?? c.idPersona ?? c.IdPersona;
+                return {
+                    id,
+                    nombre: c.nombrePersona || c.NombrePersona || 'Entrenador',
+                    email: c.email || c.Email || '-',
+                    telefono: c.telefono || c.Telefono || '-',
+                    idClub: c.idClub ?? c.IdClub ?? null,
+                    licencia: c.licencia ?? c.Licencia ?? '',
+                    becadoEnard: !!(c.becadoEnard ?? c.BecadoEnard),
+                    becadoSdn: !!(c.becadoSdn ?? c.BecadoSdn),
+                    montoBeca: c.montoBeca ?? c.MontoBeca ?? 0,
+                    presentoAptoMedico: !!(c.presentoAptoMedico ?? c.PresentoAptoMedico),
+                };
+            });
+
+    const mapAthletesForCategory = (allAthletes) =>
+        (allAthletes || [])
+            .filter((a) => {
+                const inSeleccion = !!(a.perteneceSeleccion ?? a.PerteneceSeleccion);
+                const cat = normalizeCategoriaId(a.categoria ?? a.Categoria);
+                return inSeleccion && cat === categoryIdNum;
+            })
+            .map((athlete) => {
+                const persona = athlete.participante || athlete.Participante || {};
+                const idReal =
+                    athlete.idPersona ||
+                    athlete.IdPersona ||
+                    athlete.participanteId ||
+                    athlete.ParticipanteId;
+                const nombreFromPersona = persona.nombre || persona.Nombre
+                    ? `${persona.nombre || persona.Nombre} ${persona.apellido || persona.Apellido || ''}`.trim()
+                    : '';
+
+                return {
+                    ...athlete,
+                    idPersona: idReal,
+                    documento:
+                        athlete.documento ||
+                        athlete.Documento ||
+                        persona.documento ||
+                        persona.Documento ||
+                        '-',
+                    email: athlete.email || athlete.Email || persona.email || persona.Email || '-',
+                    nombrePersona:
+                        athlete.nombrePersona ||
+                        athlete.NombrePersona ||
+                        nombreFromPersona ||
+                        '-',
+                    telefono:
+                        athlete.telefono ||
+                        athlete.Telefono ||
+                        persona.telefono ||
+                        persona.Telefono ||
+                        '-',
+                    direccion: persona.direccion || persona.Direccion || '-',
+                    nombreClub:
+                        athlete.nombreClub ||
+                        athlete.NombreClub ||
+                        athlete.club?.nombre ||
+                        athlete.Club?.Nombre ||
+                        'Sin Club',
+                };
+            });
+
+    const refreshCoaches = async () => {
         try {
-            const [allAthletes, allPersonas] = await Promise.all([
-                api.get('/Atleta'),
-                api.get('/Persona')
-            ]);
-
-            const filteredAndEnriched = (allAthletes || [])
-                .filter(a => a.perteneceSeleccion && a.categoria === parseInt(categoryId))
-                .map(athlete => {
-                    const persona = (allPersonas || []).find(p => p.idPersona === athlete.idPersona);
-                    // Ensure we have a valid ID
-                    const idReal = athlete.idPersona || athlete.IdPersona || (persona ? (persona.idPersona || persona.IdPersona) : null);
-
-                    return {
-                        ...athlete,
-                        idPersona: idReal, // Normalize to camelCase
-                        // Priorizar datos de persona si existen, o fallback a lo que tenga atleta
-                        documento: persona?.documento || persona?.Documento || '-',
-                        email: persona?.email || persona?.Email || athlete.email || '-',
-                        nombrePersona: persona ? (persona.nombre + ' ' + persona.apellido) : athlete.nombrePersona,
-                        // Asegurar que nombres de campos coincidan con columnas
-                        telefono: persona?.telefono || persona?.Telefono || '-',
-                        direccion: persona?.direccion || persona?.Direccion || '-'
-                    };
-                });
-
-            setAthletes(filteredAndEnriched);
+            setLoadingCoaches(true);
+            const coachesData = await api
+                .get(withFederationScope('/Entrenador/seleccion', fedId))
+                .catch(() => api.get(withFederationScope('/Entrenador', fedId)));
+            setCoaches(mapCoachesForCategory(coachesData));
         } catch (error) {
-            console.error('Error fetching athletes:', error);
+            console.error('Error refreshing coaches:', error);
         } finally {
-            setLoading(false);
+            setLoadingCoaches(false);
         }
+    };
+
+    const refreshAthletes = async () => {
+        try {
+            setLoadingAthletes(true);
+            const allAthletes = await api.get(withFederationScope('/Atleta', fedId));
+            setAthletes(mapAthletesForCategory(allAthletes));
+        } catch (error) {
+            console.error('Error refreshing athletes:', error);
+        } finally {
+            setLoadingAthletes(false);
+        }
+    };
+
+    const fetchData = () => {
+        setLoadingAthletes(true);
+        setLoadingCoaches(true);
+
+        api.get(withFederationScope('/Entrenador/seleccion', fedId))
+            .catch(() => api.get(withFederationScope('/Entrenador', fedId)))
+            .then((coachesData) => setCoaches(mapCoachesForCategory(coachesData)))
+            .catch((error) => {
+                console.error('Error fetching coaches:', error);
+                setCoaches([]);
+            })
+            .finally(() => setLoadingCoaches(false));
+
+        api.get(withFederationScope('/Atleta', fedId))
+            .then((allAthletes) => setAthletes(mapAthletesForCategory(allAthletes)))
+            .catch((error) => {
+                console.error('Error fetching athletes:', error);
+                setAthletes([]);
+            })
+            .finally(() => setLoadingAthletes(false));
     };
 
     const handleRemoveAthlete = (athlete) => {
@@ -87,20 +178,25 @@ const SeleccionCategoriaDetalle = () => {
             title: 'Confirmar eliminación',
             message: `¿Estás seguro de que deseas quitar a ${athlete.nombrePersona} de la selección?`,
             onConfirm: async () => {
+                const athleteId = athlete.idPersona ?? athlete.IdPersona ?? athlete.participanteId;
+                setShowConfirmation(false);
+                setAthletes((prev) =>
+                    prev.filter((a) => String(a.idPersona ?? a.IdPersona ?? a.participanteId) !== String(athleteId))
+                );
+
                 try {
-                    // Update athlete to remove from selection
-                    const updatedAthlete = {
+                    await api.put('/Atleta', {
                         ...athlete,
                         perteneceSeleccion: false,
-                        categoria: 0
-                    };
-
-                    await api.put('/Atleta', updatedAthlete);
-                    fetchAthletes();
-                    setShowConfirmation(false);
+                        categoria: 0,
+                    });
                 } catch (error) {
                     console.error('Error removing athlete:', error);
-                    // Show error modal
+                    setAthletes((prev) =>
+                        prev.some((a) => String(a.idPersona ?? a.IdPersona ?? a.participanteId) === String(athleteId))
+                            ? prev
+                            : [...prev, athlete]
+                    );
                     setConfirmationConfig({
                         type: 'danger',
                         title: 'Error',
@@ -109,13 +205,60 @@ const SeleccionCategoriaDetalle = () => {
                         showCancel: false,
                         confirmText: 'Entendido'
                     });
-                    // Re-open modal for error display
                     setShowConfirmation(true);
                 }
             },
             showCancel: true,
             confirmText: 'Quitar',
             cancelText: 'Cancelar'
+        });
+        setShowConfirmation(true);
+    };
+
+    const handleRemoveCoach = (coach) => {
+        setConfirmationConfig({
+            type: 'danger',
+            title: 'Quitar entrenador',
+            message: `¿Deseas quitar a ${coach.nombre} del cuerpo técnico de esta categoría? Quedará libre para reasignar.`,
+            onConfirm: async () => {
+                setShowConfirmation(false);
+                setCoaches((prev) => prev.filter((c) => String(c.id) !== String(coach.id)));
+
+                try {
+                    await api.put(`/Entrenador/${coach.id}`, {
+                        participanteId: coach.id,
+                        ParticipanteId: coach.id,
+                        idPersona: coach.id,
+                        idClub: coach.idClub || null,
+                        licencia: coach.licencia || '',
+                        perteneceSeleccion: false,
+                        categoriaSeleccion: '0',
+                        becadoEnard: coach.becadoEnard || false,
+                        becadoSdn: coach.becadoSdn || false,
+                        montoBeca: coach.montoBeca || 0,
+                        presentoAptoMedico: coach.presentoAptoMedico || false,
+                    });
+                } catch (error) {
+                    console.error('Error removing coach:', error);
+                    setCoaches((prev) =>
+                        prev.some((c) => String(c.id) === String(coach.id))
+                            ? prev
+                            : [...prev, coach]
+                    );
+                    setConfirmationConfig({
+                        type: 'danger',
+                        title: 'Error',
+                        message: 'No se pudo quitar al entrenador de la categoría.',
+                        onConfirm: () => setShowConfirmation(false),
+                        showCancel: false,
+                        confirmText: 'Entendido',
+                    });
+                    setShowConfirmation(true);
+                }
+            },
+            showCancel: true,
+            confirmText: 'Quitar',
+            cancelText: 'Cancelar',
         });
         setShowConfirmation(true);
     };
@@ -247,14 +390,14 @@ const SeleccionCategoriaDetalle = () => {
         <div className="page-container fade-in">
             <div className="page-header">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" onClick={() => navigate('/dashboard/selecciones')}>
+                    <Button variant="ghost" onClick={() => navigate(baseSelecciones)}>
                         <ArrowLeft size={24} />
                     </Button>
                     <div>
                         <h1 className="page-title">
                             Categoría {categoryLabel}
                         </h1>
-                        <p className="page-subtitle">Gestión de atletas seleccionados</p>
+                        <p className="page-subtitle">Gestión de atletas y cuerpo técnico de la selección</p>
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -267,11 +410,48 @@ const SeleccionCategoriaDetalle = () => {
                 </div>
             </div>
 
+            <Card className="seleccion-coaches-card">
+                <div className="seleccion-coaches-head">
+                    <h3>
+                        <UserCog size={18} /> Cuerpo técnico asignado
+                    </h3>
+                    <span>{coaches.length} entrenador{coaches.length !== 1 ? 'es' : ''}</span>
+                </div>
+                {loadingCoaches ? (
+                    <p className="seleccion-coaches-empty">Cargando...</p>
+                ) : coaches.length === 0 ? (
+                    <p className="seleccion-coaches-empty">
+                        No hay entrenadores asignados a esta categoría.
+                    </p>
+                ) : (
+                    <div className="seleccion-coaches-grid">
+                        {coaches.map((coach) => (
+                            <div key={coach.id} className="seleccion-coach-chip">
+                                <div className="seleccion-coach-info">
+                                    <strong>{coach.nombre}</strong>
+                                    <span>{coach.email}</span>
+                                    <span>{coach.telefono}</span>
+                                </div>
+                                <button
+                                    type="button"
+                                    className="seleccion-coach-remove"
+                                    title="Quitar de la categoría"
+                                    aria-label={`Quitar a ${coach.nombre}`}
+                                    onClick={() => handleRemoveCoach(coach)}
+                                >
+                                    <X size={14} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </Card>
+
             <Card>
                 <DataTable
                     columns={columns}
                     data={athletes}
-                    loading={loading}
+                    loading={loadingAthletes}
                     pagination={true}
                     itemsPerPage={10}
                     emptyMessage="No hay atletas en esta categoría de selección."
@@ -284,9 +464,9 @@ const SeleccionCategoriaDetalle = () => {
                     onClose={() => setShowAddModal(false)}
                     onSuccess={() => {
                         setShowAddModal(false);
-                        fetchAthletes();
+                        refreshAthletes();
                     }}
-                    categoryId={parseInt(categoryId)}
+                    categoryId={categoryIdNum}
                 />
             )}
 
@@ -296,8 +476,9 @@ const SeleccionCategoriaDetalle = () => {
                     onClose={() => setShowCoachModal(false)}
                     onSuccess={() => {
                         setShowCoachModal(false);
+                        refreshCoaches();
                     }}
-                    categoryId={parseInt(categoryId)}
+                    categoryId={categoryIdNum}
                     categoryLabel={categoryLabel}
                 />
             )}
@@ -310,8 +491,7 @@ const SeleccionCategoriaDetalle = () => {
                         setSelectedAthleteForUpload(null);
                     }}
                     onSuccess={() => {
-                        // Optional: Refresh list or just show notification
-                        fetchAthletes();
+                        refreshAthletes();
                     }}
                     personName={selectedAthleteForUpload.nombrePersona}
                     personId={selectedAthleteForUpload.idPersona || selectedAthleteForUpload.IdPersona}

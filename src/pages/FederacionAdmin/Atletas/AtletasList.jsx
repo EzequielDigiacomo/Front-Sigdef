@@ -11,6 +11,7 @@ import { Plus, Edit, Trash2, Search, FileText, Eye, ChevronUp, ChevronDown, Chev
 import { useSort } from '../../../hooks/useSort';
 import { withFederationScope } from '../../../utils/apiHelpers';
 import { getCategoriaLabel, getEstadoPagoLabel, getEstadoPagoColor, TIPO_DOCUMENTO_MAP } from '../../../utils/enums';
+import { TutorStatusCell, calcEdad } from '../../../components/common/TutorStatusCell';
 import './Atletas.css';
 import Modal from '../../../components/common/Modal';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
@@ -34,23 +35,59 @@ const formatCategoria = (atleta) => {
     return '-';
 };
 
-const normalizeAtleta = (a) => ({
-    ...a,
-    idPersona: a.idPersona ?? a.IdPersona ?? a.participanteId ?? a.ParticipanteId,
-    nombrePersona: a.nombrePersona ?? a.NombrePersona ?? '-',
-    documento: a.documento ?? a.Documento ?? '-',
-    nombreClub: a.nombreClub ?? a.NombreClub ?? 'Agente Libre',
-    categoria: a.categoria ?? a.Categoria ?? null,
-    categoriaId: a.categoriaId ?? a.CategoriaId ?? null,
-    categoriaNombre: a.categoriaNombre ?? a.CategoriaNombre ?? null,
-    perteneceSeleccion: a.perteneceSeleccion ?? a.PerteneceSeleccion ?? false,
-    estadoPago: a.estadoPago ?? a.EstadoPago,
-    fechaCreacion: a.fechaCreacion ?? a.FechaCreacion,
-    tutorInfo: a.tutorInfo ?? a.TutorInfo ?? null,
-    edad: a.edad ?? a.Edad ?? null,
-    cantidadDocumentos: a.cantidadDocumentos ?? a.CantidadDocumentos ?? 0,
-});
+const normalizeAtleta = (a) => {
+    const tutorInfoRaw = a.tutorInfo ?? a.TutorInfo ?? null;
+    const tutorInfo = tutorInfoRaw
+        ? {
+              ...tutorInfoRaw,
+              nombre: tutorInfoRaw.nombre ?? tutorInfoRaw.Nombre ?? '',
+              apellido: tutorInfoRaw.apellido ?? tutorInfoRaw.Apellido ?? '',
+              documento: tutorInfoRaw.documento ?? tutorInfoRaw.Documento ?? '',
+              telefono: tutorInfoRaw.telefono ?? tutorInfoRaw.Telefono ?? '',
+          }
+        : null;
 
+    const fechaRaw =
+        a.fechaNacimiento ??
+        a.FechaNacimiento ??
+        a.participante?.fechaNacimiento ??
+        a.Participante?.FechaNacimiento ??
+        a.persona?.fechaNacimiento ??
+        null;
+    const fechaNacimiento = calcEdad(fechaRaw) != null ? fechaRaw : null;
+
+    const edad =
+        a.edad != null && Number(a.edad) >= 0 && Number(a.edad) <= 120
+            ? Number(a.edad)
+            : a.Edad != null && Number(a.Edad) >= 0 && Number(a.Edad) <= 120
+              ? Number(a.Edad)
+              : calcEdad(fechaNacimiento);
+
+    const tieneTutor =
+        Boolean(tutorInfo) ||
+        Boolean(a.tieneTutor) ||
+        (Array.isArray(a.tutores) && a.tutores.length > 0) ||
+        (Array.isArray(a.Tutores) && a.Tutores.length > 0);
+
+    return {
+        ...a,
+        idPersona: a.idPersona ?? a.IdPersona ?? a.participanteId ?? a.ParticipanteId,
+        nombrePersona: a.nombrePersona ?? a.NombrePersona ?? '-',
+        documento: a.documento ?? a.Documento ?? '-',
+        nombreClub: a.nombreClub ?? a.NombreClub ?? 'Agente Libre',
+        categoria: a.categoria ?? a.Categoria ?? null,
+        categoriaId: a.categoriaId ?? a.CategoriaId ?? null,
+        categoriaNombre: a.categoriaNombre ?? a.CategoriaNombre ?? null,
+        perteneceSeleccion: a.perteneceSeleccion ?? a.PerteneceSeleccion ?? false,
+        estadoPago: a.estadoPago ?? a.EstadoPago,
+        fechaCreacion: a.fechaCreacion ?? a.FechaCreacion,
+        tutorInfo,
+        fechaNacimiento,
+        edad,
+        tieneTutor,
+        cantidadDocumentos: a.cantidadDocumentos ?? a.CantidadDocumentos ?? 0,
+    };
+};
 const AtletasList = () => {
     const { isNative } = useDevice();
     const { fedId } = useParams();                          // Presente cuando el SuperAdmin entra a /superadmin/federacion/:fedId/atletas
@@ -188,7 +225,17 @@ const AtletasList = () => {
                 ));
                 
                 if (response && response.data) {
-                    setAtletas((response.data || []).map(normalizeAtleta));
+                    const normalized = (response.data || []).map(normalizeAtleta);
+                    const relaciones = await api.get(withFederationScope('/AtletaTutor', fedId)).catch(() => []);
+                    const conTutor = new Set(
+                        (Array.isArray(relaciones) ? relaciones : [])
+                            .map((r) => Number(r.idAtleta ?? r.IdAtleta ?? r.participanteId ?? r.ParticipanteId))
+                            .filter((id) => Number.isFinite(id))
+                    );
+                    setAtletas(normalized.map((a) => ({
+                        ...a,
+                        tieneTutor: Boolean(a.tieneTutor) || conTutor.has(Number(a.idPersona)),
+                    })));
                     setTotalPages(response.totalPages || 1);
                     setTotalRecords(response.totalRecords || 0);
                     return;
@@ -239,9 +286,17 @@ const AtletasList = () => {
                         documento: '',
                         telefono: ''
                     } : null),
-                    edad: base.edad ?? (a.persona?.fechaNacimiento
-                        ? (new Date()).getFullYear() - new Date(a.persona.fechaNacimiento).getFullYear()
-                        : null),
+                    fechaNacimiento:
+                        base.fechaNacimiento ||
+                        a.persona?.fechaNacimiento ||
+                        a.participante?.fechaNacimiento ||
+                        a.Participante?.FechaNacimiento ||
+                        null,
+                    edad: base.edad ?? calcEdad(
+                        a.persona?.fechaNacimiento ||
+                        a.participante?.fechaNacimiento ||
+                        a.Participante?.FechaNacimiento
+                    ),
                 };
             });
 
@@ -258,7 +313,17 @@ const AtletasList = () => {
             const totalPgs = Math.max(1, Math.ceil(total / itemsPerPage));
             const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-            setAtletas(paginated);
+            const relaciones = await api.get(withFederationScope('/AtletaTutor', fedId)).catch(() => []);
+            const conTutor = new Set(
+                (Array.isArray(relaciones) ? relaciones : [])
+                    .map((r) => Number(r.idAtleta ?? r.IdAtleta ?? r.participanteId ?? r.ParticipanteId))
+                    .filter((id) => Number.isFinite(id))
+            );
+
+            setAtletas(paginated.map((a) => ({
+                ...a,
+                tieneTutor: Boolean(a.tieneTutor) || conTutor.has(Number(a.idPersona)),
+            })));
             setTotalPages(totalPgs);
             setTotalRecords(total);
         } catch (error) {
@@ -383,6 +448,19 @@ const AtletasList = () => {
                                 details={[
                                     { label: 'DNI', value: atleta.documento },
                                     { label: 'Categoría', value: formatCategoria(atleta) },
+                                    {
+                                        label: 'Tutor',
+                                        value: (
+                                            <TutorStatusCell
+                                                edad={atleta.edad}
+                                                tieneTutor={atleta.tieneTutor}
+                                                fechaNacimiento={atleta.fechaNacimiento}
+                                                categoria={atleta.categoria}
+                                                categoriaId={atleta.categoriaId}
+                                                categoriaNombre={atleta.categoriaNombre}
+                                            />
+                                        ),
+                                    },
                                     { label: 'Pago', value: (
                                         <span className={`badge badge-${getEstadoPagoColor(atleta.estadoPago)}`} style={{ fontSize: '10px', padding: '1px 6px' }}>
                                             {getEstadoPagoLabel(atleta.estadoPago)}
@@ -557,22 +635,20 @@ const AtletasList = () => {
                                                     </div>
                                                 ) : '-'}
                                             </td>
-                                            <td>
-                                                {atleta.tutorInfo ? (
-                                                    <div style={{ fontSize: '0.85rem', lineHeight: '1.4' }}>
-                                                        <div><strong>{atleta.tutorInfo.nombre} {atleta.tutorInfo.apellido}</strong></div>
-                                                        <div>DNI: {atleta.tutorInfo.documento}</div>
-                                                        <div>Tel: {atleta.tutorInfo.telefono || 'N/A'}</div>
-                                                    </div>
-                                                ) : (
-                                                    atleta.edad !== null && atleta.edad < 18 ? (
-                                                        <span className="text-warning" style={{ fontSize: '0.85rem', fontWeight: 500 }}>
-                                                            ⚠️ Sin tutor asignado
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-muted">-</span>
-                                                    )
-                                                )}
+                                            <td className="text-center">
+                                                <TutorStatusCell
+                                                    edad={atleta.edad}
+                                                    tieneTutor={atleta.tieneTutor}
+                                                    fechaNacimiento={atleta.fechaNacimiento}
+                                                    categoria={atleta.categoria}
+                                                    categoriaId={atleta.categoriaId}
+                                                    categoriaNombre={atleta.categoriaNombre}
+                                                    title={
+                                                        atleta.tutorInfo
+                                                            ? `Tutor: ${atleta.tutorInfo.nombre} ${atleta.tutorInfo.apellido}`.trim()
+                                                            : undefined
+                                                    }
+                                                />
                                             </td>
                                             <td>
                                                 {atleta.perteneceSeleccion ? (

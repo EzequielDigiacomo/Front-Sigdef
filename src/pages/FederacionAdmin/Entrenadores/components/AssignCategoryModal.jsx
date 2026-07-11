@@ -7,8 +7,15 @@ import { CATEGORIA_MAP } from '../../../../utils/enums';
 import './AssignCategoryModal.css';
 
 const AssignCategoryModal = ({ isOpen, onClose, onSuccess, coach }) => {
-    const [selectedCategory, setSelectedCategory] = useState(coach?.categoriaSeleccion || '0');
+    const [selectedCategory, setSelectedCategory] = useState(
+        String(coach?.categoriaSeleccion || coach?.CategoriaSeleccion || '0')
+    );
+
     const [submitting, setSubmitting] = useState(false);
+
+    React.useEffect(() => {
+        setSelectedCategory(String(coach?.categoriaSeleccion || coach?.CategoriaSeleccion || '0'));
+    }, [coach]);
 
     // Confirmation Modal State
     const [showConfirmation, setShowConfirmation] = useState(false);

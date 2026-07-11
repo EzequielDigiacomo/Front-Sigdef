@@ -9,6 +9,7 @@ import { ArrowLeft, Save } from 'lucide-react';
 import { CATEGORIA_MAP, PARENTESCO_MAP } from '../../../utils/enums';
 import { getCategoryByAge } from '../../../utils/categoryConfig';
 import './ClubAtletas.css';
+import '../../../styles/CompactForm.css';
 
 const ClubAtletasForm = () => {
     const { id } = useParams();
@@ -87,53 +88,122 @@ const ClubAtletasForm = () => {
 
     const loadAtleta = async () => {
         try {
-            const data = await api.get(`/Atleta/${id}`);
-             const persona = data.participante || data.Participante || data.persona || {};
-            const athleteId = data.idPersona || data.IdPersona || data.participanteId || data.ParticipanteId;
-            
+            const [data, personaRes] = await Promise.all([
+                api.get(`/Atleta/${id}`),
+                api.get(`/Persona/${id}`).catch(() => null),
+            ]);
+
+            const nested =
+                data.participante ||
+                data.Participante ||
+                data.persona ||
+                data.Persona ||
+                {};
+            const persona = personaRes || nested;
+            const athleteId =
+                data.idPersona ||
+                data.IdPersona ||
+                data.participanteId ||
+                data.ParticipanteId ||
+                parseInt(id, 10);
+
+            const pick = (...vals) => {
+                for (const v of vals) {
+                    if (v != null && String(v).trim() !== '') return v;
+                }
+                return '';
+            };
+
+            const fecha =
+                persona.fechaNacimiento ||
+                persona.FechaNacimiento ||
+                nested.fechaNacimiento ||
+                nested.FechaNacimiento ||
+                '';
+
+            const sexoRaw =
+                persona.sexoId ??
+                persona.SexoId ??
+                persona.sexo ??
+                persona.Sexo ??
+                nested.sexoId ??
+                nested.Sexo ??
+                1;
+            const sexo =
+                typeof sexoRaw === 'object'
+                    ? sexoRaw.id ?? sexoRaw.Id ?? 1
+                    : sexoRaw;
+
             setFormData({
-                nombre: persona.nombre || persona.Nombre || '',
-                apellido: persona.apellido || persona.Apellido || '',
-                documento: persona.documento || persona.Documento || persona.dni || persona.Dni || '',
-                fechaNacimiento: (persona.fechaNacimiento || persona.FechaNacimiento) ? (persona.fechaNacimiento || persona.FechaNacimiento).split('T')[0] : '',
-                email: persona.email || persona.Email || '',
-                telefono: persona.telefono || persona.Telefono || '',
-                direccion: persona.direccion || persona.Direccion || '',
-                categoria: data.categoria || data.Categoria || 0,
-                becadoEnard: data.becadoEnard || data.BecadoEnard || false,
-                becadoSdn: data.becadoSdn || data.BecadoSdn || false,
-                montoBeca: data.montoBeca || data.MontoBeca || 0,
-                presentoAptoMedico: data.presentoAptoMedico || data.PresentoAptoMedico || false,
-                estadoPago: data.estadoPago || data.EstadoPago || 0,
-                perteneceSeleccion: data.perteneceSeleccion || data.PerteneceSeleccion || false,
-                sexo: persona.sexo?.id || persona.Sexo?.Id || persona.sexoId || persona.SexoId || (typeof persona.sexo === 'number' ? persona.sexo : 1),
+                nombre: pick(persona.nombre, persona.Nombre, nested.nombre, nested.Nombre),
+                apellido: pick(
+                    persona.apellido,
+                    persona.Apellido,
+                    nested.apellido,
+                    nested.Apellido
+                ),
+                documento: pick(
+                    persona.documento,
+                    persona.Documento,
+                    persona.dni,
+                    persona.Dni,
+                    nested.documento,
+                    nested.Documento
+                ),
+                fechaNacimiento: fecha ? String(fecha).split('T')[0] : '',
+                email: pick(persona.email, persona.Email, nested.email, nested.Email),
+                telefono: pick(
+                    persona.telefono,
+                    persona.Telefono,
+                    nested.telefono,
+                    nested.Telefono
+                ),
+                direccion: pick(
+                    persona.direccion,
+                    persona.Direccion,
+                    nested.direccion,
+                    nested.Direccion
+                ),
+                categoria: data.categoria ?? data.Categoria ?? 0,
+                becadoEnard: data.becadoEnard ?? data.BecadoEnard ?? false,
+                becadoSdn: data.becadoSdn ?? data.BecadoSdn ?? false,
+                montoBeca: data.montoBeca ?? data.MontoBeca ?? 0,
+                presentoAptoMedico: data.presentoAptoMedico ?? data.PresentoAptoMedico ?? false,
+                estadoPago: data.estadoPago ?? data.EstadoPago ?? 0,
+                perteneceSeleccion: data.perteneceSeleccion ?? data.PerteneceSeleccion ?? false,
+                sexo: sexo || 1,
             });
 
             if (athleteId) {
                 try {
-                    // Fetch all relations and filter (reliable fallback)
                     const relaciones = await api.get('/AtletaTutor');
-                    const relacion = relaciones.find(r => (r.idAtleta || r.IdAtleta) === athleteId);
+                    const relacion = (Array.isArray(relaciones) ? relaciones : []).find((r) => {
+                        const relAtletaId = Number(
+                            r.idAtleta ?? r.IdAtleta ?? r.participanteId ?? r.ParticipanteId
+                        );
+                        return relAtletaId === Number(athleteId);
+                    });
 
                     if (relacion) {
                         try {
-                            // Check if relation object has tutor embedded or just ID
-                            const idTutor = relacion.idTutor;
-                            // Fetch basic tutor info
-                            const tutor = await api.get(`/Tutor/${idTutor}`);
-                            // Fetch full persona info
-                            const idPersonaTutor = tutor.idPersona || idTutor;
-                            const personaTutor = await api.get(`/Persona/${idPersonaTutor}`);
+                            const idTutor = relacion.idTutor ?? relacion.IdTutor;
+                            const personaTutor = await api.get(`/Persona/${idTutor}`);
 
                             setTutorData({
-                                documento: personaTutor.documento || '',
-                                nombre: personaTutor.nombre || '',
-                                apellido: personaTutor.apellido || '',
-                                telefono: personaTutor.telefono || '',
-                                email: personaTutor.email || '',
-                                parentesco: relacion.parentesco || 0,
+                                documento:
+                                    personaTutor.documento ||
+                                    personaTutor.Documento ||
+                                    '',
+                                nombre: personaTutor.nombre || personaTutor.Nombre || '',
+                                apellido:
+                                    personaTutor.apellido || personaTutor.Apellido || '',
+                                telefono:
+                                    personaTutor.telefono || personaTutor.Telefono || '',
+                                email: personaTutor.email || personaTutor.Email || '',
+                                parentesco:
+                                    relacion.parentesco ?? relacion.Parentesco ?? 0,
                                 existe: true,
-                                idPersona: idPersonaTutor,
+                                idPersona: idTutor,
                             });
                         } catch (detailError) {
                             console.error('Error fetching tutor details inside form:', detailError);
@@ -266,16 +336,16 @@ const ClubAtletasForm = () => {
     };
 
     return (
-        <div className="page-container">
+        <div className="page-container compact-form">
             <div className="page-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Button variant="ghost" onClick={() => navigate('/club/atletas')}>
-                        <ArrowLeft size={20} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <Button variant="ghost" size="sm" onClick={() => navigate('/club/atletas')}>
+                        <ArrowLeft size={18} />
                     </Button>
                     <h2 className="page-title">{id ? 'Editar Atleta' : 'Nuevo Atleta'}</h2>
                 </div>
             </div>
-            <Card>
+            <Card className="compact-form-card">
                 <form onSubmit={handleSubmit}>
                     <div className="form-grid">
                         <h3 className="form-section-title">Datos Personales</h3>
@@ -328,7 +398,7 @@ const ClubAtletasForm = () => {
                                         placeholder="Buscar por documento..."
                                         required
                                     />
-                                    {tutorData.existe && <small style={{ color: 'var(--success)' }}>✓ Tutor encontrado en el sistema</small>}
+                                    {tutorData.existe && <small className="form-hint" style={{ color: 'var(--success)' }}>✓ Tutor encontrado en el sistema</small>}
                                 </div>
                                 <div className="form-group">
                                     <label>Nombre del Tutor *</label>
@@ -392,7 +462,7 @@ const ClubAtletasForm = () => {
                                 className="form-input"
                                 disabled
                             />
-                            <small>El atleta se registrará automáticamente en tu club</small>
+                            <small className="form-hint">El atleta se registrará automáticamente en tu club</small>
                         </div>
                         <div className="form-group">
                             <label>Categoría</label>
@@ -435,9 +505,9 @@ const ClubAtletasForm = () => {
                         </div>
                     </div>
                     <div className="form-actions">
-                        <Button type="button" variant="secondary" onClick={() => navigate('/club/atletas')}>Cancelar</Button>
-                        <Button type="submit" variant="primary" isLoading={loading}>
-                            <Save size={18} /> {id ? 'Actualizar' : 'Guardar'} Atleta
+                        <Button type="button" variant="secondary" size="sm" onClick={() => navigate('/club/atletas')}>Cancelar</Button>
+                        <Button type="submit" variant="primary" size="sm" isLoading={loading}>
+                            <Save size={16} /> {id ? 'Actualizar' : 'Guardar'} Atleta
                         </Button>
                     </div>
                 </form>

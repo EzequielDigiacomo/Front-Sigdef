@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
@@ -8,14 +8,18 @@ import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import { ArrowLeft, Save } from 'lucide-react';
 import { PARENTESCO_MAP } from '../../../utils/enums';
 import './ClubTutoresForm.css';
+import '../../../styles/CompactForm.css';
 
 const ClubTutoresForm = () => {
     const { id } = useParams();
+    const [searchParams] = useSearchParams();
     const { user } = useAuth();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [atletas, setAtletas] = useState([]);
-    const [selectedAtletaId, setSelectedAtletaId] = useState('');
+    const [selectedAtletaId, setSelectedAtletaId] = useState(
+        () => searchParams.get('atletaId') || ''
+    );
     const [busquedaAtleta, setBusquedaAtleta] = useState('');
 
     const [formData, setFormData] = useState({
@@ -53,50 +57,79 @@ const ClubTutoresForm = () => {
 
     const fetchAtletas = async () => {
         try {
-            // Robust Club ID detection
             const clubId = user?.IdClub || user?.idClub || user?.club?.id || user?.clubId;
             if (!clubId) {
                 console.error('No se pudo identificar el Club ID');
                 return;
             }
 
-            console.log('Cargando atletas para Club ID:', clubId);
+            const preselectedAtletaId = searchParams.get('atletaId') || selectedAtletaId;
 
             const [allAtletas, allPersonas, allRelaciones] = await Promise.all([
-                api.get('/Atleta'),
-                api.get('/Persona'),
-                api.get('/AtletaTutor')
+                api.get('/Atleta').catch(() => []),
+                api.get('/Persona').catch(() => []),
+                api.get('/AtletaTutor').catch(() => []),
             ]);
 
-            // Map Personas for name resolution
-            const personasMap = new Map(allPersonas.map(p => [p.idPersona, p]));
+            const getPersonaId = (p) =>
+                p.idPersona ?? p.IdPersona ?? p.participanteId ?? p.ParticipanteId;
+            const getAtletaId = (a) =>
+                a.idPersona ?? a.IdPersona ?? a.participanteId ?? a.ParticipanteId;
+            const getRelAtletaId = (r) =>
+                r.idAtleta ?? r.IdAtleta ?? r.participanteId ?? r.ParticipanteId;
 
-            // Set of athletes with tutors
-            const atletasConTutorIds = new Set(allRelaciones.map(r => r.idAtleta));
+            const personasMap = new Map(
+                (Array.isArray(allPersonas) ? allPersonas : []).map((p) => [
+                    Number(getPersonaId(p)),
+                    p,
+                ])
+            );
 
-            // Filter athletes: 
-            // 1. Belongs to Club
-            // 2. Does NOT have a tutor (optional, based on user request "sin tutor asignado")
-            // 3. Enrich with Persona data
-            const atletasDisponibles = allAtletas
-                .filter(a => {
-                    const aClubId = a.idClub || a.clubId || a.IdClub; // Check all casing
-                    // Loose comparison for ID (string vs number)
+            const atletasConTutorIds = new Set(
+                (Array.isArray(allRelaciones) ? allRelaciones : [])
+                    .map((r) => Number(getRelAtletaId(r)))
+                    .filter((n) => Number.isFinite(n))
+            );
+
+            const atletasDisponibles = (Array.isArray(allAtletas) ? allAtletas : [])
+                .filter((a) => {
+                    const aClubId = a.idClub || a.clubId || a.IdClub;
                     return aClubId && String(aClubId) === String(clubId);
                 })
-                .map(a => {
-                    const persona = personasMap.get(a.idPersona);
+                .map((a) => {
+                    const idPersona = Number(getAtletaId(a));
+                    const persona = personasMap.get(idPersona) || a.participante || a.Participante || {};
                     return {
                         ...a,
-                        nombrePersona: persona ? `${persona.nombre} ${persona.apellido}` : (a.nombrePersona || 'Sin Nombre'),
-                        documento: persona ? persona.documento : (a.documento || '-')
+                        idPersona,
+                        nombrePersona: persona
+                            ? `${persona.nombre || persona.Nombre || ''} ${
+                                  persona.apellido || persona.Apellido || ''
+                              }`.trim() ||
+                              a.nombrePersona ||
+                              a.NombrePersona ||
+                              'Sin Nombre'
+                            : a.nombrePersona || a.NombrePersona || 'Sin Nombre',
+                        documento:
+                            persona.documento ||
+                            persona.Documento ||
+                            persona.dni ||
+                            persona.Dni ||
+                            a.documento ||
+                            a.Documento ||
+                            '-',
                     };
                 })
-                .filter(a => !atletasConTutorIds.has(a.idPersona)); // Filter out those with tutors
+                .filter(
+                    (a) =>
+                        !atletasConTutorIds.has(a.idPersona) ||
+                        String(a.idPersona) === String(preselectedAtletaId)
+                );
 
-            console.log(`Encontrados ${atletasDisponibles.length} atletas disponibles sin tutor.`);
             setAtletas(atletasDisponibles);
-
+            if (preselectedAtletaId) {
+                setSelectedAtletaId(String(preselectedAtletaId));
+            }
         } catch (error) {
             console.error('Error cargando atletas:', error);
         }
@@ -104,21 +137,66 @@ const ClubTutoresForm = () => {
 
     const loadTutor = async () => {
         try {
-            const data = await api.get(`/Tutor/${id}`);
+            const [data, personaRes] = await Promise.all([
+                api.get(`/Tutor/${id}`),
+                api.get(`/Persona/${id}`).catch(() => null),
+            ]);
+
+            const nested =
+                data.participante || data.Participante || data.persona || data.Persona || {};
+            const persona = personaRes || nested;
+
+            const tipoRaw = data.tipoTutor || data.TipoTutor || '';
             const parentescoKey = Object.keys(PARENTESCO_MAP).find(
-                key => PARENTESCO_MAP[key] === data.tipoTutor
+                (key) => PARENTESCO_MAP[key] === tipoRaw
             );
 
+            const fecha =
+                persona.fechaNacimiento ||
+                persona.FechaNacimiento ||
+                nested.fechaNacimiento ||
+                nested.FechaNacimiento ||
+                '';
+
             setFormData({
-                nombre: data.persona?.nombre || data.nombrePersona?.split(' ')[0] || '',
-                apellido: data.persona?.apellido || data.nombrePersona?.split(' ').slice(1).join(' ') || '',
-                documento: data.documento || data.persona?.documento || '',
-                fechaNacimiento: data.persona?.fechaNacimiento ? data.persona.fechaNacimiento.split('T')[0] : '',
-                email: data.email || data.persona?.email || '',
-                telefono: data.telefono || data.persona?.telefono || '',
-                direccion: data.persona?.direccion || '',
-                tipoTutor: parentescoKey ? parseInt(parentescoKey) : 0,
-                sexo: data.persona?.sexo || 1
+                nombre: persona.nombre || persona.Nombre || nested.nombre || nested.Nombre || '',
+                apellido:
+                    persona.apellido ||
+                    persona.Apellido ||
+                    nested.apellido ||
+                    nested.Apellido ||
+                    '',
+                documento:
+                    persona.documento ||
+                    persona.Documento ||
+                    persona.dni ||
+                    persona.Dni ||
+                    nested.documento ||
+                    nested.Documento ||
+                    data.documento ||
+                    '',
+                fechaNacimiento: fecha ? String(fecha).split('T')[0] : '',
+                email: persona.email || persona.Email || nested.email || nested.Email || '',
+                telefono:
+                    persona.telefono ||
+                    persona.Telefono ||
+                    nested.telefono ||
+                    nested.Telefono ||
+                    '',
+                direccion:
+                    persona.direccion ||
+                    persona.Direccion ||
+                    nested.direccion ||
+                    nested.Direccion ||
+                    '',
+                tipoTutor: parentescoKey ? parseInt(parentescoKey, 10) : 0,
+                sexo:
+                    persona.sexoId ??
+                    persona.SexoId ??
+                    persona.sexo ??
+                    persona.Sexo ??
+                    nested.sexo ??
+                    1,
             });
         } catch (error) {
             console.error('Error cargando tutor:', error);
@@ -239,9 +317,12 @@ const ClubTutoresForm = () => {
 
                     if (tutorIdParaVinculo) {
                         await api.post('/AtletaTutor', {
-                            idAtleta: parseInt(selectedAtletaId),
+                            ParticipanteId: parseInt(selectedAtletaId, 10),
+                            participanteId: parseInt(selectedAtletaId, 10),
+                            IdTutor: tutorIdParaVinculo,
                             idTutor: tutorIdParaVinculo,
-                            parentesco: parseInt(formData.tipoTutor)
+                            Parentesco: parseInt(formData.tipoTutor, 10),
+                            parentesco: parseInt(formData.tipoTutor, 10),
                         });
                         console.log('✅ Vinculación exitosa');
                     }
@@ -282,17 +363,17 @@ const ClubTutoresForm = () => {
     };
 
     return (
-        <div className="page-container">
+        <div className="page-container compact-form">
             <div className="page-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Button variant="ghost" onClick={() => navigate('/club/tutores')}>
-                        <ArrowLeft size={20} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <Button variant="ghost" size="sm" onClick={() => navigate('/club/tutores')}>
+                        <ArrowLeft size={18} />
                     </Button>
                     <h2 className="page-title">{id ? 'Editar Tutor' : 'Nuevo Tutor'}</h2>
                 </div>
             </div>
 
-            <Card>
+            <Card className="compact-form-card">
                 <form onSubmit={handleSubmit}>
                     <div className="form-grid">
                         <h3 className="form-section-title">Datos Personales del Tutor</h3>
@@ -430,16 +511,16 @@ const ClubTutoresForm = () => {
                                     ))
                                 }
                             </select>
-                            <small>Selecciona un atleta para vincularlo automáticamente a este tutor.</small>
+                            <small className="form-hint">Selecciona un atleta para vincularlo automáticamente a este tutor.</small>
                         </div>
                     </div>
 
                     <div className="form-actions">
-                        <Button type="button" variant="secondary" onClick={() => navigate('/club/tutores')}>
+                        <Button type="button" variant="secondary" size="sm" onClick={() => navigate('/club/tutores')}>
                             Cancelar
                         </Button>
-                        <Button type="submit" variant="primary" isLoading={loading}>
-                            <Save size={18} /> {id ? 'Actualizar' : 'Guardar'} Tutor
+                        <Button type="submit" variant="primary" size="sm" isLoading={loading}>
+                            <Save size={16} /> {id ? 'Actualizar' : 'Guardar'} Tutor
                         </Button>
                     </div>
                 </form>

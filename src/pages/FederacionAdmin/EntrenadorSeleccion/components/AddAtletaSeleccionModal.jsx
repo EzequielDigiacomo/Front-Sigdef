@@ -50,28 +50,28 @@ const AddAtletaSeleccionModal = ({ isOpen, onClose, onSuccess, categoryId }) => 
     const loadAthletesByCategory = async () => {
         setLoading(true);
         try {
-            const [athletesData, personasData, clubesData] = await Promise.all([
+            const [athletesData, clubesData] = await Promise.all([
                 api.get('/Atleta'),
-                api.get('/Persona'),
                 api.get('/Club')
             ]);
 
-            // Create club map for quick lookup
             const clubMap = {};
             (clubesData || []).forEach(club => {
-                clubMap[club.idClub] = club.nombre;
+                clubMap[club.idClub ?? club.IdClub] = club.nombre || club.Nombre;
             });
 
-            // Filter athletes NOT in selection
-            const available = (athletesData || []).filter(a => !a.perteneceSeleccion);
+            const available = (athletesData || []).filter(a => !(a.perteneceSeleccion ?? a.PerteneceSeleccion));
 
-            // Enrich with persona data and age calculation
             const enriched = available.map(athlete => {
-                const persona = (personasData || []).find(p => p.idPersona === athlete.idPersona);
-                const fechaNac = persona?.fechaNacimiento || athlete.fechaNacimiento;
+                const persona = athlete.participante || athlete.Participante || {};
+                const fechaNac =
+                    athlete.fechaNacimiento ||
+                    athlete.FechaNacimiento ||
+                    persona.fechaNacimiento ||
+                    persona.FechaNacimiento;
 
-                let edad = null;
-                if (fechaNac) {
+                let edad = athlete.edad ?? athlete.Edad ?? null;
+                if (edad == null && fechaNac) {
                     const hoy = new Date();
                     const nacimiento = new Date(fechaNac);
                     edad = hoy.getFullYear() - nacimiento.getFullYear();
@@ -81,26 +81,27 @@ const AddAtletaSeleccionModal = ({ isOpen, onClose, onSuccess, categoryId }) => 
                     }
                 }
 
-                // Get club name from club object or map
-                const clubName = athlete.club?.nombre ||
+                const clubName = athlete.nombreClub || athlete.NombreClub ||
+                    athlete.club?.nombre || athlete.Club?.Nombre ||
                     (athlete.idClub ? clubMap[athlete.idClub] : null) ||
                     'Agente Libre';
+
+                const nombreFromPersona = persona.nombre || persona.Nombre
+                    ? `${persona.nombre || persona.Nombre} ${persona.apellido || persona.Apellido || ''}`.trim()
+                    : '';
 
                 return {
                     ...athlete,
                     edad,
-                    nombrePersona: persona?.nombre && persona?.apellido
-                        ? `${persona.nombre} ${persona.apellido}`
-                        : athlete.nombrePersona,
-                    documento: persona?.documento || athlete.documento,
+                    nombrePersona: athlete.nombrePersona || athlete.NombrePersona || nombreFromPersona || '-',
+                    documento: athlete.documento || athlete.Documento || persona.documento || persona.Documento || '-',
                     nombreClub: clubName
                 };
             });
 
-            // Filter by category age range
             const categoryRange = CATEGORY_RANGES.find(r => r.categoryId === categoryId);
             const filtered = enriched.filter(athlete => {
-                if (!athlete.edad) return false; // Skip athletes without age
+                if (athlete.edad == null) return false;
 
                 if (categoryRange.minAge && categoryRange.maxAge) {
                     return athlete.edad >= categoryRange.minAge && athlete.edad <= categoryRange.maxAge;

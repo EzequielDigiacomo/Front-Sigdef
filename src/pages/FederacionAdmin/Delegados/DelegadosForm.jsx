@@ -7,6 +7,7 @@ import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import { ArrowLeft, Save, Search } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { withFederationScope } from '../../../utils/apiHelpers';
+import '../../../styles/CompactForm.css';
 
 const DelegadosForm = () => {
     const { id, fedId } = useParams();
@@ -185,24 +186,24 @@ const DelegadosForm = () => {
     };
 
     return (
-        <div className="page-container">
+        <div className="page-container compact-form">
             <div className="page-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Button variant="ghost" onClick={goBack}>
-                        <ArrowLeft size={20} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <Button variant="ghost" size="sm" onClick={goBack}>
+                        <ArrowLeft size={18} />
                     </Button>
                     <h2 className="page-title">Crear / Asignar Delegado</h2>
                 </div>
             </div>
 
-            <Card style={{ maxWidth: '800px', margin: '0 auto' }}>
+            <Card className="compact-form-card">
                 <form onSubmit={handleSubmit}>
                     <div className="form-grid">
-                        <h3 className="form-section-title" style={{ gridColumn: '1 / -1' }}>Datos de la Persona</h3>
+                        <h3 className="form-section-title">Datos de la Persona</h3>
 
                         <div className="form-group">
                             <label>DNI *</label>
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <div className="form-inline">
                                 <input
                                     type="text"
                                     name="documento"
@@ -212,8 +213,8 @@ const DelegadosForm = () => {
                                     className="form-input"
                                     required
                                 />
-                                <Button type="button" variant="secondary" onClick={buscarPersonaPorDni} title="Buscar existencia">
-                                    <Search size={18} />
+                                <Button type="button" variant="secondary" size="sm" onClick={buscarPersonaPorDni} title="Buscar existencia">
+                                    <Search size={16} />
                                 </Button>
                             </div>
                         </div>
@@ -299,7 +300,7 @@ const DelegadosForm = () => {
                             />
                         </div>
 
-                        <h3 className="form-section-title" style={{ gridColumn: '1 / -1', marginTop: '1rem' }}>Datos del Delegado</h3>
+                        <h3 className="form-section-title">Datos del Delegado</h3>
 
                         <div className="form-group">
                             <label>Club (Opcional - Agente Libre)</label>
@@ -316,7 +317,7 @@ const DelegadosForm = () => {
                                     </option>
                                 ))}
                             </select>
-                            <small className="form-text text-muted">Si no selecciona un club, el delegado quedará como agente libre.</small>
+                            <small className="form-hint">Si no selecciona un club, el delegado quedará como agente libre.</small>
                         </div>
 
                         <div className="form-group">
@@ -344,12 +345,12 @@ const DelegadosForm = () => {
 
                     </div>
 
-                    <div className="form-actions" style={{ marginTop: '2rem' }}>
-                        <Button type="button" variant="secondary" onClick={goBack}>
+                    <div className="form-actions">
+                        <Button type="button" variant="secondary" size="sm" onClick={goBack}>
                             Cancelar
                         </Button>
-                        <Button type="submit" variant="primary" isLoading={loading}>
-                            <Save size={18} className="mr-2" /> Guardar Delegado
+                        <Button type="submit" variant="primary" size="sm" isLoading={loading}>
+                            <Save size={16} className="mr-2" /> Guardar Delegado
                         </Button>
                     </div>
                 </form>

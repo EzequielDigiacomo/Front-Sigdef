@@ -27,81 +27,83 @@ const ClubTutores = () => {
         try {
             setLoading(true);
 
-            // Robust Club ID detection
             const clubId = user?.IdClub || user?.idClub || user?.club?.id || user?.clubId;
             if (!clubId) {
-                console.error("No Club ID found for user");
+                console.error('No Club ID found for user');
                 setLoading(false);
                 return;
             }
 
-            console.log("Cargando tutores para Club ID:", clubId);
-
-            // Fetch essential data in parallel
-            const [allTutores, allAtletas, allRelaciones, allPersonas] = await Promise.all([
-                api.get('/Tutor'),
-                api.get('/Atleta'),
-                api.get('/AtletaTutor'),
-                api.get('/Persona')
+            const [allTutores, allAtletas, allRelaciones] = await Promise.all([
+                api.get('/Tutor').catch(() => []),
+                api.get('/Atleta').catch(() => []),
+                api.get('/AtletaTutor').catch(() => []),
             ]);
 
-            // 1. Identify Athletes belonging to this Club
-            const myClubAtletas = allAtletas.filter(a => {
+            const getAtletaId = (a) =>
+                a.idPersona ?? a.IdPersona ?? a.participanteId ?? a.ParticipanteId;
+            const getTutorId = (t) =>
+                t.idPersona ?? t.IdPersona ?? t.participanteId ?? t.ParticipanteId;
+            const getRelAtletaId = (r) =>
+                r.idAtleta ?? r.IdAtleta ?? r.participanteId ?? r.ParticipanteId;
+            const getRelTutorId = (r) => r.idTutor ?? r.IdTutor;
+
+            const myClubAtletas = (Array.isArray(allAtletas) ? allAtletas : []).filter((a) => {
                 const aClubId = a.idClub || a.clubId || a.IdClub;
                 return aClubId && String(aClubId) === String(clubId);
             });
-            const myClubAtletaIds = new Set(myClubAtletas.map(a => a.idPersona));
 
-            // Map for Athlete Names: ID -> Name
-            const personaMap = new Map(allPersonas.map(p => [p.idPersona, p]));
+            const myClubAtletaIds = new Set(
+                myClubAtletas.map((a) => Number(getAtletaId(a))).filter((id) => Number.isFinite(id))
+            );
+
             const atletaNameMap = new Map();
-            myClubAtletas.forEach(a => {
-                const persona = personaMap.get(a.idPersona);
-                const nombre = persona ? `${persona.nombre} ${persona.apellido}` : (a.nombrePersona || 'Desconocido');
-                atletaNameMap.set(a.idPersona, nombre);
+            myClubAtletas.forEach((a) => {
+                const id = Number(getAtletaId(a));
+                const persona = a.participante || a.Participante || {};
+                const nombreFromPersona =
+                    persona.nombre || persona.Nombre
+                        ? `${persona.nombre || persona.Nombre} ${persona.apellido || persona.Apellido || ''}`.trim()
+                        : '';
+                const nombre =
+                    a.nombrePersona || a.NombrePersona || nombreFromPersona || 'Desconocido';
+                atletaNameMap.set(id, nombre);
             });
 
-            // 2. Identify Relationships involving my Club's Athletes
-            // Filter relationships where the athlete is in my club
-            const myClubRelaciones = allRelaciones.filter(r => myClubAtletaIds.has(r.idAtleta));
+            const myClubRelaciones = (Array.isArray(allRelaciones) ? allRelaciones : []).filter(
+                (r) => myClubAtletaIds.has(Number(getRelAtletaId(r)))
+            );
 
-            // Create a Map: TutorID -> Array of Athlete Names
             const tutorAtletasMap = new Map();
-            myClubRelaciones.forEach(r => {
-                const atletaNombre = atletaNameMap.get(r.idAtleta);
-                if (atletaNombre) {
-                    if (!tutorAtletasMap.has(r.idTutor)) {
-                        tutorAtletasMap.set(r.idTutor, []);
-                    }
-                    tutorAtletasMap.get(r.idTutor).push(atletaNombre);
-                }
+            myClubRelaciones.forEach((r) => {
+                const tutorId = Number(getRelTutorId(r));
+                const atletaId = Number(getRelAtletaId(r));
+                const atletaNombre = atletaNameMap.get(atletaId);
+                if (!Number.isFinite(tutorId) || !atletaNombre) return;
+                if (!tutorAtletasMap.has(tutorId)) tutorAtletasMap.set(tutorId, []);
+                tutorAtletasMap.get(tutorId).push(atletaNombre);
             });
 
-            // 3. Filter Tutors who are in that relationship set
-            // Tutors who are linked to AT LEAST one athlete of my club
-            const myClubTutorIds = new Set(myClubRelaciones.map(r => r.idTutor));
+            const myClubTutorIds = new Set(
+                myClubRelaciones.map((r) => Number(getRelTutorId(r))).filter((id) => Number.isFinite(id))
+            );
 
-            const tutoresFiltrados = allTutores
-                .filter(t => myClubTutorIds.has(t.idPersona)) // Strict filtering
-                .map(t => {
-                    // Enrich with Persona data if missing
-                    const persona = personaMap.get(t.idPersona);
-                    // Enrich with Assigned Athletes
-                    const atletasAsignados = tutorAtletasMap.get(t.idPersona) || [];
-
+            const tutoresFiltrados = (Array.isArray(allTutores) ? allTutores : [])
+                .map((t) => {
+                    const idPersona = Number(getTutorId(t));
                     return {
                         ...t,
-                        nombrePersona: persona ? `${persona.nombre} ${persona.apellido}` : (t.nombrePersona || ''),
-                        email: persona ? persona.email : t.email,
-                        telefono: persona ? persona.telefono : t.telefono,
-                        direccion: persona ? persona.direccion : t.direccion,
-                        atletaVinculado: atletasAsignados.join(', ') // Display as string
+                        idPersona,
+                        nombrePersona: t.nombrePersona || t.NombrePersona || '',
+                        email: t.email || t.Email || '',
+                        telefono: t.telefono || t.Telefono || '',
+                        direccion: t.direccion || t.Direccion || '',
+                        atletaVinculado: (tutorAtletasMap.get(idPersona) || []).join(', '),
                     };
-                });
+                })
+                .filter((t) => myClubTutorIds.has(t.idPersona));
 
-            console.log(`Filtrados ${tutoresFiltrados.length} tutores para el club.`);
             setTutores(tutoresFiltrados);
-
         } catch (error) {
             console.error('Error al cargar tutores:', error);
         } finally {

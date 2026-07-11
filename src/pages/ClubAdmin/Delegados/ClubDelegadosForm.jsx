@@ -7,6 +7,7 @@ import Button from '../../../components/common/Button';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import { ArrowLeft, Save, Search } from 'lucide-react';
 import '../Atletas/ClubAtletas.css';
+import '../../../styles/CompactForm.css';
 
 const ClubDelegadosForm = () => {
     const { id } = useParams();
@@ -139,24 +140,24 @@ const ClubDelegadosForm = () => {
     }
 
     return (
-        <div className="page-container">
+        <div className="page-container compact-form">
             <div className="page-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Button variant="ghost" onClick={() => navigate('/club/delegados')}>
-                        <ArrowLeft size={20} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <Button variant="ghost" size="sm" onClick={() => navigate('/club/delegados')}>
+                        <ArrowLeft size={18} />
                     </Button>
                     <h2 className="page-title">{id ? 'Editar Delegado' : 'Nuevo Delegado'}</h2>
                 </div>
             </div>
 
-            <Card>
+            <Card className="compact-form-card">
                 <form onSubmit={handleSubmit}>
                     <div className="form-grid">
-                        <h3 className="form-section-title" style={{ gridColumn: '1 / -1' }}>Datos Personales</h3>
+                        <h3 className="form-section-title">Datos Personales</h3>
 
                         <div className="form-group">
                             <label>DNI *</label>
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <div className="form-inline">
                                 <input
                                     name="documento"
                                     value={formData.documento}
@@ -167,8 +168,8 @@ const ClubDelegadosForm = () => {
                                     disabled={!!id} // Disable DNI edit on update to prevent changing identity easily
                                 />
                                 {!id && (
-                                    <Button type="button" variant="secondary" onClick={buscarPersonaPorDni}>
-                                        <Search size={18} />
+                                    <Button type="button" variant="secondary" size="sm" onClick={buscarPersonaPorDni}>
+                                        <Search size={16} />
                                     </Button>
                                 )}
                             </div>
@@ -212,10 +213,10 @@ const ClubDelegadosForm = () => {
                         </div>
                     </div>
 
-                    <div className="form-actions" style={{ marginTop: '2rem' }}>
-                        <Button type="button" variant="secondary" onClick={() => navigate('/club/delegados')}>Cancelar</Button>
-                        <Button type="submit" variant="primary" isLoading={loading}>
-                            <Save size={18} className="mr-2" /> {id ? 'Actualizar' : 'Guardar'} Delegado
+                    <div className="form-actions">
+                        <Button type="button" variant="secondary" size="sm" onClick={() => navigate('/club/delegados')}>Cancelar</Button>
+                        <Button type="submit" variant="primary" size="sm" isLoading={loading}>
+                            <Save size={16} className="mr-2" /> {id ? 'Actualizar' : 'Guardar'} Delegado
                         </Button>
                     </div>
                 </form>

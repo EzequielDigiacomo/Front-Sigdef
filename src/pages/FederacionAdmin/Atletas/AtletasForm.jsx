@@ -8,6 +8,7 @@ import { ArrowLeft, Save, CheckCircle, XCircle } from 'lucide-react';
 import { CATEGORIA_MAP, PARENTESCO_MAP, SEXO_MAP } from '../../../utils/enums';
 import { getCategoryByAge } from '../../../utils/categoryConfig';
 import './Atletas.css';
+import '../../../styles/CompactForm.css';
 
 const getParticipanteId = (data) =>
     data?.participanteId ?? data?.ParticipanteId ?? data?.idPersona ?? data?.IdPersona ?? null;
@@ -69,7 +70,13 @@ const AtletasForm = () => {
             const fetchTutor = async () => {
                 try {
                     const relRes = await api.get('/AtletaTutor');
-                    const relacion = relRes.find(r => getParticipanteId(r) === parseInt(id) || (r.idAtleta ?? r.IdAtleta) === parseInt(id));
+                    const atletaId = parseInt(id, 10);
+                    const relacion = (Array.isArray(relRes) ? relRes : []).find((r) => {
+                        const relAtletaId = Number(
+                            r.idAtleta ?? r.IdAtleta ?? r.participanteId ?? r.ParticipanteId
+                        );
+                        return relAtletaId === atletaId;
+                    });
                     if (relacion) {
                         const idTutor = relacion.idTutor ?? relacion.IdTutor;
                         const tutorRes = await api.get(`/Persona/${idTutor}`);
@@ -125,28 +132,71 @@ const AtletasForm = () => {
 
     const loadAtleta = async () => {
         try {
-            const data = await api.get(`/Atleta/${id}`);
-            console.log('📦 DATOS ATLETA DETALLE:', JSON.stringify(data, null, 2));
-            const p = data.persona || data.Persona || {};
+            const [data, personaRes] = await Promise.all([
+                api.get(`/Atleta/${id}`),
+                api.get(`/Persona/${id}`).catch(() => null),
+            ]);
+
+            const nested =
+                data.participante ||
+                data.Participante ||
+                data.persona ||
+                data.Persona ||
+                {};
+            const p = personaRes || nested;
+
+            const pick = (...vals) => {
+                for (const v of vals) {
+                    if (v != null && String(v).trim() !== '') return v;
+                }
+                return '';
+            };
+
+            const fecha =
+                p.fechaNacimiento ||
+                p.FechaNacimiento ||
+                nested.fechaNacimiento ||
+                nested.FechaNacimiento ||
+                '';
+
+            const sexoRaw =
+                p.sexoId ??
+                p.SexoId ??
+                p.sexo ??
+                p.Sexo ??
+                nested.sexoId ??
+                nested.Sexo ??
+                1;
+            const sexo =
+                typeof sexoRaw === 'object'
+                    ? sexoRaw.id ?? sexoRaw.Id ?? 1
+                    : sexoRaw;
 
             setFormData({
-                nombre: p.nombre || p.Nombre || '',
-                apellido: p.apellido || p.Apellido || '',
-                documento: p.documento || p.Documento || '',
-                sexo: p.sexo || p.Sexo || 1,
-                fechaNacimiento: (p.fechaNacimiento || p.FechaNacimiento || '').split('T')[0],
-                email: p.email || p.Email || '',
-                telefono: p.telefono || p.Telefono || '',
-                direccion: p.direccion || p.Direccion || '',
+                nombre: pick(p.nombre, p.Nombre, nested.nombre, nested.Nombre),
+                apellido: pick(p.apellido, p.Apellido, nested.apellido, nested.Apellido),
+                documento: pick(
+                    p.documento,
+                    p.Documento,
+                    p.dni,
+                    p.Dni,
+                    nested.documento,
+                    nested.Documento
+                ),
+                sexo: sexo || 1,
+                fechaNacimiento: fecha ? String(fecha).split('T')[0] : '',
+                email: pick(p.email, p.Email, nested.email, nested.Email),
+                telefono: pick(p.telefono, p.Telefono, nested.telefono, nested.Telefono),
+                direccion: pick(p.direccion, p.Direccion, nested.direccion, nested.Direccion),
 
-                idClub: data.idClub || data.IdClub || '',
-                categoria: data.categoria || data.Categoria || 0,
-                becadoEnard: data.becadoEnard || data.BecadoEnard || false,
-                becadoSdn: data.becadoSdn || data.BecadoSdn || false,
-                montoBeca: data.montoBeca || data.MontoBeca || 0,
-                presentoAptoMedico: data.presentoAptoMedico || data.PresentoAptoMedico || false,
-                estadoPago: data.estadoPago || data.EstadoPago || 0,
-                perteneceSeleccion: data.perteneceSeleccion || data.PerteneceSeleccion || false
+                idClub: data.idClub ?? data.IdClub ?? '',
+                categoria: data.categoria ?? data.Categoria ?? 0,
+                becadoEnard: data.becadoEnard ?? data.BecadoEnard ?? false,
+                becadoSdn: data.becadoSdn ?? data.BecadoSdn ?? false,
+                montoBeca: data.montoBeca ?? data.MontoBeca ?? 0,
+                presentoAptoMedico: data.presentoAptoMedico ?? data.PresentoAptoMedico ?? false,
+                estadoPago: data.estadoPago ?? data.EstadoPago ?? 0,
+                perteneceSeleccion: data.perteneceSeleccion ?? data.PerteneceSeleccion ?? false,
             });
         } catch (error) {
             console.error('Error cargando atleta:', error);
@@ -424,17 +474,17 @@ const AtletasForm = () => {
     };
 
     return (
-        <div className="page-container">
+        <div className="page-container compact-form">
             <div className="page-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Button variant="ghost" onClick={handleCancel}>
-                        <ArrowLeft size={20} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <Button variant="ghost" size="sm" onClick={handleCancel}>
+                        <ArrowLeft size={18} />
                     </Button>
                     <h2 className="page-title">{id ? 'Editar Atleta' : 'Nuevo Atleta'}</h2>
                 </div>
             </div>
 
-            <Card style={{ maxWidth: '800px', margin: '0 auto' }}>
+            <Card className="compact-form-card">
                 <form onSubmit={handleSubmit}>
                     <div className="form-grid">
                         <h3 className="form-section-title">Datos Personales</h3>
@@ -480,9 +530,9 @@ const AtletasForm = () => {
 
                         {esMenor && (
                             <>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                    <h3 className="form-section-title" style={{ marginBottom: 0 }}>Datos del Tutor (Menor de 18 años)</h3>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
+                                <div className="form-section-banner">
+                                    <h3 className="form-section-title" style={{ margin: 0, border: 'none', padding: 0 }}>Datos del Tutor (Menor de 18 años)</h3>
+                                    <label className="checkbox-group" style={{ margin: 0 }}>
                                         <input
                                             type="checkbox"
                                             checked={tutorLater}
@@ -493,9 +543,9 @@ const AtletasForm = () => {
                                 </div>
 
                                 {id && tutorLater && (
-                                    <small style={{ display: 'block', marginBottom: '1rem', color: 'var(--text-secondary)' }}>
+                                    <p className="form-hint full-width">
                                         Desmarcar para editar o asignar tutor.
-                                    </small>
+                                    </p>
                                 )}
 
                                 {!tutorLater && (
@@ -510,10 +560,10 @@ const AtletasForm = () => {
                                                 placeholder="Buscar por documento..."
                                                 required={!tutorLater}
                                             />
-                                            <div style={{ minHeight: '20px', fontSize: '0.85rem', marginTop: '4px' }}>
-                                                {tutorSearchStatus === 'loading' && <span style={{ color: 'var(--text-secondary)' }}>🔍 Buscando...</span>}
-                                                {tutorSearchStatus === 'found' && <span style={{ color: 'var(--success)' }}>✓ Persona encontrada, datos precargados.</span>}
-                                                {tutorSearchStatus === 'not_found' && <span style={{ color: 'var(--text-secondary)' }}>No existe ese DNI registrado, complete los datos.</span>}
+                                            <div className="form-hint" style={{ minHeight: '1.1rem' }}>
+                                                {tutorSearchStatus === 'loading' && <span>Buscando...</span>}
+                                                {tutorSearchStatus === 'found' && <span style={{ color: 'var(--success)' }}>Persona encontrada, datos precargados.</span>}
+                                                {tutorSearchStatus === 'not_found' && <span>No existe ese DNI registrado, complete los datos.</span>}
                                             </div>
                                         </div>
                                         <div className="form-group">
@@ -593,25 +643,25 @@ const AtletasForm = () => {
                             </select>
                         </div>
 
-                        <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+                        <div className="form-group checkbox-group">
                             <input type="checkbox" name="presentoAptoMedico" checked={formData.presentoAptoMedico} onChange={handleChange} id="apto" />
-                            <label htmlFor="apto" style={{ marginBottom: 0 }}>Presentó Apto Médico</label>
+                            <label htmlFor="apto">Presentó Apto Médico</label>
                         </div>
 
-                        <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+                        <div className="form-group checkbox-group">
                             <input type="checkbox" name="perteneceSeleccion" checked={formData.perteneceSeleccion} onChange={handleChange} id="seleccion" />
-                            <label htmlFor="seleccion" style={{ marginBottom: 0 }}>Pertenece a Selección</label>
+                            <label htmlFor="seleccion">Pertenece a Selección</label>
                         </div>
 
                         <h3 className="form-section-title">Becas</h3>
 
-                        <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+                        <div className="form-group checkbox-group">
                             <input type="checkbox" name="becadoEnard" checked={formData.becadoEnard} onChange={handleChange} id="enard" />
-                            <label htmlFor="enard" style={{ marginBottom: 0 }}>Becado ENARD</label>
+                            <label htmlFor="enard">Becado ENARD</label>
                         </div>
-                        <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+                        <div className="form-group checkbox-group">
                             <input type="checkbox" name="becadoSdn" checked={formData.becadoSdn} onChange={handleChange} id="sdn" />
-                            <label htmlFor="sdn" style={{ marginBottom: 0 }}>Becado SDN</label>
+                            <label htmlFor="sdn">Becado SDN</label>
                         </div>
                         <div className="form-group">
                             <label>Monto Beca</label>
@@ -620,9 +670,9 @@ const AtletasForm = () => {
                     </div>
 
                     <div className="form-actions">
-                        <Button type="button" variant="secondary" onClick={handleCancel}>Cancelar</Button>
-                        <Button type="submit" variant="primary" isLoading={loading}>
-                            <Save size={18} /> Guardar Atleta
+                        <Button type="button" variant="secondary" size="sm" onClick={handleCancel}>Cancelar</Button>
+                        <Button type="submit" variant="primary" size="sm" isLoading={loading}>
+                            <Save size={16} /> Guardar Atleta
                         </Button>
                     </div>
                 </form>

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import { Users, Award, ChevronRight, User, Plus } from 'lucide-react';
-import { CATEGORIA_MAP } from '../../../utils/enums';
+import { CATEGORIA_MAP, normalizeCategoriaId } from '../../../utils/enums';
 import { withFederationScope } from '../../../utils/apiHelpers';
 import './EntrenadorSeleccion.css?v=2';
 
@@ -13,6 +13,13 @@ const EntrenadorSeleccionList = () => {
     const [stats, setStats] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+
+    const baseEntrenadores = isSuperAdminView
+        ? `/superadmin/federacion/${fedId}/entrenadores`
+        : '/dashboard/entrenadores';
+    const baseSelecciones = isSuperAdminView
+        ? `/superadmin/federacion/${fedId}/selecciones`
+        : '/dashboard/selecciones';
 
     useEffect(() => {
         fetchData();
@@ -26,25 +33,36 @@ const EntrenadorSeleccionList = () => {
                 api.get(withFederationScope('/Atleta', fedId)).catch(() => [])
             ]);
 
-            const selectionAthletes = (athletesData || []).filter(a => a.perteneceSeleccion);
+            const selectionAthletes = (athletesData || []).filter(
+                (a) => !!(a.perteneceSeleccion ?? a.PerteneceSeleccion)
+            );
 
-            const categoryStats = Object.keys(CATEGORIA_MAP).map(key => {
-                const categoryId = parseInt(key);
+            const categoryStats = Object.keys(CATEGORIA_MAP).map((key) => {
+                const categoryId = parseInt(key, 10);
                 const categoryLabel = CATEGORIA_MAP[key];
 
-                // Get ALL coaches for this category
-                const coaches = (coachesData || []).filter(c => parseInt(c.categoriaSeleccion) === categoryId);
-                const coachNames = coaches.map(c => c.nombrePersona || `${c.nombre} ${c.apellido}`);
+                const coaches = (coachesData || []).filter(
+                    (c) => normalizeCategoriaId(c.categoriaSeleccion ?? c.CategoriaSeleccion) === categoryId
+                );
+                const coachNames = coaches.map(
+                    (c) =>
+                        c.nombrePersona ||
+                        c.NombrePersona ||
+                        `${c.nombre || c.Nombre || ''} ${c.apellido || c.Apellido || ''}`.trim() ||
+                        'Entrenador'
+                );
 
-                const athleteCount = selectionAthletes.filter(a => a.categoria === categoryId).length;
+                const athleteCount = selectionAthletes.filter((a) => {
+                    const cat = a.categoria ?? a.Categoria;
+                    return normalizeCategoriaId(cat) === categoryId;
+                }).length;
 
                 return {
                     id: categoryId,
                     label: categoryLabel,
-                    coachNames: coachNames,
-                    athleteCount: athleteCount,
-                    // Para el estilo de la imagen, simulamos algunos datos adicionales
-                    hasTrainer: coachNames.length > 0
+                    coachNames,
+                    athleteCount,
+                    hasTrainer: coachNames.length > 0,
                 };
             });
 
@@ -65,7 +83,7 @@ const EntrenadorSeleccionList = () => {
             );
         }
 
-        const maxDisplay = 3; // Mostrar hasta 3 ahora que es más alta
+        const maxDisplay = 3;
         const displayed = names.slice(0, maxDisplay);
         const remaining = names.length - maxDisplay;
 
@@ -98,7 +116,7 @@ const EntrenadorSeleccionList = () => {
                 </div>
                 <button
                     className="btn-primary"
-                    onClick={() => navigate('/dashboard/entrenadores-seleccion/nuevo')}
+                    onClick={() => navigate(`${baseEntrenadores}/nuevo`)}
                     style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                 >
                     <Plus size={20} />
@@ -116,9 +134,8 @@ const EntrenadorSeleccionList = () => {
                         <div
                             key={stat.id}
                             className="category-card-horizontal"
-                            onClick={() => navigate(`/dashboard/selecciones/categoria/${stat.id}`)}
+                            onClick={() => navigate(`${baseSelecciones}/categoria/${stat.id}`)}
                         >
-                            {/* Columna Izquierda: Icono y Título */}
                             <div className="card-col-left">
                                 <div className="category-icon-wrapper">
                                     <Award size={32} />
@@ -126,13 +143,11 @@ const EntrenadorSeleccionList = () => {
                                 <h3 className="category-title">{stat.label}</h3>
                             </div>
 
-                            {/* Columna Central: Entrenadores */}
                             <div className="card-col-center">
                                 <div className="section-label">Cuerpo Técnico</div>
                                 {renderCoachSection(stat.coachNames)}
                             </div>
 
-                            {/* Columna Derecha: Stats y Acción */}
                             <div className="card-col-right">
                                 <div className="stat-group">
                                     <div className="stat-big-number">{stat.athleteCount}</div>

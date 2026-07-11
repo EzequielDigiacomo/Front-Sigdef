@@ -310,35 +310,42 @@
     color: var(--primary) !important;
 }
 
-/* Form Grid Layout */
+/* Form Grid Layout — compact values aligned with CompactForm.css */
 .form-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1.5rem;
-    padding: 1rem 0;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem 0.75rem;
+    padding: 0.15rem 0;
 }
 
 .form-grid .form-section-title {
     grid-column: 1 / -1;
-    margin-top: 1.5rem;
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    color: var(--primary);
-    font-size: 1.2rem;
-    font-weight: 600;
+    margin: 0.55rem 0 0.1rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    text-align: left;
+    line-height: 1.2;
+}
+
+.form-grid .form-section-title:first-child {
+    margin-top: 0;
 }
 
 .form-group {
     margin-bottom: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.2rem;
 }
 
 .form-group label {
-    font-size: 0.9rem;
-    font-weight: 500;
+    font-size: 0.75rem;
+    font-weight: 600;
     color: var(--text-secondary);
 }
 
@@ -348,11 +355,11 @@
     flex-direction: row;
     align-items: center;
     justify-content: flex-start;
-    gap: 0.75rem;
-    background: rgba(255, 255, 255, 0.03);
-    padding: 0.75rem;
+    gap: 0.55rem;
+    background: rgba(15, 23, 42, 0.28);
+    padding: 0.35rem 0.55rem;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    min-height: 36px;
 }
 
 /* Ensure full width for certain elements if needed */
@@ -362,7 +369,11 @@
 
 .form-input {
     width: 100%;
-    padding: 0.75rem;
+    box-sizing: border-box;
+    min-height: 36px;
+    height: 36px;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.9rem;
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.05);
@@ -386,10 +397,12 @@
 .form-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 1rem;
-    margin-top: 2rem;
-    padding-top: 1rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.85rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.14);
 }
 
 .estado-pago-cell {

@@ -217,4 +217,12 @@ export const api = {
     }),
 };
 
+/** Despierta el API (p. ej. Render cold start) sin bloquear la UI. */
+let apiWarmupPromise = null;
+export const warmupApi = () => {
+    if (apiWarmupPromise) return apiWarmupPromise;
+    apiWarmupPromise = api.get('/auth/me', { silentErrors: true }).catch(() => null);
+    return apiWarmupPromise;
+};
+
 export const getApiBaseUrl = () => API_URL;

@@ -14,6 +14,7 @@ import MobileCard from '../../../components/common/MobileCard';
 import DocumentUploadModal from '../../../components/common/DocumentUploadModal';
 import DocumentViewerModal from '../../../components/common/DocumentViewerModal';
 import { getEstadoPagoLabel, getEstadoPagoColor, getCategoriaLabel, PARENTESCO_MAP } from '../../../utils/enums';
+import { TutorStatusCell, calcEdad } from '../../../components/common/TutorStatusCell';
 import './ClubAtletas.css';
 
 const ESTADO_PAGO_PAGADO = 1;
@@ -84,45 +85,87 @@ const ClubAtletas = () => {
     const fetchAtletas = async (clubId) => {
         try {
             setLoading(true);
-            const personasPromise = api.get('/Persona');
             let data = [];
             try {
                 data = await api.get(`/Atleta/club/${clubId}`, { silentErrors: true });
             } catch (e1) {
-                data = await api.get('/Atleta');
+                data = [];
             }
-            // Filter by club ID supporting all common property casing
-            const filteredData = (data || []).filter(a => {
-                const athleteClubId = a.idClub ?? a.IdClub ?? a.clubId ?? a.ClubId;
-                return String(athleteClubId) === String(clubId);
-            });
 
-            const personas = await personasPromise;
-            const personasMap = new Map(personas.map(p => [
-                p.participanteId ?? p.ParticipanteId ?? p.idPersona ?? p.IdPersona ?? p.id,
-                p
-            ]));
-            const enrichedData = filteredData.map(atleta => {
-                const athleteId = atleta.idPersona ?? atleta.IdPersona ?? atleta.participanteId ?? atleta.ParticipanteId;
-                const persona = personasMap.get(athleteId) || atleta.participante || atleta.Participante;
-                
+            // /Atleta/club a veces no trae fecha; /Atleta sí (participante)
+            const needsEnrichment =
+                !Array.isArray(data) ||
+                data.length === 0 ||
+                data.every((a) => !a.fechaNacimiento && !a.FechaNacimiento && !a.participante && !a.Participante);
+
+            if (needsEnrichment) {
+                const all = await api.get('/Atleta').catch(() => []);
+                data = (Array.isArray(all) ? all : []).filter((a) => {
+                    const athleteClubId = a.idClub ?? a.IdClub ?? a.clubId ?? a.ClubId;
+                    return String(athleteClubId) === String(clubId);
+                });
+            } else {
+                data = (data || []).filter((a) => {
+                    const athleteClubId = a.idClub ?? a.IdClub ?? a.clubId ?? a.ClubId;
+                    return !athleteClubId || String(athleteClubId) === String(clubId);
+                });
+            }
+
+            const relaciones = await api.get('/AtletaTutor').catch(() => []);
+            const conTutor = new Set(
+                (Array.isArray(relaciones) ? relaciones : [])
+                    .map((r) => Number(r.idAtleta ?? r.IdAtleta ?? r.participanteId ?? r.ParticipanteId))
+                    .filter((id) => Number.isFinite(id))
+            );
+
+            const enrichedData = (data || []).map((atleta) => {
+                const athleteId =
+                    atleta.idPersona ??
+                    atleta.IdPersona ??
+                    atleta.participanteId ??
+                    atleta.ParticipanteId;
+                const persona = atleta.participante || atleta.Participante || {};
+
                 const firstName = persona?.nombre ?? persona?.Nombre ?? '';
                 const lastName = persona?.apellido ?? persona?.Apellido ?? '';
-                const doc = persona?.documento ?? persona?.Documento ?? persona?.dni ?? persona?.Dni ?? '';
+                const doc =
+                    atleta.documento ||
+                    atleta.Documento ||
+                    persona?.documento ||
+                    persona?.Documento ||
+                    persona?.dni ||
+                    persona?.Dni ||
+                    '';
+                const fechaNacimiento =
+                    atleta.fechaNacimiento ||
+                    atleta.FechaNacimiento ||
+                    persona?.fechaNacimiento ||
+                    persona?.FechaNacimiento ||
+                    null;
+                const edadRaw = atleta.edad ?? atleta.Edad;
+                const edad =
+                    edadRaw != null && Number(edadRaw) >= 0 && Number(edadRaw) <= 120
+                        ? Number(edadRaw)
+                        : calcEdad(fechaNacimiento);
+                const idNum = Number(athleteId);
 
                 return {
                     ...atleta,
                     idPersona: athleteId,
-                    nombrePersona: firstName && lastName ? `${firstName} ${lastName}` : (atleta.nombrePersona || '-'),
-                    documento: doc || (atleta.documento || '-'),
+                    nombrePersona:
+                        atleta.nombrePersona ||
+                        atleta.NombrePersona ||
+                        (firstName || lastName ? `${firstName} ${lastName}`.trim() : '-'),
+                    documento: doc || '-',
                     categoria: atleta.categoria ?? atleta.Categoria ?? null,
-                    categoriaId: atleta.categoriaId ?? atleta.CategoriaId ?? persona?.categoriaId ?? persona?.CategoriaId ?? null,
-                    categoriaNombre:
-                        atleta.categoriaNombre
-                        ?? atleta.CategoriaNombre
-                        ?? persona?.categoriaNombre
-                        ?? persona?.CategoriaNombre
-                        ?? null,
+                    categoriaId: atleta.categoriaId ?? atleta.CategoriaId ?? null,
+                    categoriaNombre: atleta.categoriaNombre ?? atleta.CategoriaNombre ?? null,
+                    fechaNacimiento,
+                    edad,
+                    tieneTutor:
+                        conTutor.has(idNum) ||
+                        (Array.isArray(atleta.tutores) && atleta.tutores.length > 0) ||
+                        (Array.isArray(atleta.Tutores) && atleta.Tutores.length > 0),
                 };
             });
             setAtletas(enrichedData);
@@ -136,19 +179,12 @@ const ClubAtletas = () => {
     const fetchClubTutores = async () => {
         setLoadingTutores(true);
         try {
-            const [allTutores, allPersonas] = await Promise.all([
-                api.get('/Tutor'),
-                api.get('/Persona')
-            ]);
-            const personasMap = new Map(allPersonas.map(p => [p.idPersona, p]));
-            const mapped = allTutores.map(t => {
-                const persona = personasMap.get(t.idPersona);
-                return {
-                    idPersona: t.idPersona,
-                    nombreCompleto: persona ? `${persona.nombre} ${persona.apellido}` : 'Sin nombre',
-                    documento: persona ? persona.dni || persona.documento : ''
-                };
-            });
+            const allTutores = await api.get('/Tutor');
+            const mapped = (allTutores || []).map(t => ({
+                idPersona: t.idPersona ?? t.participanteId ?? t.ParticipanteId,
+                nombreCompleto: t.nombrePersona || t.NombrePersona || 'Sin nombre',
+                documento: t.documento || t.Documento || t.dni || ''
+            }));
             setExistingTutores(mapped);
         } catch (error) {
             console.error('Error fetching tutores:', error);
@@ -161,23 +197,28 @@ const ClubAtletas = () => {
         if (!selectedTutorIdToAssign || !atletaDetails) return;
         try {
             await api.post('/AtletaTutor', {
-                idAtleta: atletaDetails.idPersona,
-                idTutor: parseInt(selectedTutorIdToAssign),
-                parentesco: 1 // Default: Tutor Legal/Otro
+                ParticipanteId: atletaDetails.idPersona,
+                IdTutor: parseInt(selectedTutorIdToAssign, 10),
+                Parentesco: 1,
             });
             setShowSelectTutorModal(false);
             setSelectedTutorIdToAssign('');
-            
-            // Refresh list
+
             const clubId = user?.IdClub || user?.idClub || user?.clubId || user?.club?.id;
             if (clubId) {
                 await fetchAtletas(clubId);
             }
-            
-            // Refresh detailed modal
+
             const refreshedAtleta = await api.get(`/Atleta/${atletaDetails.idPersona}`);
             if (refreshedAtleta) {
-                handleCardClick(refreshedAtleta);
+                handleCardClick({
+                    ...refreshedAtleta,
+                    idPersona:
+                        refreshedAtleta.idPersona ??
+                        refreshedAtleta.participanteId ??
+                        refreshedAtleta.ParticipanteId ??
+                        atletaDetails.idPersona,
+                });
             } else {
                 setShowModal(false);
             }
@@ -361,11 +402,28 @@ const ClubAtletas = () => {
         setShowModal(true);
         setLoadingDetails(true);
         try {
-            const persona = await api.get(`/Persona/${atleta.idPersona}`);
-            
-            // Resolve tutor details if any
+            const athleteId = Number(
+                atleta.idPersona ?? atleta.IdPersona ?? atleta.participanteId ?? atleta.ParticipanteId
+            );
+            const [persona, relaciones] = await Promise.all([
+                api.get(`/Persona/${athleteId}`),
+                api.get('/AtletaTutor').catch(() => []),
+            ]);
+
             let tutorDetailsObj = null;
-            const tutorInfo = (atleta.tutores || atleta.Tutores)?.[0];
+
+            const relacion = (Array.isArray(relaciones) ? relaciones : []).find((r) => {
+                const relAtletaId = Number(
+                    r.idAtleta ?? r.IdAtleta ?? r.participanteId ?? r.ParticipanteId
+                );
+                return relAtletaId === athleteId;
+            });
+
+            const tutorInfo =
+                relacion ||
+                (atleta.tutores || atleta.Tutores)?.[0] ||
+                null;
+
             if (tutorInfo) {
                 const tutorId = tutorInfo.idTutor || tutorInfo.IdTutor;
                 if (tutorId) {
@@ -373,30 +431,45 @@ const ClubAtletas = () => {
                         const tutorPersona = await api.get(`/Persona/${tutorId}`);
                         tutorDetailsObj = {
                             idPersona: tutorId,
-                            idRelacion: tutorInfo.id || tutorInfo.idAtletaTutor || tutorInfo.IdAtletaTutor,
-                            nombre: tutorPersona ? `${tutorPersona.nombre} ${tutorPersona.apellido}` : tutorInfo.nombreTutor,
-                            telefono: tutorPersona?.telefono || '',
-                            email: tutorPersona?.email || ''
+                            idRelacion:
+                                tutorInfo.id ||
+                                tutorInfo.idAtletaTutor ||
+                                tutorInfo.IdAtletaTutor ||
+                                null,
+                            nombre: tutorPersona
+                                ? `${tutorPersona.nombre || tutorPersona.Nombre || ''} ${
+                                      tutorPersona.apellido || tutorPersona.Apellido || ''
+                                  }`.trim()
+                                : tutorInfo.nombreTutor || tutorInfo.NombreTutor || 'Tutor',
+                            telefono:
+                                tutorPersona?.telefono ||
+                                tutorPersona?.Telefono ||
+                                '',
+                            email: tutorPersona?.email || tutorPersona?.Email || '',
                         };
                     } catch (tutorError) {
                         console.error('Error fetching tutor details:', tutorError);
                         tutorDetailsObj = {
                             idPersona: tutorId,
-                            nombre: tutorInfo.nombreTutor || 'Tutor',
+                            nombre:
+                                tutorInfo.nombreTutor ||
+                                tutorInfo.NombreTutor ||
+                                'Tutor',
                             telefono: '',
-                            email: ''
+                            email: '',
                         };
                     }
                 }
             }
 
-            setAtletaDetails({ 
-                ...atleta, 
+            setAtletaDetails({
+                ...atleta,
+                idPersona: athleteId,
                 personaCompleta: persona,
-                tutor: tutorDetailsObj
+                tutor: tutorDetailsObj,
             });
         } catch (err) {
-            console.error("Error loading athlete details:", err);
+            console.error('Error loading athlete details:', err);
         } finally {
             setLoadingDetails(false);
         }
@@ -453,6 +526,19 @@ const ClubAtletas = () => {
                                     badge={renderEstadoPagoCell(atleta)}
                                     details={[
                                         { label: 'Categoría', value: formatCategoria(atleta) },
+                                        {
+                                            label: 'Tutor',
+                                            value: (
+                                                <TutorStatusCell
+                                                    edad={atleta.edad}
+                                                    tieneTutor={atleta.tieneTutor}
+                                                    fechaNacimiento={atleta.fechaNacimiento}
+                                                    categoria={atleta.categoria}
+                                                    categoriaId={atleta.categoriaId}
+                                                    categoriaNombre={atleta.categoriaNombre}
+                                                />
+                                            ),
+                                        },
                                         { label: 'Apto', value: atleta.presentoAptoMedico ? '✅' : '❌' }
                                     ]}
                                     actions={
@@ -502,6 +588,21 @@ const ClubAtletas = () => {
                                 render: (_value, row) => renderEstadoPagoCell(row)
                             },
                             { key: 'perteneceSeleccion', label: 'Selección', render: (value) => value ? '⭐ Sí' : 'No' },
+                            {
+                                key: 'tutor',
+                                label: 'Tutor',
+                                align: 'center',
+                                render: (_value, row) => (
+                                    <TutorStatusCell
+                                        edad={row.edad}
+                                        tieneTutor={row.tieneTutor}
+                                        fechaNacimiento={row.fechaNacimiento}
+                                        categoria={row.categoria}
+                                        categoriaId={row.categoriaId}
+                                        categoriaNombre={row.categoriaNombre}
+                                    />
+                                ),
+                            },
                             { key: 'presentoAptoMedico', label: 'Apto Médico', render: (value) => value ? '✅ Presentado' : '❌ Pendiente' },
                             {
                                 key: 'documentacion',

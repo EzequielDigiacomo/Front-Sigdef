@@ -43,8 +43,13 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
         setLoadingTutor(true);
         try {
             const relRes = await api.get('/AtletaTutor');
-            const relaciones = (relRes || []).filter(r => (r.idAtleta || r.IdAtleta) === athlete.idPersona);
-            
+            const relaciones = (relRes || []).filter((r) => {
+                const relAtletaId = Number(
+                    r.idAtleta ?? r.IdAtleta ?? r.participanteId ?? r.ParticipanteId
+                );
+                return relAtletaId === Number(athlete.idPersona ?? athlete.participanteId);
+            });
+
             if (relaciones.length > 0) {
                 const tutoresPromesas = relaciones.map(async (rel) => {
                     const tutorId = rel.idTutor || rel.IdTutor;

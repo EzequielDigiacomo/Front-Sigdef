@@ -162,32 +162,39 @@ const TutoresList = () => {
     const loadTutores = async () => {
         try {
             setLoading(true);
-            const [tutoresRes, relacionesRes, atletasRes, clubesRes, personasRes] = await Promise.all([
+            const [tutoresRes, relacionesRes, atletasRes, clubesRes] = await Promise.all([
                 api.get('/Tutor').catch(() => []),
                 api.get('/AtletaTutor').catch(() => []),
                 api.get(withFederationScope('/Atleta', fedId)).catch(() => []),
                 api.get(withFederationScope('/Clubes', fedId)).catch(() => []),
-                api.get('/Persona').catch(() => [])
             ]);
-            
-            const personasMap = new Map((personasRes || []).map(p => [p.idPersona, p]));
+
             const clubesMap = new Map((clubesRes || []).map(c => [c.idClub || c.IdClub, c]));
 
             const atletasEnriquecidos = (atletasRes || []).map(atleta => {
                 const club = clubesMap.get(atleta.idClub || atleta.IdClub);
-                const persona = personasMap.get(atleta.idPersona || atleta.IdPersona);
-                
+                const persona = atleta.participante || atleta.Participante || {};
+                const nombreFromPersona = persona.nombre || persona.Nombre
+                    ? `${persona.nombre || persona.Nombre} ${persona.apellido || persona.Apellido || ''}`.trim()
+                    : '';
+                const idPersona =
+                    atleta.idPersona ?? atleta.IdPersona ?? atleta.participanteId ?? atleta.ParticipanteId;
+
                 return {
                     ...atleta,
-                    documento: persona ? persona.documento : (atleta.documento || atleta.Documento || '-'),
-                    nombrePersona: persona ? `${persona.nombre} ${persona.apellido}` : (atleta.nombrePersona || atleta.NombrePersona || 'Atleta'),
-                    fechaNacimiento: persona ? persona.fechaNacimiento : null,
-                    nombreClub: club ? (club.nombre || club.Nombre) : (atleta.nombreClub || atleta.NombreClub || 'Agente Libre')
+                    idPersona,
+                    documento: atleta.documento || atleta.Documento || persona.documento || persona.Documento || '-',
+                    nombrePersona: atleta.nombrePersona || atleta.NombrePersona || nombreFromPersona || 'Atleta',
+                    fechaNacimiento: atleta.fechaNacimiento || atleta.FechaNacimiento || persona.fechaNacimiento || persona.FechaNacimiento || null,
+                    nombreClub: club ? (club.nombre || club.Nombre) : (atleta.nombreClub || atleta.NombreClub || atleta.club?.nombre || atleta.Club?.Nombre || 'Agente Libre')
                 };
             });
             const tutoresEnriquecidos = (tutoresRes || []).map(tutor => {
+                const idPersona =
+                    tutor.idPersona ?? tutor.IdPersona ?? tutor.participanteId ?? tutor.ParticipanteId;
                 return {
                     ...tutor,
+                    idPersona,
                     documento: tutor.documento || tutor.Documento || '-',
                     telefono: tutor.telefono || tutor.Telefono || '-',
                     email: tutor.email || tutor.Email || '-',
@@ -195,20 +202,28 @@ const TutoresList = () => {
                 };
             });
             const atletaIds = new Set(
-                atletasEnriquecidos.map((a) => a.idPersona ?? a.participanteId ?? a.ParticipanteId)
+                atletasEnriquecidos.map((a) => a.idPersona).filter((id) => id != null)
             );
-            let relacionesFiltradas = relacionesRes || [];
+
+            const normalizeRelacion = (rel) => ({
+                ...rel,
+                idAtleta: rel.idAtleta ?? rel.IdAtleta ?? rel.participanteId ?? rel.ParticipanteId,
+                idTutor: rel.idTutor ?? rel.IdTutor,
+                participanteId: rel.participanteId ?? rel.ParticipanteId ?? rel.idAtleta ?? rel.IdAtleta,
+            });
+
+            let relacionesFiltradas = (relacionesRes || []).map(normalizeRelacion);
             let tutoresFinal = tutoresEnriquecidos;
 
             if (fedId && atletaIds.size > 0) {
                 relacionesFiltradas = relacionesFiltradas.filter((rel) =>
-                    atletaIds.has(rel.idAtleta ?? rel.IdAtleta)
+                    atletaIds.has(rel.idAtleta)
                 );
                 const tutorIds = new Set(
-                    relacionesFiltradas.map((rel) => rel.idTutor ?? rel.IdTutor)
+                    relacionesFiltradas.map((rel) => rel.idTutor)
                 );
                 tutoresFinal = tutoresEnriquecidos.filter((t) =>
-                    tutorIds.has(t.idPersona ?? t.participanteId ?? t.ParticipanteId)
+                    tutorIds.has(t.idPersona)
                 );
             }
 
@@ -232,9 +247,24 @@ const TutoresList = () => {
     };
 
     const getAtletasRepresentados = (idTutor) => {
-        const relacionesDelTutor = atletaTutorRelaciones.filter(rel => rel.idTutor === idTutor);
-        const atletasIds = relacionesDelTutor.map(rel => rel.idAtleta);
-        return atletas.filter(atleta => atletasIds.includes(atleta.idPersona));
+        const tutorId = Number(idTutor);
+        if (!Number.isFinite(tutorId)) return [];
+
+        const relacionesDelTutor = atletaTutorRelaciones.filter(
+            (rel) => Number(rel.idTutor ?? rel.IdTutor) === tutorId
+        );
+        const atletasIds = new Set(
+            relacionesDelTutor.map((rel) =>
+                Number(rel.idAtleta ?? rel.IdAtleta ?? rel.participanteId ?? rel.ParticipanteId)
+            )
+        );
+
+        return atletas.filter((atleta) => {
+            const atletaId = Number(
+                atleta.idPersona ?? atleta.IdPersona ?? atleta.participanteId ?? atleta.ParticipanteId
+            );
+            return atletasIds.has(atletaId);
+        });
     };
 
     const tutoresFiltrados = tutores.filter(tutor => {
@@ -791,11 +821,11 @@ const LinkAthleteModal = ({ isOpen, onClose, tutor, atletas, onSuccess }) => {
                 }
             }
 
-            // 2. Crear el enlace
+            // 2. Crear el enlace (API espera ParticipanteId = atleta)
             const payload = {
-                idAtleta: idAtleta,
-                idTutor: tutor.idPersona,
-                parentesco: parseInt(parentesco)
+                ParticipanteId: idAtleta,
+                IdTutor: tutor.idPersona ?? tutor.participanteId ?? tutor.ParticipanteId,
+                Parentesco: parseInt(parentesco, 10),
             };
 
             await api.post('/AtletaTutor', payload);

@@ -1,107 +1,193 @@
 import React, { useState } from 'react';
-import { Check, X, Key, RefreshCw, Copy, CheckCircle } from 'lucide-react';
+import { Check, X, Key } from 'lucide-react';
 import DataTable from '../../../../components/common/DataTable';
 import TableActions from '../../../../components/common/TableActions';
 import EditUserModal from '../../../../components/modals/EditUserModal';
 import { api } from '../../../../services/api';
 import Modal from '../../../../components/common/Modal';
 import Button from '../../../../components/common/Button';
+import ConfirmationModal from '../../../../components/common/ConfirmationModal';
+import './UserTable.css';
+
+const getUserId = (u) =>
+    u?.idUsuario ?? u?.IdUsuario ?? u?.id ?? u?.Id ?? null;
+
+const getUsername = (u) => u?.username || u?.Username || '';
 
 const UserTable = ({ users, clubs = [], onUserUpdated }) => {
     const [editingUser, setEditingUser] = useState(null);
-    const [resettingUser, setResettingUser] = useState(null);
-    const [tempPassword, setTempPassword] = useState('');
-    const [showResetModal, setShowResetModal] = useState(false);
-    const [loadingReset, setLoadingReset] = useState(false);
-    const [copied, setCopied] = useState(false);
+    const [passwordUser, setPasswordUser] = useState(null);
+    const [passwordForm, setPasswordForm] = useState({
+        newPassword: '',
+        confirmPassword: '',
+    });
+    const [loadingPassword, setLoadingPassword] = useState(false);
+    const [passwordError, setPasswordError] = useState('');
+    const [alertModal, setAlertModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'success',
+    });
 
     const getClubName = (idClub) => {
         if (!idClub) return '-';
-        const club = clubs.find(c => c.idClub === idClub);
-        return club ? club.nombre : idClub;
+        const club = clubs.find(
+            (c) => String(c.idClub ?? c.IdClub) === String(idClub)
+        );
+        return club ? club.nombre || club.Nombre : idClub;
     };
 
     const columns = [
         {
             key: 'username',
             label: 'Usuario',
-            render: (value) => <strong>{value}</strong>
+            render: (value, row) => <strong>{value || getUsername(row)}</strong>,
         },
         {
             key: 'password',
             label: 'Contraseña',
             render: () => (
-                <span className="text-muted" style={{ fontFamily: 'monospace', letterSpacing: '2px' }}>
+                <span
+                    className="text-muted"
+                    style={{ fontFamily: 'monospace', letterSpacing: '2px' }}
+                >
                     ******
                 </span>
-            )
+            ),
         },
         {
             key: 'rol',
             label: 'Rol',
-            render: (value) => (
-                <span className={`badge ${value === 'Admin' ? 'badge-primary' :
-                        value === 'Club' ? 'badge-info' :
-                            'badge-secondary'
-                    }`}>
-                    {value}
-                </span>
-            )
+            render: (value, row) => {
+                const rol = value || row.rolFederacion || row.RolFederacion || '-';
+                return (
+                    <span
+                        className={`badge ${
+                            rol === 'Admin'
+                                ? 'badge-primary'
+                                : rol === 'Club'
+                                  ? 'badge-info'
+                                  : 'badge-secondary'
+                        }`}
+                    >
+                        {rol}
+                    </span>
+                );
+            },
         },
         {
             key: 'idClub',
             label: 'Club',
-            render: (value) => getClubName(value)
+            render: (value, row) => getClubName(value ?? row.IdClub),
         },
         {
             key: 'estaActivo',
             label: 'Estado',
-            render: (value) => value ? (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--success)' }}>
-                    <Check size={16} /> Activo
-                </span>
-            ) : (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--danger)' }}>
-                    <X size={16} /> Inactivo
-                </span>
-            )
+            render: (value, row) => {
+                const activo = value ?? row.EstaActivo;
+                return activo ? (
+                    <span
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            color: 'var(--success)',
+                        }}
+                    >
+                        <Check size={16} /> Activo
+                    </span>
+                ) : (
+                    <span
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            color: 'var(--danger)',
+                        }}
+                    >
+                        <X size={16} /> Inactivo
+                    </span>
+                );
+            },
         },
         {
             key: 'fechaCreacion',
             label: 'Fecha Creación',
-            render: (value) => value ? new Date(value).toLocaleDateString() : '-'
-        }
+            render: (value, row) => {
+                const fecha = value || row.FechaCreacion;
+                return fecha ? new Date(fecha).toLocaleDateString() : '-';
+            },
+        },
     ];
 
-    const handleEdit = (user) => {
-        setEditingUser(user);
+    const handleEdit = (user) => setEditingUser(user);
+
+    const handleCloseEditModal = () => setEditingUser(null);
+
+    const handleEditPasswordClick = (user) => {
+        setPasswordUser(user);
+        setPasswordForm({ newPassword: '', confirmPassword: '' });
+        setPasswordError('');
     };
 
-    const handleCloseModal = () => {
-        setEditingUser(null);
+    const handleClosePasswordModal = () => {
+        if (loadingPassword) return;
+        setPasswordUser(null);
+        setPasswordForm({ newPassword: '', confirmPassword: '' });
+        setPasswordError('');
     };
 
-    const handleResetPassword = async (user) => {
-        if (!window.confirm(`¿Estás seguro de que deseas resetear la contraseña del usuario ${user.username}?`)) return;
+    const handlePasswordChange = (e) => {
+        const { name, value } = e.target;
+        setPasswordForm((prev) => ({ ...prev, [name]: value }));
+        setPasswordError('');
+    };
 
-        setLoadingReset(true);
-        setResettingUser(user);
-        try {
-            const result = await api.post(`/Usuario/${user.idPersona}/reset-password`);
-            setTempPassword(result);
-            setShowResetModal(true);
-        } catch (error) {
-            console.error('Error reseteando contraseña:', error);
-            alert('Error al resetear la contraseña. Intente nuevamente.');
-        } finally {
-            setLoadingReset(false);
+    const handleSavePassword = async (e) => {
+        e?.preventDefault?.();
+        if (!passwordUser) return;
+
+        const id = getUserId(passwordUser);
+        if (id == null) {
+            setPasswordError('No se pudo identificar el usuario.');
+            return;
         }
-    };
 
-    const copyToClipboard = () => {
-        navigator.clipboard.writeText(tempPassword);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        const { newPassword, confirmPassword } = passwordForm;
+        if (!newPassword || newPassword.length < 6) {
+            setPasswordError('La contraseña debe tener al menos 6 caracteres.');
+            return;
+        }
+        if (newPassword !== confirmPassword) {
+            setPasswordError('Las contraseñas no coinciden.');
+            return;
+        }
+
+        setLoadingPassword(true);
+        setPasswordError('');
+        try {
+            const username = getUsername(passwordUser);
+            // Auth espera un string JSON en el body; FindAsync usa IdUsuario
+            await api.put(`/Auth/usuarios/${id}/password`, newPassword);
+            setPasswordUser(null);
+            setPasswordForm({ newPassword: '', confirmPassword: '' });
+            setAlertModal({
+                isOpen: true,
+                title: 'Contraseña actualizada',
+                message: `La contraseña de ${username} se actualizó correctamente.`,
+                type: 'success',
+            });
+            onUserUpdated?.();
+        } catch (error) {
+            console.error('Error actualizando contraseña:', error);
+            setPasswordError(
+                error?.message ||
+                    'No se pudo actualizar la contraseña. Intente nuevamente.'
+            );
+        } finally {
+            setLoadingPassword(false);
+        }
     };
 
     return (
@@ -117,13 +203,12 @@ const UserTable = ({ users, clubs = [], onUserUpdated }) => {
                         onEdit={handleEdit}
                         customActions={[
                             {
-                                title: 'Resetear Contraseña',
-                                icon: loadingReset && resettingUser?.idPersona === row.idPersona ? <RefreshCw className="animate-spin" size={18} /> : <Key size={18} />,
-                                children: ' ', // Un espacio para ver si el botón aparece
-                                onClick: handleResetPassword,
+                                title: 'Editar contraseña',
+                                icon: <Key size={18} />,
+                                children: ' ',
+                                onClick: handleEditPasswordClick,
                                 className: 'text-amber-500',
-                                disabled: loadingReset
-                            }
+                            },
                         ]}
                     />
                 )}
@@ -132,68 +217,96 @@ const UserTable = ({ users, clubs = [], onUserUpdated }) => {
             {editingUser && (
                 <EditUserModal
                     isOpen={!!editingUser}
-                    onClose={handleCloseModal}
+                    onClose={handleCloseEditModal}
                     user={editingUser}
                     onUserUpdated={onUserUpdated}
                 />
             )}
 
-            {showResetModal && (
-                <Modal
-                    isOpen={showResetModal}
-                    onClose={() => {
-                        setShowResetModal(false);
-                        setTempPassword('');
-                    }}
-                    title="Contraseña Reseteada"
-                    footer={
-                        <Button variant="primary" onClick={() => {
-                            setShowResetModal(false);
-                            setTempPassword('');
-                        }}>
-                            Entendido
+            <Modal
+                isOpen={!!passwordUser}
+                onClose={handleClosePasswordModal}
+                title="Editar contraseña"
+                size="small"
+                className="edit-password-modal"
+                footer={
+                    <div className="edit-password-modal-actions">
+                        <Button
+                            variant="secondary"
+                            onClick={handleClosePasswordModal}
+                            disabled={loadingPassword}
+                        >
+                            Cancelar
                         </Button>
-                    }
-                >
-                    <div style={{ textAlign: 'center', padding: '1rem' }}>
-                        <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                            Se ha generado una nueva contraseña temporal para <strong>{resettingUser?.username}</strong>:
-                        </p>
-                        <div style={{ 
-                            backgroundColor: 'rgba(0,0,0,0.2)', 
-                            padding: '1.5rem', 
-                            borderRadius: '8px',
-                            marginBottom: '1.5rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '1rem'
-                        }}>
-                            <span style={{ 
-                                fontSize: '1.5rem', 
-                                fontWeight: 'bold', 
-                                letterSpacing: '2px', 
-                                fontFamily: 'monospace',
-                                color: 'var(--info)'
-                            }}>
-                                {tempPassword}
-                            </span>
-                            <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={copyToClipboard}
-                                title="Copiar al portapapeles"
-                            >
-                                {copied ? <CheckCircle size={18} className="text-success" /> : <Copy size={18} />}
-                            </Button>
-                        </div>
-                        <p style={{ fontSize: '0.85rem', color: 'var(--warning)', fontStyle: 'italic' }}>
-                            <RefreshCw size={14} style={{ marginRight: '4px' }} />
-                            Asegúrese de copiar esta contraseña antes de cerrar, ya que no se volverá a mostrar.
-                        </p>
+                        <Button
+                            variant="primary"
+                            onClick={handleSavePassword}
+                            isLoading={loadingPassword}
+                        >
+                            Guardar
+                        </Button>
                     </div>
-                </Modal>
-            )}
+                }
+            >
+                <form
+                    onSubmit={handleSavePassword}
+                    className="edit-password-form"
+                >
+                    <p className="edit-password-hint">
+                        Definí una nueva contraseña para{' '}
+                        <strong>{getUsername(passwordUser)}</strong>.
+                    </p>
+
+                    {passwordError && (
+                        <div className="alert alert-error">{passwordError}</div>
+                    )}
+
+                    <div className="edit-password-field">
+                        <label htmlFor="edit-newPassword">
+                            Nueva contraseña <span className="text-danger">*</span>
+                        </label>
+                        <input
+                            id="edit-newPassword"
+                            name="newPassword"
+                            type="password"
+                            className="form-input"
+                            value={passwordForm.newPassword}
+                            onChange={handlePasswordChange}
+                            placeholder="Mínimo 6 caracteres"
+                            required
+                            autoComplete="new-password"
+                        />
+                    </div>
+
+                    <div className="edit-password-field">
+                        <label htmlFor="edit-confirmPassword">
+                            Confirmar contraseña <span className="text-danger">*</span>
+                        </label>
+                        <input
+                            id="edit-confirmPassword"
+                            name="confirmPassword"
+                            type="password"
+                            className="form-input"
+                            value={passwordForm.confirmPassword}
+                            onChange={handlePasswordChange}
+                            placeholder="Repetí la contraseña"
+                            required
+                            autoComplete="new-password"
+                        />
+                    </div>
+                </form>
+            </Modal>
+
+            <ConfirmationModal
+                isOpen={alertModal.isOpen}
+                onClose={() => setAlertModal((prev) => ({ ...prev, isOpen: false }))}
+                onConfirm={() => setAlertModal((prev) => ({ ...prev, isOpen: false }))}
+                title={alertModal.title}
+                message={alertModal.message}
+                type={alertModal.type}
+                confirmText="Entendido"
+                showCancel={false}
+            />
         </>
     );
 };

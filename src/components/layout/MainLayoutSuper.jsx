@@ -25,8 +25,7 @@ const NAV_SECTIONS = [
         items: [
             { icon: Building2, label: 'Clubes', path: '/superadmin/modulos/clubes' },
             { icon: Users, label: 'Atletas', path: '/superadmin/modulos/atletas' },
-            { icon: Award, label: 'Entrenadores Club', path: '/superadmin/modulos/entrenadores' },
-            { icon: Award, label: 'Entrenadores Selección', path: '/superadmin/modulos/entrenadores-seleccion' },
+            { icon: Award, label: 'Entrenadores', path: '/superadmin/modulos/entrenadores' },
             { icon: Shield, label: 'Selección Nacional', path: '/superadmin/modulos/selecciones' },
         ],
     },

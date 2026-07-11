@@ -1,0 +1,151 @@
+/* Modal de editar contraseña: layout simétrico y sin caja interna descentrada */
+.edit-password-modal.modal-container {
+    width: min(420px, calc(100vw - 2rem));
+    max-width: min(420px, calc(100vw - 2rem));
+}
+
+.edit-password-modal .modal-header {
+    justify-content: center;
+    padding: 1.25rem 1.5rem;
+}
+
+.edit-password-modal .modal-title {
+    width: 100%;
+    text-align: center;
+    padding: 0 1.75rem;
+    box-sizing: border-box;
+}
+
+.edit-password-modal .modal-content,
+.edit-password-modal.modal-variant-default .modal-content {
+    display: block;
+    width: 100%;
+    padding: 1.25rem 1.5rem;
+    overflow: visible;
+    background: transparent;
+    box-sizing: border-box;
+}
+
+.edit-password-modal .modal-footer {
+    width: 100%;
+    padding: 1rem 1.5rem 1.25rem;
+    box-sizing: border-box;
+}
+
+.edit-password-form {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    box-sizing: border-box;
+}
+
+.edit-password-hint {
+    color: var(--text-secondary);
+    margin: 0 0 1.1rem;
+    text-align: center;
+    line-height: 1.45;
+    width: 100%;
+}
+
+.edit-password-hint strong {
+    color: var(--text-primary);
+}
+
+.edit-password-field {
+    width: 100%;
+    margin: 0 0 0.9rem;
+    box-sizing: border-box;
+}
+
+.edit-password-field:last-child {
+    margin-bottom: 0;
+}
+
+.edit-password-field label {
+    display: block;
+    width: 100%;
+    margin: 0 0 0.35rem;
+    text-align: left;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.edit-password-field .form-input {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.edit-password-modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    width: 100%;
+}
+
+/* Evitar scroll horizontal en la grilla de usuarios */
+.user-management-container .users-table-panel {
+    overflow-x: hidden;
+}
+
+.user-management-container .users-table-panel .table-responsive {
+    overflow-x: hidden;
+    width: 100%;
+}
+
+.user-management-container .users-table-panel .data-table {
+    width: 100%;
+    table-layout: fixed;
+}
+
+.user-management-container .users-table-panel .data-table th,
+.user-management-container .users-table-panel .data-table td {
+    padding: 0.45rem 0.5rem;
+    font-size: 0.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-management-container .users-table-panel .data-table th:nth-child(1),
+.user-management-container .users-table-panel .data-table td:nth-child(1) {
+    width: 16%;
+}
+
+.user-management-container .users-table-panel .data-table th:nth-child(2),
+.user-management-container .users-table-panel .data-table td:nth-child(2) {
+    width: 10%;
+}
+
+.user-management-container .users-table-panel .data-table th:nth-child(3),
+.user-management-container .users-table-panel .data-table td:nth-child(3) {
+    width: 12%;
+}
+
+.user-management-container .users-table-panel .data-table th:nth-child(4),
+.user-management-container .users-table-panel .data-table td:nth-child(4) {
+    width: 14%;
+}
+
+.user-management-container .users-table-panel .data-table th:nth-child(5),
+.user-management-container .users-table-panel .data-table td:nth-child(5) {
+    width: 12%;
+}
+
+.user-management-container .users-table-panel .data-table th:nth-child(6),
+.user-management-container .users-table-panel .data-table td:nth-child(6) {
+    width: 12%;
+}
+
+.user-management-container .users-table-panel .data-table th:last-child,
+.user-management-container .users-table-panel .data-table td:last-child {
+    width: 12%;
+    text-align: center;
+}

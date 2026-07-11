@@ -14,8 +14,10 @@ import {
     getUsuarioClubId,
     getUsuarioRol,
     isDelegadoClubRole,
+    isClubPanelAccessAccount,
     mapAuthUserToDelegado,
     getUsuarioNombre,
+    getUsuarioUsername,
 } from '../../../utils/delegadoHelpers';
 import '../Atletas/ClubAtletas.css';
 
@@ -38,12 +40,21 @@ const ClubDelegados = () => {
         try {
             setLoading(true);
             const clubIdActual = user?.idClub || user?.IdClub || user?.clubId || user?.ClubId;
+            const clubNameHint =
+                user?.clubNombre ||
+                user?.nombreClub ||
+                user?.club?.nombre ||
+                user?.username ||
+                '';
             const data = await api.get('/Auth/usuarios');
             const list = Array.isArray(data) ? data : [];
             const delegadosFiltrados = list
                 .filter((d) => {
                     const idClubDelegado = getUsuarioClubId(d);
                     const rol = getUsuarioRol(d);
+                    // Excluir cuentas de login del panel (club1fec, club1fec2, …)
+                    if (isClubPanelAccessAccount(d, clubNameHint)) return false;
+                    if (isClubPanelAccessAccount(d)) return false;
                     return (
                         clubIdActual != null &&
                         String(idClubDelegado) === String(clubIdActual) &&
@@ -68,12 +79,47 @@ const ClubDelegados = () => {
     const handleConfirmDelete = async () => {
         if (!delegadoToDelete) return;
         const id = delegadoToDelete.id || delegadoToDelete.idPersona || delegadoToDelete.IdPersona;
-        try {
-            await api.delete(`/Auth/usuarios/${id}`);
-            setDelegados(delegados.filter(d => (d.id || d.idPersona || d.IdPersona) !== id));
+        const myId = user?.id || user?.Id || user?.idUsuario || user?.IdUsuario;
+        const username = getUsuarioUsername(delegadoToDelete);
+
+        if (myId != null && String(id) === String(myId)) {
             setShowDeleteModal(false);
+            setErrorModal({
+                isOpen: true,
+                title: 'No permitido',
+                message: 'No podés eliminar tu propia cuenta de acceso mientras estás logueado.',
+            });
+            return;
+        }
+
+        if (isClubPanelAccessAccount(delegadoToDelete)) {
+            setShowDeleteModal(false);
+            setErrorModal({
+                isOpen: true,
+                title: 'Cuenta de acceso del club',
+                message: `"${username}" es una cuenta de ingreso al panel del club (no un delegado persona). Se gestiona desde administración / usuarios, no desde esta lista.`,
+            });
+            return;
+        }
+
+        try {
+            // Auth no tiene DELETE; el endpoint canónico es /Usuario/{id}
+            await api.delete(`/Usuario/${id}`);
+            setDelegados((prev) =>
+                prev.filter((d) => String(d.id || d.idPersona || d.IdPersona) !== String(id))
+            );
+            setShowDeleteModal(false);
+            setDelegadoToDelete(null);
         } catch (error) {
             console.error('Error eliminando:', error);
+            setShowDeleteModal(false);
+            setErrorModal({
+                isOpen: true,
+                title: 'No se pudo eliminar',
+                message:
+                    error?.message ||
+                    'El servidor rechazó la eliminación. Puede ser una cuenta de acceso del club o faltan permisos.',
+            });
         }
     };
 

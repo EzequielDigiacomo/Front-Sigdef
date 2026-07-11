@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../../services/api';
 import DataTable from '../../../components/common/DataTable';
 import Card from '../../../components/common/Card';
-import { Award, Search, Filter, Edit, Trash2, CheckCircle, AlertTriangle, Plus, Eye, UserCog, UserPlus, ArrowLeft } from 'lucide-react';
+import { Award, Search, Filter, Edit, Trash2, Plus, Eye, UserCog, UserPlus, UserMinus, ArrowLeft } from 'lucide-react';
 import FormField from '../../../components/forms/FormField';
 import FormSelect from '../../../components/forms/FormSelect';
 import Pagination from '../../../components/common/Pagination';
@@ -19,88 +19,85 @@ import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
 import EntrenadorDetailModal from './components/EntrenadorDetailModal';
 
-const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'seleccion'
+const hasClub = (item) => {
+    const clubId = item.idClub ?? item.IdClub;
+    return clubId != null && clubId !== 0 && clubId !== '0';
+};
+
+const EntrenadoresList = () => {
     const { isNative } = useDevice();
     const { fedId } = useParams();
     const isSuperAdminView = Boolean(fedId);
     const navigate = useNavigate();
     const location = useLocation();
-    // ... states
+
     const [entrenadores, setEntrenadores] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [filters, setFilters] = useState({ search: '', club: '' });
+    const [filters, setFilters] = useState({ search: '', club: '', ambito: 'todos' });
     const [clubes, setClubes] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10);
 
-    // Document Modals State
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [showViewerModal, setShowViewerModal] = useState(false);
     const [selectedEntrenadorForDocs, setSelectedEntrenadorForDocs] = useState(null);
     const [existingDocuments, setExistingDocuments] = useState([]);
 
-    // Category Assignment Modal State
     const [showCategoryModal, setShowCategoryModal] = useState(false);
     const [selectedEntrenadorForCategory, setSelectedEntrenadorForCategory] = useState(null);
-
-    // Add Coach to Selection Modal State
     const [showAddCoachModal, setShowAddCoachModal] = useState(false);
 
-    // Detail modal
     const [selectedEntrenador, setSelectedEntrenador] = useState(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
 
-    // Confirmation Modal State
     const [showConfirmation, setShowConfirmation] = useState(false);
-    const [confirmationConfig, setConfirmationConfig] = useState({ type: 'info', title: '', message: '', onConfirm: () => { } });
+    const [confirmationConfig, setConfirmationConfig] = useState({
+        type: 'info',
+        title: '',
+        message: '',
+        onConfirm: () => { },
+    });
 
-    useEffect(() => { fetchData(); }, [fedId]);
+    const basePath = isSuperAdminView
+        ? `/superadmin/federacion/${fedId}/entrenadores`
+        : '/dashboard/entrenadores';
+
+    useEffect(() => {
+        fetchData();
+    }, [fedId]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filters.search, filters.club, filters.ambito]);
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [entrenadoresData, clubesData, personasData] = await Promise.all([
+            const [entrenadoresData, clubesData] = await Promise.all([
                 api.get(withFederationScope('/Entrenador', fedId)),
                 api.get(withFederationScope('/Clubes', fedId)),
-                api.get('/Persona')
             ]);
-
-            const personasMap = new Map(
-                (personasData || []).map((p) => {
-                    const id = p.participanteId ?? p.ParticipanteId ?? p.idPersona ?? p.IdPersona ?? p.id;
-                    return [String(id), p];
-                })
-            );
 
             const enrichedEntrenadores = (entrenadoresData || []).map((ent) => {
                 const id = ent.participanteId ?? ent.ParticipanteId ?? ent.idPersona ?? ent.IdPersona;
-                const persona = personasMap.get(String(id)) || {};
-                const documento =
-                    ent.documento || ent.Documento ||
-                    persona.documento || persona.Documento || persona.dni || persona.Dni || '';
-                const email =
-                    ent.email || ent.Email ||
-                    persona.email || persona.Email || '';
-                const telefono =
-                    ent.telefono || ent.Telefono ||
-                    persona.telefono || persona.Telefono || '';
-                const licencia = ent.licencia || ent.Licencia || '';
-                const nombrePersona =
-                    ent.nombrePersona || ent.NombrePersona ||
-                    `${persona.nombre || persona.Nombre || ''} ${persona.apellido || persona.Apellido || ''}`.trim();
-
                 return {
-                    ...persona,
                     ...ent,
                     id,
                     idPersona: id,
                     participanteId: id,
-                    nombrePersona: nombrePersona || '-',
-                    documento: documento || '-',
-                    email: email || '-',
-                    telefono: telefono || '-',
-                    licencia: licencia || '-',
+                    idClub: ent.idClub ?? ent.IdClub ?? null,
+                    nombrePersona: ent.nombrePersona || ent.NombrePersona || '-',
+                    documento: ent.documento || ent.Documento || '-',
+                    email: ent.email || ent.Email || '-',
+                    telefono: ent.telefono || ent.Telefono || '-',
+                    licencia: ent.licencia || ent.Licencia || '-',
                     nombreClub: ent.nombreClub || ent.NombreClub || '',
+                    categoriaSeleccion: ent.categoriaSeleccion ?? ent.CategoriaSeleccion ?? '',
+                    perteneceSeleccion: !!(ent.perteneceSeleccion ?? ent.PerteneceSeleccion ?? false),
+                    becadoEnard: !!(ent.becadoEnard ?? ent.BecadoEnard),
+                    becadoSdn: !!(ent.becadoSdn ?? ent.BecadoSdn),
+                    montoBeca: ent.montoBeca ?? ent.MontoBeca ?? 0,
+                    presentoAptoMedico: !!(ent.presentoAptoMedico ?? ent.PresentoAptoMedico),
                 };
             });
             setEntrenadores(enrichedEntrenadores);
@@ -114,51 +111,125 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
 
     const handleFilterChange = (e) => {
         const { name, value } = e.target;
-        setFilters(prev => ({ ...prev, [name]: value }));
+        setFilters((prev) => ({ ...prev, [name]: value }));
     };
 
-    const filteredData = entrenadores.filter(item => {
+    const filteredData = entrenadores.filter((item) => {
         const searchTerm = filters.search.toLowerCase();
-        const nombreCompleto = (item.nombrePersona || `${item.nombre || ''} ${item.apellido || ''}`).toLowerCase();
-        const matchesSearch = nombreCompleto.includes(searchTerm) || (item.documento && item.documento.includes(searchTerm));
-        let matchesContext = true;
-        if (viewMode === 'club') {
-            const hasClub = item.idClub && item.idClub !== 0;
-            const matchesClubFilter = filters.club ? item.idClub == filters.club : true;
-            matchesContext = hasClub && matchesClubFilter;
-        } else if (viewMode === 'seleccion') {
-            matchesContext = item.perteneceSeleccion === true;
+        const nombreCompleto = (item.nombrePersona || '').toLowerCase();
+        const matchesSearch =
+            !searchTerm ||
+            nombreCompleto.includes(searchTerm) ||
+            (item.documento && String(item.documento).includes(filters.search));
+
+        const matchesClub = filters.club ? String(item.idClub) === String(filters.club) : true;
+        const inClub = hasClub(item);
+        const inSeleccion = !!item.perteneceSeleccion;
+
+        let matchesAmbito = true;
+        switch (filters.ambito) {
+            case 'club':
+                matchesAmbito = inClub;
+                break;
+            case 'seleccion':
+                matchesAmbito = inSeleccion;
+                break;
+            case 'ambos':
+                matchesAmbito = inClub && inSeleccion;
+                break;
+            default:
+                matchesAmbito = true;
         }
-        return matchesSearch && matchesContext;
+
+        return matchesSearch && matchesClub && matchesAmbito;
     });
 
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const currentData = filteredData.slice(indexOfFirstItem, indexOfLastItem);
-    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
 
-    const handlePageChange = (pageNumber) => { setCurrentPage(pageNumber); };
+    const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
 
     const handleRowClick = (row) => {
         setSelectedEntrenador(row);
         setShowDetailModal(true);
     };
 
-    const handleEdit = (id) => {
-        const path = isSuperAdminView
-            ? (viewMode === 'seleccion' ? `/superadmin/federacion/${fedId}/entrenadores-seleccion/editar/${id}` : `/superadmin/federacion/${fedId}/entrenadores/editar/${id}`)
-            : (viewMode === 'seleccion' ? `/dashboard/entrenadores-seleccion/editar/${id}` : `/dashboard/entrenadores/editar/${id}`);
-        navigate(path, { state: { returnPath: location.pathname } });
+    const handleEdit = (rowOrId) => {
+        const row = typeof rowOrId === 'object' ? rowOrId : null;
+        const id = row?.idPersona ?? row?.id ?? rowOrId;
+        navigate(`${basePath}/editar/${id}`, {
+            state: {
+                returnPath: location.pathname,
+                ...(row ? { entrenador: row } : {}),
+            },
+        });
     };
 
-    const handleDelete = (id) => {
+    const handleDelete = () => {
         setConfirmationConfig({
             type: 'info',
             title: 'Funcionalidad Pendiente',
             message: 'La funcionalidad de eliminar entrenador está pendiente en el backend.',
             onConfirm: () => setShowConfirmation(false),
             showCancel: false,
-            confirmText: 'Entendido'
+            confirmText: 'Entendido',
+        });
+        setShowConfirmation(true);
+    };
+
+    const handleUnlinkFromSelection = (coach) => {
+        setConfirmationConfig({
+            type: 'danger',
+            title: 'Desvincular de selección',
+            message: `¿Deseas retirar a ${coach.nombrePersona} del equipo de selección? Seguirá figurando como entrenador de club si tiene uno asignado.`,
+            onConfirm: async () => {
+                setShowConfirmation(false);
+                const prev = { ...coach };
+                setEntrenadores((list) =>
+                    list.map((e) =>
+                        String(e.idPersona) === String(coach.idPersona)
+                            ? { ...e, perteneceSeleccion: false, categoriaSeleccion: '0' }
+                            : e
+                    )
+                );
+
+                try {
+                    await api.put(`/Entrenador/${coach.idPersona}`, {
+                        participanteId: coach.idPersona,
+                        ParticipanteId: coach.idPersona,
+                        idPersona: coach.idPersona,
+                        idClub: coach.idClub || null,
+                        licencia: coach.licencia === '-' ? '' : coach.licencia || '',
+                        perteneceSeleccion: false,
+                        categoriaSeleccion: '0',
+                        becadoEnard: !!coach.becadoEnard,
+                        becadoSdn: !!coach.becadoSdn,
+                        montoBeca: coach.montoBeca || 0,
+                        presentoAptoMedico: !!coach.presentoAptoMedico,
+                    });
+                } catch (error) {
+                    console.error('Error unlinking coach:', error);
+                    setEntrenadores((list) =>
+                        list.map((e) =>
+                            String(e.idPersona) === String(coach.idPersona) ? prev : e
+                        )
+                    );
+                    setConfirmationConfig({
+                        type: 'danger',
+                        title: 'Error',
+                        message: 'No se pudo desvincular al entrenador de la selección.',
+                        onConfirm: () => setShowConfirmation(false),
+                        showCancel: false,
+                        confirmText: 'Entendido',
+                    });
+                    setShowConfirmation(true);
+                }
+            },
+            showCancel: true,
+            confirmText: 'Desvincular',
+            cancelText: 'Cancelar',
         });
         setShowConfirmation(true);
     };
@@ -172,74 +243,174 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
         }
     };
 
-    const columns = [
-        { label: 'Nombre y Apellido', key: 'nombrePersona', render: (value, row) => <span className="font-medium text-primary">{row.nombrePersona || `${row.nombre || ''} ${row.apellido || ''}`}</span> },
-        { label: 'Documento', key: 'documento', align: 'center', render: (val) => val || '-' },
-        { label: 'Club', key: 'nombreClub', render: (val) => val || 'Sin Club' },
-        { label: 'Email', key: 'email', render: (val) => val || '-', align: 'center' },
-        ...(viewMode === 'seleccion' ? [
-            { label: 'Beca ENARD', key: 'becadoEnard', render: (val) => val ? <span className="badge badge-success">SÍ</span> : <span className="badge badge-secondary">NO</span>, align: 'center' },
-            { label: 'Beca SND', key: 'becadoSdn', render: (val) => val ? <span className="badge badge-success">SÍ</span> : <span className="badge badge-secondary">NO</span>, align: 'center' },
-            { label: 'Monto', key: 'montoBeca', render: (val) => val ? `$${val.toLocaleString()}` : '$0', align: 'center' },
-            { label: 'Apto Médico', key: 'presentoAptoMedico', render: (val) => val ? <span className="badge badge-success">SÍ</span> : <span className="badge badge-danger">NO</span>, align: 'center' },
-            { label: 'Categoría', key: 'categoriaSeleccion', render: (val) => getCategoriaLabel(val), align: 'center' },
-            {
-                label: 'Documentación', key: 'documentacion',
-                align: 'center',
-                render: (val, row) => (
-                    <div className="flex justify-center gap-2">
-                        <Button variant="ghost" size="sm" className="p-1 h-auto" title="Subir" onClick={(e) => { e.stopPropagation(); setSelectedEntrenadorForDocs(row); loadDocuments(row.idPersona); setShowUploadModal(true); }}><Plus size={18} className="text-primary" /></Button>
-                        <Button variant="ghost" size="sm" className="p-1 h-auto" title="Ver" onClick={(e) => { e.stopPropagation(); setSelectedEntrenadorForDocs(row); setShowViewerModal(true); }}><Eye size={18} className="text-primary" /></Button>
-                    </div>
-                )
-            }
-        ] : [
-            { label: 'Licencia', key: 'licencia', render: (val) => val || '-' },
-            { label: 'Teléfono', key: 'telefono', render: (val) => val || '-' },
-            {
-                label: 'Documentación', key: 'documentacion',
-                align: 'center',
-                render: (val, row) => (
-                    <div className="flex justify-center gap-2">
-                        <Button variant="ghost" size="sm" className="p-1 h-auto" title="Subir" onClick={(e) => { e.stopPropagation(); setSelectedEntrenadorForDocs(row); loadDocuments(row.idPersona); setShowUploadModal(true); }}><Plus size={18} className="text-primary" /></Button>
-                        <Button variant="ghost" size="sm" className="p-1 h-auto" title="Ver" onClick={(e) => { e.stopPropagation(); setSelectedEntrenadorForDocs(row); setShowViewerModal(true); }}><Eye size={18} className="text-primary" /></Button>
-                    </div>
-                )
-            }
-        ]),
-        {
-            label: 'Acciones', key: 'actions',
-            align: 'center',
-            render: (value, row) => (
-                <div className="flex justify-center gap-2">
-                    {viewMode === 'seleccion' && <Button variant="ghost" size="sm" onClick={() => { setSelectedEntrenadorForCategory(row); setShowCategoryModal(true); }} title="Asignar Categoría"><UserCog size={18} className="text-primary" /></Button>}
-                    <Button variant="ghost" size="sm" onClick={() => handleEdit(row.id)} title="Editar"><Edit size={18} className="text-primary" /></Button>
-                    <Button variant="ghost" size="sm" className="text-danger" onClick={() => handleDelete(row.id)} title="Eliminar"><Trash2 size={18} /></Button>
-                </div>
-            )
+    const renderSeleccionBadge = (row) => {
+        if (!row.perteneceSeleccion) {
+            return <span className="badge badge-secondary">No</span>;
         }
-    ];
+        const cat = getCategoriaLabel(row.categoriaSeleccion);
+        return (
+            <span className="badge badge-info" title={cat}>
+                Sí — {cat}
+            </span>
+        );
+    };
 
-    const title = viewMode === 'club' ? 'Entrenadores de Clubes' : 'Entrenadores de Selección';
-    const subtitle = viewMode === 'club' ? 'Gestión de entrenadores asociados a clubes' : 'Listado de entrenadores del cuerpo técnico nacional';
+    const columns = [
+        {
+            label: 'Nombre y Apellido',
+            key: 'nombrePersona',
+            render: (value, row) => (
+                <span className="font-medium text-primary">{row.nombrePersona}</span>
+            ),
+        },
+        { label: 'Documento', key: 'documento', align: 'center', render: (val) => val || '-' },
+        {
+            label: 'Club',
+            key: 'nombreClub',
+            render: (val, row) =>
+                hasClub(row) ? (
+                    val || row.nombreClub || 'Club'
+                ) : (
+                    <span className="badge badge-secondary">Sin club</span>
+                ),
+        },
+        {
+            label: 'Selección',
+            key: 'perteneceSeleccion',
+            align: 'center',
+            render: (_val, row) => renderSeleccionBadge(row),
+        },
+        { label: 'Licencia', key: 'licencia', render: (val) => val || '-' },
+        { label: 'Email', key: 'email', render: (val) => val || '-', align: 'center' },
+        { label: 'Teléfono', key: 'telefono', render: (val) => val || '-' },
+        {
+            label: 'Documentación',
+            key: 'documentacion',
+            align: 'center',
+            render: (_val, row) => (
+                <div className="flex justify-center gap-2">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="p-1 h-auto"
+                        title="Subir"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedEntrenadorForDocs(row);
+                            loadDocuments(row.idPersona);
+                            setShowUploadModal(true);
+                        }}
+                    >
+                        <Plus size={18} className="text-primary" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="p-1 h-auto"
+                        title="Ver"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedEntrenadorForDocs(row);
+                            setShowViewerModal(true);
+                        }}
+                    >
+                        <Eye size={18} className="text-primary" />
+                    </Button>
+                </div>
+            ),
+        },
+        {
+            label: 'Acciones',
+            key: 'actions',
+            align: 'center',
+            render: (_value, row) => (
+                <div className="flex justify-center gap-2">
+                    {row.perteneceSeleccion && (
+                        <>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedEntrenadorForCategory(row);
+                                    setShowCategoryModal(true);
+                                }}
+                                title="Asignar Categoría"
+                            >
+                                <UserCog size={18} className="text-primary" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleUnlinkFromSelection(row);
+                                }}
+                                title="Desvincular de selección"
+                            >
+                                <UserMinus size={18} className="text-primary" />
+                            </Button>
+                        </>
+                    )}
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(row);
+                        }}
+                        title="Editar"
+                    >
+                        <Edit size={18} className="text-primary" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-danger"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete();
+                        }}
+                        title="Eliminar"
+                    >
+                        <Trash2 size={18} />
+                    </Button>
+                </div>
+            ),
+        },
+    ];
 
     return (
         <div className={`page-container ${isNative ? 'mobile-view' : ''}`}>
             {isSuperAdminView && (
-                <div style={{
-                    background: 'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(139,92,246,0.08) 100%)',
-                    border: '1px solid rgba(59,130,246,0.3)',
-                    borderRadius: '10px',
-                    padding: '0.7rem 1.1rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.75rem',
-                    marginBottom: '1rem',
-                }}>
+                <div
+                    style={{
+                        background:
+                            'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(139,92,246,0.08) 100%)',
+                        border: '1px solid rgba(59,130,246,0.3)',
+                        borderRadius: '10px',
+                        padding: '0.7rem 1.1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        marginBottom: '1rem',
+                    }}
+                >
                     <button
                         type="button"
                         onClick={() => navigate(`/superadmin/federacion/${fedId}`)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#60a5fa', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: '600', fontSize: '0.85rem', padding: 0 }}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: '#60a5fa',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.3rem',
+                            fontWeight: '600',
+                            fontSize: '0.85rem',
+                            padding: 0,
+                        }}
                     >
                         <ArrowLeft size={15} /> Volver al dashboard de la federación
                     </button>
@@ -250,46 +421,79 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
                 <div>
                     <h1 className="page-title">
                         <Award size={24} className="text-primary" />
-                        {isNative ? (viewMode === 'club' ? 'E. Clubes' : 'E. Selección') : title}
+                        {isNative ? 'Entrenadores' : 'Entrenadores'}
                     </h1>
+                    {!isNative && (
+                        <p className="page-subtitle">
+                            Club y selección en un solo listado
+                        </p>
+                    )}
                 </div>
-                {viewMode === 'seleccion' && (
-                    <div className="flex gap-2">
-                        <Button variant="outline" onClick={() => setShowAddCoachModal(true)}>
-                            {isNative ? <UserPlus size={20} /> : <><UserPlus size={20} /> Vincular Existente</>}
-                        </Button>
-                        <Button onClick={() => {
-                            const path = isSuperAdminView
-                                ? `/superadmin/federacion/${fedId}/entrenadores-seleccion/nuevo`
-                                : '/dashboard/entrenadores-seleccion/nuevo';
-                            navigate(path, { state: { returnPath: location.pathname } });
-                        }}>
-                            <Plus size={20} /> {isNative ? 'Crear' : 'Crear Entrenador Nuevo'}
-                        </Button>
-                    </div>
-                )}
-                {viewMode === 'club' && (
-                    <Button onClick={() => {
-                        const path = isSuperAdminView
-                            ? `/superadmin/federacion/${fedId}/entrenadores/nuevo`
-                            : '/dashboard/entrenadores/nuevo';
-                        navigate(path, { state: { returnPath: location.pathname } });
-                    }}>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setShowAddCoachModal(true)}>
+                        {isNative ? (
+                            <UserPlus size={20} />
+                        ) : (
+                            <>
+                                <UserPlus size={20} /> Vincular a Selección
+                            </>
+                        )}
+                    </Button>
+                    <Button
+                        onClick={() =>
+                            navigate(`${basePath}/nuevo`, {
+                                state: { returnPath: location.pathname },
+                            })
+                        }
+                    >
                         <Plus size={20} /> {isNative ? 'Crear' : 'Nuevo Entrenador'}
                     </Button>
-                )}
+                </div>
             </div>
 
             <Card className="mb-6">
                 <div className="filters-grid">
                     <div className="filter-item">
-                        <FormField icon={Search} placeholder="Buscar..." name="search" value={filters.search} onChange={handleFilterChange} variant="dark-focused" />
+                        <FormField
+                            icon={Search}
+                            placeholder="Buscar..."
+                            name="search"
+                            value={filters.search}
+                            onChange={handleFilterChange}
+                            variant="dark-focused"
+                        />
                     </div>
-                    {!isNative && viewMode === 'club' && (
+                    {!isNative && (
                         <div className="filter-item">
-                            <FormSelect icon={Filter} name="club" value={filters.club} onChange={handleFilterChange} options={[{ value: '', label: 'Todos los Clubes' }, ...clubes.map(c => ({ value: c.idClub, label: c.nombre }))]} />
+                            <FormSelect
+                                icon={Filter}
+                                name="club"
+                                value={filters.club}
+                                onChange={handleFilterChange}
+                                options={[
+                                    { value: '', label: 'Todos los Clubes' },
+                                    ...clubes.map((c) => ({
+                                        value: c.idClub ?? c.IdClub,
+                                        label: c.nombre || c.Nombre,
+                                    })),
+                                ]}
+                            />
                         </div>
                     )}
+                    <div className="filter-item">
+                        <FormSelect
+                            icon={Filter}
+                            name="ambito"
+                            value={filters.ambito}
+                            onChange={handleFilterChange}
+                            options={[
+                                { value: 'todos', label: 'Todos' },
+                                { value: 'club', label: 'Solo club' },
+                                { value: 'seleccion', label: 'Solo selección' },
+                                { value: 'ambos', label: 'En ambos' },
+                            ]}
+                        />
+                    </div>
                 </div>
             </Card>
 
@@ -301,20 +505,34 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
                         ) : filteredData.length === 0 ? (
                             <p className="text-center">Sin resultados</p>
                         ) : (
-                            filteredData.map(coach => (
-                                <MobileCard 
+                            filteredData.map((coach) => (
+                                <MobileCard
                                     key={coach.idPersona}
-                                    title={coach.nombrePersona || `${coach.nombre || ''} ${coach.apellido || ''}`}
-                                    subtitle={coach.nombreClub || 'Sin Club'}
-                                    badge={viewMode === 'seleccion' ? <span className="badge badge-info">{getCategoriaLabel(coach.categoriaSeleccion)}</span> : <span className="badge badge-secondary">{coach.licencia || '-'}</span>}
+                                    title={coach.nombrePersona}
+                                    subtitle={
+                                        hasClub(coach)
+                                            ? coach.nombreClub || 'Club'
+                                            : 'Sin club'
+                                    }
+                                    badge={renderSeleccionBadge(coach)}
                                     details={[
                                         { label: 'DNI', value: coach.documento || '-' },
-                                        { label: 'Apto', value: coach.presentoAptoMedico ? '✅' : '❌' }
+                                        { label: 'Licencia', value: coach.licencia || '-' },
                                     ]}
                                     actions={
                                         <div className="flex gap-2">
-                                            <Button variant="ghost" size="sm" icon={Edit} onClick={() => handleEdit(coach.idPersona)} />
-                                            <Button variant="ghost" size="sm" icon={Eye} onClick={() => handleRowClick(coach)} />
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                icon={Edit}
+                                                onClick={() => handleEdit(coach)}
+                                            />
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                icon={Eye}
+                                                onClick={() => handleRowClick(coach)}
+                                            />
                                         </div>
                                     }
                                     onClick={() => handleRowClick(coach)}
@@ -332,12 +550,15 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
                             onRowClick={handleRowClick}
                             keyField="idPersona"
                         />
-                        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={handlePageChange}
+                        />
                     </>
                 )}
             </Card>
 
-            {/* Document Upload Modal */}
             {showUploadModal && selectedEntrenadorForDocs && (
                 <DocumentUploadModal
                     isOpen={showUploadModal}
@@ -345,16 +566,13 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
                         setShowUploadModal(false);
                         setSelectedEntrenadorForDocs(null);
                     }}
-                    onSuccess={() => {
-                        fetchData();
-                    }}
-                    personName={selectedEntrenadorForDocs.nombrePersona || `${selectedEntrenadorForDocs.nombre || ''} ${selectedEntrenadorForDocs.apellido || ''}`}
+                    onSuccess={() => fetchData()}
+                    personName={selectedEntrenadorForDocs.nombrePersona}
                     personId={selectedEntrenadorForDocs.idPersona}
                     existingDocuments={existingDocuments}
                 />
             )}
 
-            {/* Document Viewer Modal */}
             {showViewerModal && selectedEntrenadorForDocs && (
                 <DocumentViewerModal
                     isOpen={showViewerModal}
@@ -362,13 +580,12 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
                         setShowViewerModal(false);
                         setSelectedEntrenadorForDocs(null);
                     }}
-                    personName={selectedEntrenadorForDocs.nombrePersona || `${selectedEntrenadorForDocs.nombre || ''} ${selectedEntrenadorForDocs.apellido || ''}`}
-                    personDocumento={selectedEntrenadorForDocs.documento || selectedEntrenadorForDocs.dni}
+                    personName={selectedEntrenadorForDocs.nombrePersona}
+                    personDocumento={selectedEntrenadorForDocs.documento}
                     personId={selectedEntrenadorForDocs.idPersona}
                 />
             )}
 
-            {/* Assign Category Modal */}
             {showCategoryModal && selectedEntrenadorForCategory && (
                 <AssignCategoryModal
                     isOpen={showCategoryModal}
@@ -379,20 +596,20 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
                     onSuccess={() => {
                         setShowCategoryModal(false);
                         setSelectedEntrenadorForCategory(null);
-                        fetchData(); // Refresh the list
+                        fetchData();
                     }}
                     coach={selectedEntrenadorForCategory}
                 />
             )}
 
-            {/* Add Coach to Selection Modal */}
             {showAddCoachModal && (
                 <AddCoachToSelectionModal
                     isOpen={showAddCoachModal}
+                    fedId={fedId}
                     onClose={() => setShowAddCoachModal(false)}
                     onSuccess={() => {
                         setShowAddCoachModal(false);
-                        fetchData(); // Refresh the list
+                        fetchData();
                     }}
                 />
             )}
@@ -411,9 +628,11 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
 
             <EntrenadorDetailModal
                 isOpen={showDetailModal}
-                onClose={() => { setShowDetailModal(false); setSelectedEntrenador(null); }}
+                onClose={() => {
+                    setShowDetailModal(false);
+                    setSelectedEntrenador(null);
+                }}
                 entrenador={selectedEntrenador}
-                viewMode={viewMode}
                 fedId={fedId}
                 returnPath={location.pathname}
             />

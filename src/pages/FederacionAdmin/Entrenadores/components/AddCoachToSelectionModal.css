@@ -38,6 +38,13 @@
     margin: 0;
 }
 
+.modal-hint {
+    margin: 0 0 1rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
 .modal-close {
     background: none;
     border: none;

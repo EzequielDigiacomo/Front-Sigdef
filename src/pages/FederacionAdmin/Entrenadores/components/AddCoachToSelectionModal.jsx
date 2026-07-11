@@ -3,20 +3,23 @@ import { api } from '../../../../services/api';
 import Button from '../../../../components/common/Button';
 import FormField from '../../../../components/forms/FormField';
 import ConfirmationModal from '../../../../components/common/ConfirmationModal';
-import { useNavigate } from 'react-router-dom';
-import { Search, X, UserPlus, AlertCircle, Plus } from 'lucide-react';
+import { withFederationScope } from '../../../../utils/apiHelpers';
+import { Search, X, UserPlus, AlertCircle } from 'lucide-react';
 import './AddCoachToSelectionModal.css';
 
-const AddCoachToSelectionModal = ({ isOpen, onClose, onSuccess }) => {
+const hasClub = (coach) => {
+    const clubId = coach.idClub ?? coach.IdClub;
+    return clubId != null && clubId !== 0 && clubId !== '0';
+};
+
+const AddCoachToSelectionModal = ({ isOpen, onClose, onSuccess, fedId }) => {
     const [coaches, setCoaches] = useState([]);
     const [filteredCoaches, setFilteredCoaches] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCoach, setSelectedCoach] = useState(null);
     const [submitting, setSubmitting] = useState(false);
-    const navigate = useNavigate();
 
-    // Confirmation Modal State
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [confirmationConfig, setConfirmationConfig] = useState({
         type: 'success',
@@ -24,23 +27,23 @@ const AddCoachToSelectionModal = ({ isOpen, onClose, onSuccess }) => {
         message: ''
     });
 
-    // Load coaches when modal opens
     useEffect(() => {
         if (isOpen) {
             loadAvailableCoaches();
             setSearchTerm('');
             setSelectedCoach(null);
         }
-    }, [isOpen]);
+    }, [isOpen, fedId]);
 
-    // Filter coaches when search term changes
     useEffect(() => {
         if (searchTerm.trim() === '') {
             setFilteredCoaches(coaches);
         } else {
+            const term = searchTerm.toLowerCase();
             const filtered = coaches.filter(c =>
-                (c.nombrePersona || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (c.documento || '').includes(searchTerm)
+                (c.nombrePersona || '').toLowerCase().includes(term) ||
+                (c.documento || '').includes(searchTerm) ||
+                (c.nombreClub || '').toLowerCase().includes(term)
             );
             setFilteredCoaches(filtered);
         }
@@ -49,35 +52,43 @@ const AddCoachToSelectionModal = ({ isOpen, onClose, onSuccess }) => {
     const loadAvailableCoaches = async () => {
         setLoading(true);
         try {
-            const [coachesData, personasData, clubesData] = await Promise.all([
-                api.get('/Entrenador'),
-                api.get('/Persona'),
-                api.get('/Club')
+            const [coachesData, clubesData] = await Promise.all([
+                api.get(withFederationScope('/Entrenador', fedId)),
+                api.get(withFederationScope('/Clubes', fedId)).catch(() =>
+                    api.get(withFederationScope('/Club', fedId))
+                ),
             ]);
 
-            // Create club map for quick lookup
             const clubMap = {};
-            (clubesData || []).forEach(club => {
-                clubMap[club.idClub] = club.nombre;
+            (clubesData || []).forEach((club) => {
+                const id = club.idClub ?? club.IdClub;
+                clubMap[id] = club.nombre || club.Nombre;
             });
 
-            // Filter coaches NOT in selection
-            const available = (coachesData || []).filter(c => !c.perteneceSeleccion);
+            // Solo entrenadores de club que aún no están en el equipo de selección
+            const available = (coachesData || []).filter((c) => {
+                const inSeleccion = !!(c.perteneceSeleccion ?? c.PerteneceSeleccion);
+                return hasClub(c) && !inSeleccion;
+            });
 
-            // Enrich coaches with persona data
-            const enriched = available.map(coach => {
-                const persona = (personasData || []).find(p => p.idPersona === coach.idPersona);
-
+            const enriched = available.map((coach) => {
+                const id = coach.participanteId ?? coach.ParticipanteId ?? coach.idPersona ?? coach.IdPersona;
+                const clubId = coach.idClub ?? coach.IdClub;
                 return {
                     ...coach,
-                    nombrePersona: persona?.nombre && persona?.apellido
-                        ? `${persona.nombre} ${persona.apellido}`
-                        : coach.nombrePersona,
-                    documento: persona?.documento || coach.documento || '-',
-                    email: persona?.email || coach.email || '-',
-                    nombreClub: coach.club?.nombre ||
-                        (coach.idClub ? clubMap[coach.idClub] : null) ||
-                        'Sin Club'
+                    idPersona: id,
+                    participanteId: id,
+                    idClub: clubId,
+                    nombrePersona: coach.nombrePersona || coach.NombrePersona || '-',
+                    documento: coach.documento || coach.Documento || '-',
+                    email: coach.email || coach.Email || '-',
+                    licencia: coach.licencia || coach.Licencia || '',
+                    nombreClub:
+                        coach.nombreClub ||
+                        coach.NombreClub ||
+                        coach.club?.nombre ||
+                        clubMap[clubId] ||
+                        'Club',
                 };
             });
 
@@ -97,38 +108,34 @@ const AddCoachToSelectionModal = ({ isOpen, onClose, onSuccess }) => {
 
         setSubmitting(true);
         try {
-            // Prepare the DTO to mark coach as part of selection
             const entrenadorData = {
                 participanteId: selectedCoach.idPersona,
                 ParticipanteId: selectedCoach.idPersona,
                 idPersona: selectedCoach.idPersona,
-                idClub: selectedCoach.idClub || null,
+                idClub: selectedCoach.idClub ?? selectedCoach.IdClub ?? null,
                 licencia: selectedCoach.licencia || '',
-                perteneceSeleccion: true, // Mark as part of selection
-                categoriaSeleccion: '0', // Default to "Sin Asignar"
+                perteneceSeleccion: true,
+                categoriaSeleccion: '0',
                 becadoEnard: selectedCoach.becadoEnard || false,
                 becadoSdn: selectedCoach.becadoSdn || false,
                 montoBeca: selectedCoach.montoBeca || 0,
-                presentoAptoMedico: selectedCoach.presentoAptoMedico || false
+                presentoAptoMedico: selectedCoach.presentoAptoMedico || false,
             };
 
-            console.log('📤 Agregando entrenador a selección:', entrenadorData);
             await api.put(`/Entrenador/${selectedCoach.idPersona}`, entrenadorData);
 
-            // Show success modal
             setConfirmationConfig({
                 type: 'success',
                 title: '¡Éxito!',
-                message: `El entrenador ${selectedCoach.nombrePersona} ha sido agregado a la selección correctamente.`
+                message: `${selectedCoach.nombrePersona} quedó vinculado a la selección y sigue figurando como entrenador de ${selectedCoach.nombreClub}.`,
             });
             setShowConfirmation(true);
         } catch (error) {
             console.error('Error adding coach to selection:', error);
-            // Show error modal
             setConfirmationConfig({
                 type: 'danger',
                 title: 'Error',
-                message: 'Hubo un problema al agregar el entrenador a la selección. Por favor, intente nuevamente.'
+                message: 'Hubo un problema al vincular el entrenador. Por favor, intente nuevamente.',
             });
             setShowConfirmation(true);
         } finally {
@@ -149,17 +156,21 @@ const AddCoachToSelectionModal = ({ isOpen, onClose, onSuccess }) => {
         <div className="modal-overlay">
             <div className="modal-content">
                 <div className="modal-header">
-                    <h3 className="modal-title">Agregar Entrenador a Selección</h3>
+                    <h3 className="modal-title">Vincular entrenador de club</h3>
                     <button className="modal-close" onClick={onClose}>
                         <X size={24} />
                     </button>
                 </div>
 
                 <div className="modal-body">
+                    <p className="modal-hint">
+                        Se listan los entrenadores de club que todavía no forman parte del equipo de selección.
+                        Al vincularlos figurarán en ambas grillas.
+                    </p>
                     <div className="mb-4">
                         <FormField
                             icon={Search}
-                            placeholder="Buscar por nombre o documento..."
+                            placeholder="Buscar por nombre, documento o club..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -169,7 +180,7 @@ const AddCoachToSelectionModal = ({ isOpen, onClose, onSuccess }) => {
                         {loading ? (
                             <div className="text-center py-4">
                                 <div className="spinner"></div>
-                                <p>Cargando entrenadores...</p>
+                                <p>Cargando entrenadores de club...</p>
                             </div>
                         ) : filteredCoaches.length === 0 ? (
                             <div className="search-prompt">
@@ -177,23 +188,12 @@ const AddCoachToSelectionModal = ({ isOpen, onClose, onSuccess }) => {
                                 <p>
                                     {searchTerm
                                         ? 'No se encontraron entrenadores con ese criterio de búsqueda'
-                                        : 'No hay entrenadores disponibles para agregar'}
+                                        : 'No hay entrenadores de club disponibles para vincular'}
                                 </p>
-                                {!searchTerm && (
-                                    <Button
-                                        className="mt-4"
-                                        onClick={() => {
-                                            onClose();
-                                            navigate('/dashboard/entrenadores-seleccion/nuevo');
-                                        }}
-                                    >
-                                        <Plus size={18} /> Crear Entrenador Nuevo
-                                    </Button>
-                                )}
                             </div>
                         ) : (
                             <ul className="coaches-list">
-                                {filteredCoaches.map(coach => (
+                                {filteredCoaches.map((coach) => (
                                     <li
                                         key={coach.idPersona}
                                         className={`coach-item ${selectedCoach?.idPersona === coach.idPersona ? 'selected' : ''}`}
@@ -220,7 +220,7 @@ const AddCoachToSelectionModal = ({ isOpen, onClose, onSuccess }) => {
                         disabled={!selectedCoach || submitting}
                         isLoading={submitting}
                     >
-                        <UserPlus size={18} /> Agregar a Selección
+                        <UserPlus size={18} /> Vincular a Selección
                     </Button>
                 </div>
             </div>

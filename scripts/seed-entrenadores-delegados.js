@@ -199,11 +199,18 @@ async function createDelegado(club, index) {
     const clubId = idOf(club, 'idClub', 'IdClub');
     const fedId = idOf(club, 'idFederacion', 'IdFederacion', 'federacionId') || 1;
     const persona = genPersona(`D${clubId}${index}`);
+    const clubName = club.nombre || club.Nombre || `club${clubId}`;
+    const baseUser = String(clubName)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '') || `club${clubId}`;
+    const username = index === 1 ? baseUser : `${baseUser}${index}`;
 
-    // Flujo ClubAdmin: Auth/register
+    // Flujo ClubAdmin: Auth/register — en pruebas username = nombre del club
     const registerPayload = {
-        username: persona.documento,
-        password: persona.documento,
+        username,
+        password: username,
         email: persona.email,
         rol: 'Club',
         rolFederacion: 'Club',

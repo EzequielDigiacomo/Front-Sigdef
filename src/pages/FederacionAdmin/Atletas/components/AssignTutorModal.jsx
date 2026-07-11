@@ -52,9 +52,9 @@ const AssignTutorModal = ({ isOpen, onClose, athlete, onSuccess }) => {
         setError(null);
         try {
             const payload = {
-                IdAtleta: athlete.idPersona,
-                IdTutor: selectedTutor.idPersona || selectedTutor.IdPersona,
-                IdParentesco: parseInt(idParentesco)
+                ParticipanteId: athlete.idPersona ?? athlete.participanteId ?? athlete.ParticipanteId,
+                IdTutor: selectedTutor.idPersona || selectedTutor.participanteId || selectedTutor.ParticipanteId || selectedTutor.IdPersona,
+                Parentesco: parseInt(idParentesco, 10),
             };
 
             await api.post('/AtletaTutor', payload);

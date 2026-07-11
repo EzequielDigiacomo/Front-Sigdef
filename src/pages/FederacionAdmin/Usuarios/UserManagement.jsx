@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, UserPlus, Key } from 'lucide-react';
+import { Shield, UserPlus } from 'lucide-react';
 import RegisterClubForm from './components/RegisterClubForm';
 import RegisterPersonForm from './components/RegisterPersonForm';
-import ChangePasswordForm from './components/ChangePasswordForm';
 import UserTable from './components/UserTable';
 import { api } from '../../../services/api';
 import './UserManagement.css';
@@ -16,7 +15,6 @@ const UserManagement = () => {
     const tabs = [
         { id: 'club', label: 'Registrar Club', icon: Shield },
         { id: 'person', label: 'Registrar Usuario', icon: UserPlus },
-        { id: 'password', label: 'Cambiar Contraseña', icon: Key },
     ];
 
     useEffect(() => {
@@ -63,13 +61,12 @@ const UserManagement = () => {
                 <div className="tab-content">
                     {activeTab === 'club' && <RegisterClubForm onUserCreated={fetchData} />}
                     {activeTab === 'person' && <RegisterPersonForm onUserCreated={fetchData} />}
-                    {activeTab === 'password' && <ChangePasswordForm />}
                 </div>
             </div>
 
-            <div className="glass-panel mt-6">
+            <div className="glass-panel mt-6 users-table-panel">
                 <h3 className="text-lg font-semibold mb-4 px-4 pt-4">Usuarios Registrados</h3>
-                <UserTable users={users} clubs={clubs} />
+                <UserTable users={users} clubs={clubs} onUserUpdated={fetchData} />
             </div>
         </div>
     );

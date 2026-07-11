@@ -1,0 +1,211 @@
+.fed-page {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.fed-page .page-header {
+    margin-bottom: 0.75rem;
+}
+
+.fed-page .page-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 1.45rem;
+    margin: 0;
+}
+
+.fed-header-actions {
+    display: flex;
+    gap: 0.45rem;
+    align-items: center;
+}
+
+.fed-card {
+    padding: 0.95rem 1.15rem !important;
+}
+
+.fed-card--edit {
+    max-width: 720px;
+}
+
+.fed-loading,
+.fed-empty {
+    margin: 0;
+    padding: 1.25rem 0.5rem;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.fed-identity {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.fed-identity--edit {
+    align-items: center;
+}
+
+.fed-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: rgba(59, 130, 246, 0.12);
+    color: var(--primary);
+}
+
+.fed-identity-text h2 {
+    margin: 0 0 0.25rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--text-primary);
+}
+
+.fed-identity-text .badge {
+    font-size: 0.72rem;
+}
+
+.fed-name-field {
+    flex: 1;
+    margin: 0;
+}
+
+.fed-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.95rem 1.35rem;
+}
+
+.fed-section-title {
+    margin: 0 0 0.45rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    text-align: left;
+}
+
+.fed-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.fed-field {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    padding: 0.4rem 0.55rem;
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.28);
+}
+
+.fed-field-icon {
+    width: 16px;
+    height: 16px;
+    margin-top: 0.12rem;
+    flex-shrink: 0;
+    color: var(--primary);
+    opacity: 0.9;
+}
+
+.fed-field-body {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.02rem;
+}
+
+.fed-field-label {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    line-height: 1.2;
+}
+
+.fed-field-value {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    line-height: 1.3;
+    word-break: break-word;
+}
+
+.fed-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+}
+
+.fed-sections > section + section {
+    padding-top: 0.55rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.fed-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem 0.75rem;
+}
+
+.fed-form-span {
+    grid-column: 1 / -1;
+}
+
+/* Compact edit form — denser but still readable */
+.fed-form .form-group {
+    margin: 0 !important;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.2rem !important;
+}
+
+.fed-form .form-group label {
+    display: block;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.2;
+}
+
+.fed-form .form-input,
+.fed-form select.form-input {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 36px;
+    height: 36px;
+    padding: 0.35rem 0.65rem !important;
+    font-size: 0.9rem !important;
+    line-height: 1.25;
+    border-radius: 8px;
+}
+
+.fed-form .fed-name-field .form-input {
+    min-height: 40px;
+    height: 40px;
+    font-size: 0.95rem !important;
+    font-weight: 600;
+}
+
+@media (max-width: 720px) {
+    .fed-grid,
+    .fed-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .fed-page {
+        max-width: 100%;
+    }
+}

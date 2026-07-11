@@ -4,7 +4,7 @@ import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import { ArrowLeft, Save } from 'lucide-react';
-import '../Atletas/Atletas.css';
+import '../../../styles/CompactForm.css';
 
 const ClubesForm = () => {
     const { id, fedId } = useParams();
@@ -80,17 +80,17 @@ const ClubesForm = () => {
     };
 
     return (
-        <div className="page-container">
+        <div className="page-container compact-form">
             <div className="page-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Button variant="ghost" onClick={handleNavigateBack}>
-                        <ArrowLeft size={20} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <Button variant="ghost" size="sm" onClick={handleNavigateBack}>
+                        <ArrowLeft size={18} />
                     </Button>
                     <h2 className="page-title">{id ? 'Editar Club' : 'Nuevo Club'}</h2>
                 </div>
             </div>
 
-            <Card style={{ maxWidth: '700px', margin: '0 auto' }}>
+            <Card className="compact-form-card">
                 <form onSubmit={handleSubmit}>
                     <div className="form-grid">
                         <h3 className="form-section-title">Datos Identificatorios</h3>
@@ -114,7 +114,7 @@ const ClubesForm = () => {
                             <label>Teléfono</label>
                             <input name="telefono" value={formData.telefono} onChange={handleChange} className="form-input" placeholder="+54 11 ..." />
                         </div>
-                        <div className="form-group">
+                        <div className="form-group full-width">
                             <label>Dirección / Ubicación / Sede</label>
                             <input name="direccion" value={formData.direccion} onChange={handleChange} className="form-input" placeholder="Ciudad, Provincia..." />
                         </div>
@@ -133,9 +133,9 @@ const ClubesForm = () => {
                     </div>
 
                     <div className="form-actions">
-                        <Button type="button" variant="secondary" onClick={handleNavigateBack}>Cancelar</Button>
-                        <Button type="submit" variant="primary" isLoading={loading}>
-                            <Save size={18} /> Guardar Club
+                        <Button type="button" variant="secondary" size="sm" onClick={handleNavigateBack}>Cancelar</Button>
+                        <Button type="submit" variant="primary" size="sm" isLoading={loading}>
+                            <Save size={16} /> Guardar Club
                         </Button>
                     </div>
                 </form>

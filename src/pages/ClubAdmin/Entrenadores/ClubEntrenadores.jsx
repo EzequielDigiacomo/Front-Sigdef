@@ -40,45 +40,25 @@ const ClubEntrenadores = () => {
     const fetchEntrenadores = async (clubId) => {
         try {
             setLoading(true);
-            const [personas, todosEntrenadores] = await Promise.all([
-                api.get('/Persona'),
-                api.get('/Entrenador')
-            ]);
+            const todosEntrenadores = await api.get('/Entrenador');
 
             const clubEntrenadores = todosEntrenadores.filter(e => {
                 const eClubId = e.idClub ?? e.IdClub;
                 return String(eClubId) === String(clubId);
             });
-            const personasMap = new Map(personas.map(p => [
-                String(p.participanteId ?? p.ParticipanteId ?? p.idPersona ?? p.IdPersona ?? p.id),
-                p
-            ]));
 
             const enrichedData = clubEntrenadores.map(entrenador => {
                 const trainerId = entrenador.participanteId ?? entrenador.ParticipanteId ?? entrenador.idPersona ?? entrenador.IdPersona;
-                const persona = personasMap.get(String(trainerId)) || entrenador.participante || entrenador.Participante || {};
-
-                const firstName = persona?.nombre ?? persona?.Nombre ?? '';
-                const lastName = persona?.apellido ?? persona?.Apellido ?? '';
-                const doc = entrenador.documento || entrenador.Documento
-                    || persona?.documento || persona?.Documento || persona?.dni || persona?.Dni || '';
-                const mail = entrenador.email || entrenador.Email
-                    || persona?.email || persona?.Email || '';
-                const tel = entrenador.telefono || entrenador.Telefono
-                    || persona?.telefono || persona?.Telefono || '';
-                const licencia = entrenador.licencia || entrenador.Licencia || '';
 
                 return {
                     ...entrenador,
                     idPersona: trainerId,
                     participanteId: trainerId,
-                    nombrePersona: firstName && lastName
-                        ? `${firstName} ${lastName}`
-                        : (entrenador.nombrePersona || entrenador.NombrePersona || '-'),
-                    documento: doc || '-',
-                    email: mail || '-',
-                    telefono: tel || '-',
-                    licencia: licencia || '-',
+                    nombrePersona: entrenador.nombrePersona || entrenador.NombrePersona || '-',
+                    documento: entrenador.documento || entrenador.Documento || '-',
+                    email: entrenador.email || entrenador.Email || '-',
+                    telefono: entrenador.telefono || entrenador.Telefono || '-',
+                    licencia: entrenador.licencia || entrenador.Licencia || '-',
                 };
             });
 

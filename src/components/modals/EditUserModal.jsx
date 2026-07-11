@@ -16,8 +16,8 @@ const EditUserModal = ({ isOpen, onClose, user, onUserUpdated }) => {
     useEffect(() => {
         if (user) {
             setFormData({
-                username: user.username,
-                estaActivo: user.estaActivo
+                username: user.username || user.Username || '',
+                estaActivo: user.estaActivo ?? user.EstaActivo ?? true,
             });
         }
     }, [user]);
@@ -41,7 +41,9 @@ const EditUserModal = ({ isOpen, onClose, user, onUserUpdated }) => {
                 estaActivo: formData.estaActivo
             };
 
-            await api.put(`/Usuario/${user.idUsuario}`, payload);
+            const id = user.idUsuario ?? user.IdUsuario;
+            if (id == null) throw new Error('Usuario sin id');
+            await api.put(`/Usuario/${id}`, payload);
             onUserUpdated();
             onClose();
         } catch (err) {

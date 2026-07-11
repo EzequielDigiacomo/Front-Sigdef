@@ -8,6 +8,7 @@ import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import { ArrowLeft, Save } from 'lucide-react';
 import { CATEGORIA_MAP, SEXO_MAP } from '../../../utils/enums';
 import '../Atletas/ClubAtletas.css';
+import '../../../styles/CompactForm.css';
 
 const ClubEntrenadoresForm = () => {
     const { id } = useParams();
@@ -227,17 +228,17 @@ const ClubEntrenadoresForm = () => {
     };
 
     return (
-        <div className="page-container">
+        <div className="page-container compact-form">
             <div className="page-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Button variant="ghost" onClick={handleNavigateBack}>
-                        <ArrowLeft size={20} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <Button variant="ghost" size="sm" onClick={handleNavigateBack}>
+                        <ArrowLeft size={18} />
                     </Button>
                     <h2 className="page-title">{id ? 'Editar Entrenador' : 'Nuevo Entrenador'}</h2>
                 </div>
             </div>
 
-            <Card style={{ maxWidth: '800px', margin: '0 auto' }}>
+            <Card className="compact-form-card">
                 <form onSubmit={handleSubmit}>
                     <div className="form-grid">
                         <h3 className="form-section-title">Datos Personales</h3>
@@ -289,9 +290,9 @@ const ClubEntrenadoresForm = () => {
                             <label>Licencia *</label>
                             <input name="licencia" value={formData.licencia} onChange={handleChange} className="form-input" maxLength={50} required />
                         </div>
-                        <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+                        <div className="form-group checkbox-group">
                             <input type="checkbox" name="perteneceSeleccion" checked={formData.perteneceSeleccion} onChange={handleChange} id="seleccion" />
-                            <label htmlFor="seleccion" style={{ marginBottom: 0 }}>Pertenece a Selección</label>
+                            <label htmlFor="seleccion">Pertenece a Selección</label>
                         </div>
                         {formData.perteneceSeleccion && (
                             <div className="form-group">
@@ -311,13 +312,13 @@ const ClubEntrenadoresForm = () => {
                         )}
 
                         <h3 className="form-section-title">Becas</h3>
-                        <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+                        <div className="form-group checkbox-group">
                             <input type="checkbox" name="becadoEnard" checked={formData.becadoEnard} onChange={handleChange} id="enard" />
-                            <label htmlFor="enard" style={{ marginBottom: 0 }}>Becado ENARD</label>
+                            <label htmlFor="enard">Becado ENARD</label>
                         </div>
-                        <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+                        <div className="form-group checkbox-group">
                             <input type="checkbox" name="becadoSdn" checked={formData.becadoSdn} onChange={handleChange} id="sdn" />
-                            <label htmlFor="sdn" style={{ marginBottom: 0 }}>Becado SDN</label>
+                            <label htmlFor="sdn">Becado SDN</label>
                         </div>
                         <div className="form-group">
                             <label>Monto Beca</label>
@@ -325,16 +326,16 @@ const ClubEntrenadoresForm = () => {
                         </div>
 
                         <h3 className="form-section-title">Apto Médico</h3>
-                        <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+                        <div className="form-group checkbox-group">
                             <input type="checkbox" name="presentoAptoMedico" checked={formData.presentoAptoMedico} onChange={handleChange} id="apto" />
-                            <label htmlFor="apto" style={{ marginBottom: 0 }}>Presentó Apto Médico</label>
+                            <label htmlFor="apto">Presentó Apto Médico</label>
                         </div>
                     </div>
 
                     <div className="form-actions">
-                        <Button type="button" variant="secondary" onClick={handleNavigateBack}>Cancelar</Button>
-                        <Button type="submit" variant="primary" isLoading={loading}>
-                            <Save size={18} /> {id ? 'Actualizar' : 'Guardar'} Entrenador
+                        <Button type="button" variant="secondary" size="sm" onClick={handleNavigateBack}>Cancelar</Button>
+                        <Button type="submit" variant="primary" size="sm" isLoading={loading}>
+                            <Save size={16} /> {id ? 'Actualizar' : 'Guardar'} Entrenador
                         </Button>
                     </div>
                 </form>

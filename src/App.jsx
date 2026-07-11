@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import MainLayout from './components/layout/MainLayout';
 import MainLayoutClub from './components/layout/MainLayoutClub';
@@ -36,9 +36,9 @@ import TutoresForm from './pages/FederacionAdmin/Tutores/TutoresForm';
 import InscripcionesList from './pages/FederacionAdmin/Inscripciones/InscripcionesList';
 import InscripcionesForm from './pages/FederacionAdmin/Inscripciones/InscripcionesForm';
 import EntrenadoresSeleccionList from './pages/FederacionAdmin/EntrenadorSeleccion/EntrenadorSeleccionList';
-import EntrenadoresSeleccionForm from './pages/FederacionAdmin/EntrenadorSeleccion/EntrenadorSeleccionForm';
 import SeleccionCategoriaDetalle from './pages/FederacionAdmin/EntrenadorSeleccion/SeleccionCategoriaDetalle';
 import EntrenadoresList from './pages/FederacionAdmin/Entrenadores/EntrenadoresList';
+import EntrenadoresForm from './pages/FederacionAdmin/Entrenadores/EntrenadoresForm';
 import UserManagement from './pages/FederacionAdmin/Usuarios/UserManagement';
 import FederacionDetalles from './pages/FederacionAdmin/Federacion/FederacionDetalles';
 import PagosClubes from './pages/FederacionAdmin/Pagos/PagosClubes';
@@ -58,9 +58,38 @@ import ClubDelegados from './pages/ClubAdmin/Delegados/ClubDelegados';
 import ClubDelegadosForm from './pages/ClubAdmin/Delegados/ClubDelegadosForm';
 
 import { ThemeProvider } from './context/ThemeContext';
+import { warmupApi } from './services/api';
+
+const RedirectEntrenadorEdit = () => {
+  const { id, fedId } = useParams();
+  const target = fedId
+    ? `/superadmin/federacion/${fedId}/entrenadores/editar/${id}`
+    : `/dashboard/entrenadores/editar/${id}`;
+  return <Navigate to={target} replace />;
+};
+
+const RedirectEntrenadoresList = () => {
+  const { fedId } = useParams();
+  const target = fedId
+    ? `/superadmin/federacion/${fedId}/entrenadores`
+    : '/dashboard/entrenadores';
+  return <Navigate to={target} replace />;
+};
+
+const RedirectEntrenadoresNuevo = () => {
+  const { fedId } = useParams();
+  const target = fedId
+    ? `/superadmin/federacion/${fedId}/entrenadores/nuevo`
+    : '/dashboard/entrenadores/nuevo';
+  return <Navigate to={target} replace />;
+};
 
 const PrivateRoute = ({ children, allowedRoles }) => {
   const { isAuthenticated, loading, user } = useAuth();
+
+  React.useEffect(() => {
+    if (isAuthenticated) warmupApi();
+  }, [isAuthenticated]);
 
   if (loading) return <div>Cargando...</div>;
 
@@ -169,7 +198,8 @@ function App() {
 
               { }
               <Route path="tutores" element={<TutoresList />} />
-              <Route path="tutores/new" element={<TutoresForm />} />
+              <Route path="tutores/nuevo" element={<TutoresForm />} />
+              <Route path="tutores/new" element={<Navigate to="/dashboard/tutores/nuevo" replace />} />
               <Route path="tutores/:id/edit" element={<TutoresForm />} />
 
               { }
@@ -178,19 +208,17 @@ function App() {
               <Route path="inscripciones/new" element={<InscripcionesForm />} />
 */ }
 
-              {/* ENTRENADORES */}
-              <Route path="entrenadores" element={<EntrenadoresList viewMode="club" />} />
-              <Route path="entrenadores/nuevo" element={<ClubEntrenadoresForm />} />
-              <Route path="entrenadores/editar/:id" element={<ClubEntrenadoresForm />} />
-
-              {/* Entrenadores Selección (Grilla Plana) */}
-              <Route path="entrenadores-seleccion" element={<EntrenadoresList viewMode="seleccion" />} />
+              {/* ENTRENADORES (club + selección unificados) */}
+              <Route path="entrenadores" element={<EntrenadoresList />} />
+              <Route path="entrenadores/nuevo" element={<EntrenadoresForm />} />
+              <Route path="entrenadores/editar/:id" element={<EntrenadoresForm />} />
+              <Route path="entrenadores-seleccion" element={<RedirectEntrenadoresList />} />
+              <Route path="entrenadores-seleccion/nuevo" element={<RedirectEntrenadoresNuevo />} />
+              <Route path="entrenadores-seleccion/editar/:id" element={<RedirectEntrenadorEdit />} />
 
               {/* Selecciones (Dashboard Cards) */}
               <Route path="selecciones" element={<EntrenadoresSeleccionList />} />
               <Route path="selecciones/categoria/:categoryId" element={<SeleccionCategoriaDetalle />} />
-              <Route path="entrenadores-seleccion/nuevo" element={<EntrenadoresSeleccionForm />} />
-              <Route path="entrenadores-seleccion/editar/:id" element={<EntrenadoresSeleccionForm />} />
 
               <Route path="pagos" element={<PagosClubes />} />
               <Route path="federacion" element={<FederacionDetalles />} />
@@ -253,14 +281,14 @@ function App() {
               <Route path="federacion/:fedId/clubes/nuevo" element={<ClubesForm />} />
               <Route path="federacion/:fedId/clubes/editar/:id" element={<ClubesForm />} />
               <Route path="federacion/:fedId/clubes/detalles/:id" element={<ClubDetalles />} />
-              <Route path="federacion/:fedId/entrenadores" element={<EntrenadoresList viewMode="club" />} />
-              <Route path="federacion/:fedId/entrenadores/nuevo" element={<ClubEntrenadoresForm />} />
-              <Route path="federacion/:fedId/entrenadores/editar/:id" element={<ClubEntrenadoresForm />} />
-              <Route path="federacion/:fedId/entrenadores-seleccion" element={<EntrenadoresList viewMode="seleccion" />} />
+              <Route path="federacion/:fedId/entrenadores" element={<EntrenadoresList />} />
+              <Route path="federacion/:fedId/entrenadores/nuevo" element={<EntrenadoresForm />} />
+              <Route path="federacion/:fedId/entrenadores/editar/:id" element={<EntrenadoresForm />} />
+              <Route path="federacion/:fedId/entrenadores-seleccion" element={<RedirectEntrenadoresList />} />
+              <Route path="federacion/:fedId/entrenadores-seleccion/nuevo" element={<RedirectEntrenadoresNuevo />} />
+              <Route path="federacion/:fedId/entrenadores-seleccion/editar/:id" element={<RedirectEntrenadorEdit />} />
               <Route path="federacion/:fedId/selecciones" element={<EntrenadoresSeleccionList />} />
               <Route path="federacion/:fedId/selecciones/categoria/:categoryId" element={<SeleccionCategoriaDetalle />} />
-              <Route path="federacion/:fedId/entrenadores-seleccion/nuevo" element={<EntrenadoresSeleccionForm />} />
-              <Route path="federacion/:fedId/entrenadores-seleccion/editar/:id" element={<EntrenadoresSeleccionForm />} />
               <Route path="federacion/:fedId/delegados" element={<DelegadosList />} />
               <Route path="federacion/:fedId/delegados/nuevo" element={<DelegadosForm />} />
               <Route path="federacion/:fedId/delegados/editar/:id" element={<DelegadosForm />} />

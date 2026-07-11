@@ -200,8 +200,7 @@ const FederacionView = () => {
     const modules = [
         { label: 'Atletas', icon: Users, color: '#3b82f6', description: 'Nómina y registro de atletas', section: 'atletas' },
         { label: 'Clubes', icon: Building2, color: '#10b981', description: 'Instituciones afiliadas', section: 'clubes' },
-        { label: 'Entrenadores Club', icon: Award, color: '#f59e0b', description: 'Técnicos asociados a clubes', section: 'entrenadores' },
-        { label: 'Entrenadores Selección', icon: Award, color: '#a855f7', description: 'Grilla de entrenadores de selección', section: 'entrenadores-seleccion' },
+        { label: 'Entrenadores', icon: Award, color: '#f59e0b', description: 'Técnicos de club y selección', section: 'entrenadores' },
         { label: 'Selección Nacional', icon: Shield, color: '#8b5cf6', description: 'Selecciones nacionales por categoría', section: 'selecciones' },
         { label: 'Delegados', icon: Briefcase, color: '#ef4444', description: 'Representantes de clubes', section: 'delegados' },
         { label: 'Tutores', icon: UserCheck, color: '#ec4899', description: 'Tutoría de atletas menores', section: 'tutores' },

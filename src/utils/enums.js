@@ -122,23 +122,34 @@ export const SEXO_MAP = {
 };
 
 export const getCategoriaLabel = (value) => {
-    if (value === '0' || value === 0 || !value) {
+    if (value === '0' || value === 0 || value == null || value === '') {
         return 'Sin Asignar';
     }
-    // Si el valor ya está en el mapa, devolverlo
-    if (CATEGORIA_MAP[value]) {
-        return CATEGORIA_MAP[value];
+    const key = String(value);
+    if (CATEGORIA_MAP[key] || CATEGORIA_MAP[Number(key)]) {
+        return CATEGORIA_MAP[key] || CATEGORIA_MAP[Number(key)];
     }
 
     // Si el valor es un texto (error de datos antiguos), buscar la clave correspondiente
     if (typeof value === 'string') {
-        const entry = Object.entries(CATEGORIA_MAP).find(([key, label]) => label === value);
+        const entry = Object.entries(CATEGORIA_MAP).find(([, label]) => label === value);
         if (entry) {
-            return entry[1]; // Devolver el label
+            return entry[1];
         }
     }
 
     return 'Desconocido';
+};
+
+/** Normaliza id de categoría de selección (1-9) desde string/number. */
+export const normalizeCategoriaId = (value) => {
+    if (value == null || value === '' || value === '0' || value === 0) return null;
+    if (typeof value === 'string' && CATEGORIA_MAP[value] === undefined) {
+        const byLabel = Object.entries(CATEGORIA_MAP).find(([, label]) => label === value);
+        if (byLabel) return parseInt(byLabel[0], 10);
+    }
+    const n = parseInt(value, 10);
+    return Number.isFinite(n) && n > 0 && CATEGORIA_MAP[n] ? n : null;
 };
 export const getCategoriaEdadLabel = (value) => CATEGORIA_EDAD_MAP[value] ?? 'Desconocido';
 export const getDistanciaLabel = (value) => DISTANCIA_REGATA_MAP[value] ?? 'Desconocido';

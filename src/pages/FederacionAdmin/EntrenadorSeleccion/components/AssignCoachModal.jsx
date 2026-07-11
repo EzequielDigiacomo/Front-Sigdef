@@ -4,6 +4,7 @@ import Button from '../../../../components/common/Button';
 import FormField from '../../../../components/forms/FormField';
 import ConfirmationModal from '../../../../components/common/ConfirmationModal';
 import { Search, X, UserPlus, AlertCircle } from 'lucide-react';
+import { getCategoriaLabel } from '../../../../utils/enums';
 import './AssignCoachModal.css';
 
 const AssignCoachModal = ({ isOpen, onClose, onSuccess, categoryId, categoryLabel }) => {
@@ -47,22 +48,21 @@ const AssignCoachModal = ({ isOpen, onClose, onSuccess, categoryId, categoryLabe
     const loadCoaches = async () => {
         setLoading(true);
         try {
-            const [coachesData, personasData] = await Promise.all([
-                api.get('/Entrenador'),
-                api.get('/Persona')
-            ]);
+            const coachesData = await api.get('/Entrenador');
 
-            // Enrich coaches with persona data
-            const enriched = (coachesData || []).map(coach => {
-                const persona = (personasData || []).find(p => p.idPersona === coach.idPersona);
+            const enriched = (coachesData || []).map((coach) => {
+                const id = coach.participanteId ?? coach.ParticipanteId ?? coach.idPersona ?? coach.IdPersona;
 
                 return {
                     ...coach,
-                    nombrePersona: persona?.nombre && persona?.apellido
-                        ? `${persona.nombre} ${persona.apellido}`
-                        : coach.nombrePersona,
-                    documento: persona?.documento || coach.documento || '-',
-                    email: persona?.email || coach.email || '-'
+                    idPersona: id,
+                    participanteId: id,
+                    nombrePersona: coach.nombrePersona || coach.NombrePersona || '-',
+                    documento: coach.documento || coach.Documento || '-',
+                    email: coach.email || coach.Email || '-',
+                    telefono: coach.telefono || coach.Telefono || '-',
+                    categoriaSeleccion: coach.categoriaSeleccion ?? coach.CategoriaSeleccion ?? '',
+                    perteneceSeleccion: !!(coach.perteneceSeleccion ?? coach.PerteneceSeleccion),
                 };
             });
 
@@ -177,7 +177,9 @@ const AssignCoachModal = ({ isOpen, onClose, onSuccess, categoryId, categoryLabe
                                             <span className="coach-name">{coach.nombrePersona}</span>
                                             <span className="coach-doc">{coach.documento}</span>
                                         </div>
-                                        <div className="coach-email">{coach.email}</div>
+                                        <div className="coach-categoria">
+                                            {getCategoriaLabel(coach.categoriaSeleccion)}
+                                        </div>
                                     </li>
                                 ))}
                             </ul>
