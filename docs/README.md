@@ -1,55 +1,51 @@
-# 📚 Documentación Completa - SIGDEF
+# Documentación FrontSigdef (SIGDEF)
 
-## Índice de Documentación
+**Única carpeta de documentación del frontend.** Todo lo demás (raíz del repo, `SIGDEF_Dev_Documentation/`, `.agent/`) debe apuntar aquí.
 
-Esta carpeta contiene toda la documentación del proyecto SIGDEF (Sistema de Gestión Deportiva Federativa).
-
-### 📄 Documentos Disponibles
-
-00. **[00-INFORMACIÓN GENERAL](./00-INFORMACION-GENERAL.md)** - Visión y alcance del proyecto SIGDEF Canotaje.
-01. **[01-ARQUITECTURA](./01-ARQUITECTURA.md)** - Arquitectura general del sistema.
-02. **[02-SISTEMA-ROLES](./02-SISTEMA-ROLES.md)** - Estructura de roles, permisos y flujos de usuario.
-03. **[03-ESTRUCTURA-PROYECTO](./03-ESTRUCTURA-PROYECTO.md)** - Organización de carpetas y estándares de código.
-04. **[04-API-BACKEND](./04-API-BACKEND.md)** - Documentación de endpoints y servicios de servidor.
-05. **[05-BASE-DE-DATOS](./05-BASE-DE-DATOS.md)** - Modelo relacional y esquemas.
-06. **[06-CASOS-DE-USO](./06-CASOS-DE-USO.md)** - Historias de usuario y casos prácticos.
-07. **[07-API-INTEGRATION](./07-API-INTEGRATION.md)** - Guía de integración Frontend-Backend.
-08. **[08-GUIA-DESARROLLO](./08-GUIA-DESARROLLO.md)** - Manual para nuevos desarrolladores.
-09. **[09-RELEVAMIENTO](./09-RELEVAMIENTO.md)** - Organigrama de Canotaje, procesos y puntos de dolor.
-10. **[10-PROPUESTA](./10-PROPUESTA.md)** - Solución integral y propuesta de valor.
-
-## 🚀 Inicio Rápido
-
-### Instalación
-```bash
-npm install
-```
-
-### Desarrollo
-```bash
-npm run dev
-```
-
-### Producción
-```bash
-npm run build
-npm run preview
-```
-
-## 🔑 Credenciales de Prueba
-
-### Federación (Administrador)
-- **Usuario:** admin
-- **Contraseña:** admin
-
-### Club
-- **Usuario:** club1
-- **Contraseña:** club1
-
-## 📞 Contacto y Soporte
-
-Para preguntas o soporte, consulta la documentación específica en cada archivo.
+**Última actualización:** 2026-07-11
 
 ---
 
-**Última actualización:** 25 de Noviembre, 2025
+## Cómo está organizada
+
+| Carpeta | Para qué sirve |
+|---------|----------------|
+| [guias-usuario/](./guias-usuario/) | Manuales y guías paso a paso (Federación, Club, Accesos) |
+| [casos-de-uso/](./casos-de-uso/) | Casos de uso y flujos de negocio |
+| [criterios/](./criterios/) | Criterios de aceptación / Definition of Done |
+| [cambios/](./cambios/) | Registro de cambios guardados (changelogs por fecha) |
+| [tecnico/](./tecnico/) | Arquitectura, roles, API, desarrollo |
+| [referencia/](./referencia/) | Documentación histórica / legado numerado |
+
+---
+
+## Inicio rápido (dev)
+
+```bash
+npm install
+npm run dev
+```
+
+App local: `http://localhost:5173`
+
+API típica: `https://sporttrack-sigdef.onrender.com/api` (o la de `.env`).
+
+---
+
+## Lectura recomendada según rol
+
+| Quién sos | Empezá por |
+|-----------|------------|
+| Usuario Federación / Admin | [guias-usuario/manual-federacion.md](./guias-usuario/manual-federacion.md) |
+| Usuario Club / Delegado | [guias-usuario/manual-club.md](./guias-usuario/manual-club.md) |
+| Gestión de logins y claves | [guias-usuario/gestion-accesos-contrasenas.md](./guias-usuario/gestion-accesos-contrasenas.md) |
+| Tutores y menores | [guias-usuario/tutores-paso-a-paso.md](./guias-usuario/tutores-paso-a-paso.md) |
+| QA / aceptación | [criterios/criterios-aceptacion.md](./criterios/criterios-aceptacion.md) |
+| Desarrollador | [tecnico/README.md](./tecnico/README.md) |
+| Qué se guardó en jul-2026 | [cambios/2026-07-ui-tutores-accesos.md](./cambios/2026-07-ui-tutores-accesos.md) |
+
+---
+
+## Relación con el backend
+
+El backend documentado vive en el repo **SportTrack-Sigdef** → carpeta `docs/`.
