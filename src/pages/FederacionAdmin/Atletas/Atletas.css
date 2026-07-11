@@ -286,3 +286,80 @@ body {
 .mobile-search .search-input {
     border-radius: 12px;
 }
+
+/* Documentación compacta en grilla */
+.docs-col {
+    width: 118px;
+    min-width: 118px;
+    vertical-align: middle;
+}
+
+.docs-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+}
+
+.docs-cell-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.docs-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 7px;
+    background: rgba(148, 163, 184, 0.08);
+    color: #67e8f9;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.docs-icon-btn:hover {
+    background: rgba(6, 182, 212, 0.18);
+    border-color: rgba(6, 182, 212, 0.45);
+    color: #a5f3fc;
+}
+
+.docs-cell-meter {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 3px;
+    min-width: 52px;
+    flex: 1;
+    max-width: 64px;
+}
+
+.docs-segments {
+    display: flex;
+    gap: 2px;
+    height: 4px;
+}
+
+.docs-segment {
+    flex: 1;
+    border-radius: 2px;
+    background: rgba(148, 163, 184, 0.2);
+}
+
+.docs-segment.filled {
+    background: #10b981;
+}
+
+.docs-count {
+    font-size: 0.65rem;
+    line-height: 1;
+    color: #94a3b8;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { NavLink } from 'react-router-dom';
-import { LogOut, User, Menu, LayoutDashboard, Users, Calendar, Trophy, Info, UserCheck, Award, Shield } from 'lucide-react';
+import { LogOut, User, Menu, LayoutDashboard, Users, Calendar, Trophy, UserCheck, Award, Shield } from 'lucide-react';
 import Button from '../common/Button';
 import ThemeToggle from '../common/ThemeToggle';
 import './Navbar.css';
@@ -11,7 +11,6 @@ const NavbarClub = ({ toggleSidebar, hideSidebarToggle }) => {
 
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/club' },
-        { icon: Info, label: 'Mi Club', path: '/club/info' },
         { icon: Users, label: 'Atletas', path: '/club/atletas' },
         { icon: UserCheck, label: 'Tutores', path: '/club/tutores' },
         { icon: Award, label: 'Entrenadores', path: '/club/entrenadores' },

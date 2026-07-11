@@ -586,7 +586,14 @@ const ClubAtletas = () => {
                                 </div>
                                 <div className="detail-row">
                                     <span className="label">DNI:</span>
-                                    <span className="value">{atletaDetails.personaCompleta?.dni || 'No especificado'}</span>
+                                    <span className="value">
+                                        {atletaDetails.documento
+                                            || atletaDetails.personaCompleta?.documento
+                                            || atletaDetails.personaCompleta?.Documento
+                                            || atletaDetails.personaCompleta?.dni
+                                            || atletaDetails.personaCompleta?.Dni
+                                            || 'No especificado'}
+                                    </span>
                                 </div>
                                 <div className="detail-row">
                                     <span className="label">Fecha de Nacimiento:</span>
@@ -865,6 +872,7 @@ const ClubAtletas = () => {
                         setSelectedAtletaForDocs(null);
                     }}
                     personName={selectedAtletaForDocs.nombrePersona}
+                    personDocumento={selectedAtletaForDocs.documento}
                     personId={selectedAtletaForDocs.idPersona}
                 />
             )}

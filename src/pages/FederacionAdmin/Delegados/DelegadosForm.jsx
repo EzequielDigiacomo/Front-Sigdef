@@ -154,7 +154,8 @@ const DelegadosForm = () => {
                 username: formData.documento, // DNI as username
                 password: formData.documento, // DNI as password for initial creation
                 email: formData.email || `${formData.documento}@sigdef.com`,
-                rol: "Club",
+                rol: 'Club',
+                rolFederacion: 'Club',
                 clubId: formData.idClub ? parseInt(formData.idClub) : null,
                 nombre: formData.nombre,
                 apellido: formData.apellido,

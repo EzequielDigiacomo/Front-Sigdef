@@ -380,6 +380,7 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
                     isOpen={showViewerModal}
                     onClose={() => setShowViewerModal(false)}
                     personName={athlete.nombrePersona || `${athlete.nombre} ${athlete.apellido}`}
+                    personDocumento={athlete.documento || athlete.dni}
                     personId={athlete.idPersona}
                 />
             )}

@@ -43,7 +43,6 @@ import UserManagement from './pages/FederacionAdmin/Usuarios/UserManagement';
 import FederacionDetalles from './pages/FederacionAdmin/Federacion/FederacionDetalles';
 import PagosClubes from './pages/FederacionAdmin/Pagos/PagosClubes';
 
-import ClubDashboard from './pages/ClubAdmin/Dashboard/ClubDashboard';
 import ClubInfo from './pages/ClubAdmin/Info/ClubInfo';
 import ClubAtletas from './pages/ClubAdmin/Atletas/ClubAtletas';
 import ClubAtletasForm from './pages/ClubAdmin/Atletas/ClubAtletasForm';
@@ -204,8 +203,8 @@ function App() {
                 <MainLayoutClub />
               </PrivateRoute>
             }>
-              <Route index element={<ClubDashboard />} />
-              <Route path="info" element={<ClubInfo />} />
+              <Route index element={<ClubInfo />} />
+              <Route path="info" element={<Navigate to="/club" replace />} />
               <Route path="atletas" element={<ClubAtletas />} />
               <Route path="atletas/nuevo" element={<ClubAtletasForm />} />
               <Route path="atletas/editar/:id" element={<ClubAtletasForm />} />

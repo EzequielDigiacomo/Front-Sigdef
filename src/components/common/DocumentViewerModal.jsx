@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, FileText, Download, Trash2, Eye, Loader2 } from 'lucide-react';
+import { FileText, Download, Trash2, Eye, Loader2 } from 'lucide-react';
 import Modal from './Modal';
 import Button from './Button';
 import ConfirmationModal from './ConfirmationModal';
@@ -7,7 +7,54 @@ import { api } from '../../services/api';
 import { TIPO_DOCUMENTO_MAP } from '../../utils/enums';
 import './DocumentViewerModal.css';
 
-const DocumentViewerModal = ({ isOpen, onClose, personId, personName }) => {
+const getDocUrl = (doc) =>
+    doc?.urlArchivo || doc?.UrlArchivo || doc?.url || doc?.Url || '';
+
+const isImageUrl = (url) => {
+    if (!url) return false;
+    if (url.startsWith('data:image/')) return true;
+    if (/\.(jpg|jpeg|png|gif|webp)(\?|#|$)/i.test(url)) return true;
+    // Cloudinary image delivery (a menudo sin extensión en el public_id)
+    if (/\/image\/upload\//i.test(url)) return true;
+    return false;
+};
+
+const isPdfUrl = (url) => {
+    if (!url) return false;
+    if (url.startsWith('data:application/pdf')) return true;
+    if (/\.pdf(\?|#|$)/i.test(url)) return true;
+    return false;
+};
+
+const sanitizeFilePart = (value) =>
+    String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^\w\s.-]/g, '')
+        .trim()
+        .replace(/\s+/g, '_');
+
+const getExtensionFromUrl = (url) => {
+    if (!url) return 'jpg';
+    if (url.startsWith('data:image/png')) return 'png';
+    if (url.startsWith('data:image/gif')) return 'gif';
+    if (url.startsWith('data:image/webp')) return 'webp';
+    if (url.startsWith('data:application/pdf') || isPdfUrl(url)) return 'pdf';
+    const match = url.match(/\.(jpg|jpeg|png|gif|webp|pdf)(\?|#|$)/i);
+    if (match) return match[1].toLowerCase() === 'jpeg' ? 'jpg' : match[1].toLowerCase();
+    if (isImageUrl(url)) return 'jpg';
+    return 'bin';
+};
+
+const buildDownloadFileName = ({ personName, personDocumento, tipoDocumento, url }) => {
+    const nombre = sanitizeFilePart(personName) || 'persona';
+    const documento = sanitizeFilePart(personDocumento) || 'sin_documento';
+    const tipo = sanitizeFilePart(TIPO_DOCUMENTO_MAP[tipoDocumento] || `tipo_${tipoDocumento ?? 'doc'}`);
+    const ext = getExtensionFromUrl(url);
+    return `${nombre}_${documento}_${tipo}.${ext}`;
+};
+
+const DocumentViewerModal = ({ isOpen, onClose, personId, personName, personDocumento }) => {
     const [documents, setDocuments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedDoc, setSelectedDoc] = useState(null);
@@ -34,31 +81,28 @@ const DocumentViewerModal = ({ isOpen, onClose, personId, personName }) => {
         try {
             const response = await api.get(`/Documentacion/persona/${personId}`);
 
-            console.log('API Response:', response);
-
-            // Extraer documentos correctamente
             let docsArray = [];
 
-            // Si response.data tiene documentos
             if (response && response.data && response.data.documentos &&
                 Array.isArray(response.data.documentos)) {
                 docsArray = response.data.documentos;
-            }
-            // Si response directamente tiene documentos
-            else if (response && response.documentos && Array.isArray(response.documentos)) {
+            } else if (response && response.documentos && Array.isArray(response.documentos)) {
                 docsArray = response.documentos;
-            }
-            // Si es directamente un array
-            else if (Array.isArray(response)) {
+            } else if (Array.isArray(response)) {
                 docsArray = response;
-            }
-            // Si response.data es directamente el array
-            else if (response && response.data && Array.isArray(response.data)) {
+            } else if (response && response.data && Array.isArray(response.data)) {
                 docsArray = response.data;
             }
 
-            console.log('Documentos extraídos:', docsArray);
-            setDocuments(docsArray);
+            const normalized = docsArray.map((doc) => ({
+                ...doc,
+                id: doc.id ?? doc.Id,
+                tipoDocumento: doc.tipoDocumento ?? doc.TipoDocumento,
+                urlArchivo: getDocUrl(doc),
+                fechaCarga: doc.fechaCarga ?? doc.FechaCarga,
+            }));
+
+            setDocuments(normalized);
         } catch (error) {
             console.error('Error fetching documents:', error);
             setDocuments([]);
@@ -76,7 +120,6 @@ const DocumentViewerModal = ({ isOpen, onClose, personId, personName }) => {
         if (!docToDelete) return;
 
         try {
-            // El backend devuelve 'Id' (mayúscula) o 'id' (minúscula)
             const docId = docToDelete.id || docToDelete.Id || docToDelete.idDocumentacion;
 
             if (!docId) {
@@ -87,11 +130,10 @@ const DocumentViewerModal = ({ isOpen, onClose, personId, personName }) => {
             setShowDeleteConfirm(false);
             setShowDeleteSuccess(true);
             setDocToDelete(null);
-            fetchDocuments(); // Refresh list
+            fetchDocuments();
         } catch (error) {
             console.error('Error deleting document:', error);
 
-            // Mensaje amigable según el tipo de error
             let friendlyMessage = 'No se pudo eliminar el documento. Por favor, intente nuevamente.';
 
             if (error.message?.includes('404') || error.message?.includes('not found')) {
@@ -114,17 +156,50 @@ const DocumentViewerModal = ({ isOpen, onClose, personId, personName }) => {
     };
 
     const handleDownload = (doc) => {
-        // Open in new tab to download
-        if (doc && doc.urlArchivo) {
-            window.open(doc.urlArchivo, '_blank');
+        const url = getDocUrl(doc);
+        if (!url) return;
+
+        const fileName = buildDownloadFileName({
+            personName,
+            personDocumento,
+            tipoDocumento: doc.tipoDocumento,
+            url,
+        });
+
+        if (url.startsWith('data:')) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            return;
         }
+
+        // Forzar nombre también en URLs remotas (Cloudinary, etc.)
+        fetch(url)
+            .then((res) => res.blob())
+            .then((blob) => {
+                const objectUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = objectUrl;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(objectUrl);
+            })
+            .catch(() => {
+                window.open(url, '_blank', 'noopener,noreferrer');
+            });
     };
 
     const renderPreview = () => {
         if (!selectedDoc) return null;
 
-        const isImage = selectedDoc.urlArchivo?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-        const isPdf = selectedDoc.urlArchivo?.match(/\.pdf$/i);
+        const url = getDocUrl(selectedDoc);
+        const isImage = isImageUrl(url);
+        const isPdf = isPdfUrl(url);
 
         return (
             <Modal
@@ -140,13 +215,13 @@ const DocumentViewerModal = ({ isOpen, onClose, personId, personName }) => {
                 <div className="document-preview-container">
                     {isImage ? (
                         <img
-                            src={selectedDoc.urlArchivo}
+                            src={url}
                             alt="Document preview"
                             className="document-preview-image"
                         />
                     ) : isPdf ? (
                         <iframe
-                            src={selectedDoc.urlArchivo}
+                            src={url}
                             className="document-preview-iframe"
                             title="PDF Preview"
                         />
@@ -192,10 +267,11 @@ const DocumentViewerModal = ({ isOpen, onClose, personId, personName }) => {
                             ) : (
                                 documents.map((doc, index) => {
                                     const tipoLabel = TIPO_DOCUMENTO_MAP[doc.tipoDocumento] || 'Documento';
-                                    
+                                    const url = getDocUrl(doc);
+                                    const showThumb = isImageUrl(url);
+
                                     return (
                                         <div key={doc.id || index} className="document-row">
-                                            {/* Column 1: Document Type */}
                                             <div className="document-type-column">
                                                 <span className="document-type-label">
                                                     {tipoLabel}
@@ -210,16 +286,15 @@ const DocumentViewerModal = ({ isOpen, onClose, personId, personName }) => {
                                                 )}
                                             </div>
 
-                                            {/* Column 2: Thumbnail */}
                                             <div className="document-thumbnail-column">
-                                                {doc.urlArchivo && doc.urlArchivo.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                                {showThumb ? (
                                                     <div
                                                         className="document-thumbnail-small"
                                                         onClick={() => handlePreview(doc)}
                                                         title="Click para ver en tamaño completo"
                                                     >
                                                         <img
-                                                            src={doc.urlArchivo}
+                                                            src={url}
                                                             alt={`Miniatura ${tipoLabel}`}
                                                             onError={(e) => {
                                                                 e.target.style.display = 'none';
@@ -240,7 +315,6 @@ const DocumentViewerModal = ({ isOpen, onClose, personId, personName }) => {
                                                 )}
                                             </div>
 
-                                            {/* Column 2: Actions */}
                                             <div className="document-actions-column">
                                                 <Button
                                                     variant="ghost"
@@ -279,7 +353,6 @@ const DocumentViewerModal = ({ isOpen, onClose, personId, personName }) => {
 
             {renderPreview()}
 
-            {/* Modal de Confirmación - Eliminar */}
             <ConfirmationModal
                 isOpen={showDeleteConfirm}
                 onClose={() => {
@@ -295,7 +368,6 @@ const DocumentViewerModal = ({ isOpen, onClose, personId, personName }) => {
                 showCancel={true}
             />
 
-            {/* Modal de Éxito - Eliminación */}
             <ConfirmationModal
                 isOpen={showDeleteSuccess}
                 onClose={() => setShowDeleteSuccess(false)}
@@ -307,7 +379,6 @@ const DocumentViewerModal = ({ isOpen, onClose, personId, personName }) => {
                 showCancel={false}
             />
 
-            {/* Modal de Error - Eliminación */}
             <ConfirmationModal
                 isOpen={showDeleteError}
                 onClose={() => setShowDeleteError(false)}

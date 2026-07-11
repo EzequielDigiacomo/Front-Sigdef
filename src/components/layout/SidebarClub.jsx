@@ -1,11 +1,10 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Calendar, Info, ChevronLeft, ChevronRight, Trophy, UserCheck, Award, Shield } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, ChevronLeft, ChevronRight, Trophy, UserCheck, Award, Shield } from 'lucide-react';
 import './Sidebar.css';
 
 const SidebarClub = ({ isOpen, closeMobile, isCollapsed, toggleSidebar }) => {
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/club' },
-        { icon: Info, label: 'Mi Club', path: '/club/info' },
         { icon: Users, label: 'Mis Atletas', path: '/club/atletas' },
         { icon: UserCheck, label: 'Mis Tutores', path: '/club/tutores' },
         { icon: Award, label: 'Mis Entrenadores', path: '/club/entrenadores' },

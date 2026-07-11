@@ -326,6 +326,7 @@ const SeleccionCategoriaDetalle = () => {
                         setSelectedAthleteForViewer(null);
                     }}
                     personName={selectedAthleteForViewer.nombrePersona}
+                    personDocumento={selectedAthleteForViewer.documento}
                     personId={selectedAthleteForViewer.idPersona || selectedAthleteForViewer.IdPersona}
                 />
             )}

@@ -328,6 +328,7 @@ const EntrenadoresList = ({ viewMode = 'club' }) => { // viewMode: 'club' | 'sel
                         setSelectedEntrenadorForDocs(null);
                     }}
                     personName={selectedEntrenadorForDocs.nombrePersona || `${selectedEntrenadorForDocs.nombre || ''} ${selectedEntrenadorForDocs.apellido || ''}`}
+                    personDocumento={selectedEntrenadorForDocs.documento || selectedEntrenadorForDocs.dni}
                     personId={selectedEntrenadorForDocs.idPersona}
                 />
             )}

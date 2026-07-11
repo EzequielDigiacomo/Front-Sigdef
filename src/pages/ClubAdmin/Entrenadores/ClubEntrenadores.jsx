@@ -232,6 +232,7 @@ const ClubEntrenadores = () => {
                         setSelectedEntrenadorForDocs(null);
                     }}
                     personName={selectedEntrenadorForDocs.nombrePersona}
+                    personDocumento={selectedEntrenadorForDocs.documento || selectedEntrenadorForDocs.dni}
                     personId={selectedEntrenadorForDocs.idPersona}
                 />
             )}

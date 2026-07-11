@@ -8,6 +8,13 @@ import { Plus, Edit, Trash2, Search, Briefcase } from 'lucide-react';
 import { withFederationScope } from '../../../utils/apiHelpers';
 import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
+import {
+    getUsuarioFederacionId,
+    getUsuarioNombre,
+    getUsuarioRol,
+    isDelegadoClubRole,
+    mapAuthUserToDelegado,
+} from '../../../utils/delegadoHelpers';
 
 const DelegadosList = () => {
     const { isNative } = useDevice();
@@ -30,10 +37,21 @@ const DelegadosList = () => {
 
     const loadDelegados = async () => {
         try {
-            const data = await api.get(withFederationScope('/DelegadoClub', fedId));
-            setDelegados(Array.isArray(data) ? data : []);
+            setLoading(true);
+            // El alta de delegados usa Auth/register (rol Club), no /DelegadoClub
+            const data = await api.get(withFederationScope('/Auth/usuarios', fedId));
+            const list = Array.isArray(data) ? data : [];
+            const mapped = list
+                .filter((u) => isDelegadoClubRole(getUsuarioRol(u)))
+                .filter((u) => {
+                    if (!fedId) return true;
+                    return String(getUsuarioFederacionId(u)) === String(fedId);
+                })
+                .map(mapAuthUserToDelegado);
+            setDelegados(mapped);
         } catch (error) {
             console.error('Error cargando delegados:', error);
+            setDelegados([]);
         } finally {
             setLoading(false);
         }
@@ -42,7 +60,7 @@ const DelegadosList = () => {
     const handleDelete = async (id) => {
         if (window.confirm('¿Estás seguro de eliminar este delegado?')) {
             try {
-                await api.delete(`/DelegadoClub/${id}`);
+                await api.delete(`/Auth/usuarios/${id}`);
                 loadDelegados();
             } catch (error) {
                 console.error('Error eliminando delegado:', error);
@@ -51,11 +69,11 @@ const DelegadosList = () => {
         }
     };
 
-    const delegadosFiltrados = delegados.filter(delegado => {
+    const delegadosFiltrados = delegados.filter((delegado) => {
         if (!searchTerm) return true;
         const search = searchTerm.toLowerCase();
-        const nombre = (delegado.nombreCompleto || delegado.nombrePersona || delegado.NombrePersona || '').toLowerCase();
-        const club = (delegado.clubNombre || delegado.nombreClub || delegado.NombreClub || '').toLowerCase();
+        const nombre = getUsuarioNombre(delegado).toLowerCase();
+        const club = (delegado.clubNombre || '').toLowerCase();
         return nombre.includes(search) || club.includes(search);
     });
 

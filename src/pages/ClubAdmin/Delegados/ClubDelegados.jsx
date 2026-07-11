@@ -10,6 +10,13 @@ import { Plus, Edit, Trash2, Search, Shield } from 'lucide-react';
 import DataTable from '../../../components/common/DataTable';
 import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
+import {
+    getUsuarioClubId,
+    getUsuarioRol,
+    isDelegadoClubRole,
+    mapAuthUserToDelegado,
+    getUsuarioNombre,
+} from '../../../utils/delegadoHelpers';
 import '../Atletas/ClubAtletas.css';
 
 const ClubDelegados = () => {
@@ -25,20 +32,29 @@ const ClubDelegados = () => {
 
     useEffect(() => {
         fetchDelegados();
-    }, []);
+    }, [user?.idClub, user?.clubId]);
 
     const fetchDelegados = async () => {
         try {
             setLoading(true);
-            const clubIdActual = user.idClub;
+            const clubIdActual = user?.idClub || user?.IdClub || user?.clubId || user?.ClubId;
             const data = await api.get('/Auth/usuarios');
-            const delegadosFiltrados = data.filter(d => {
-                const idClubDelegado = d.idClub || d.IdClub || d.clubId || d.ClubId;
-                return parseInt(idClubDelegado) === parseInt(clubIdActual) && (d.rol === 'Club' || d.rol === 'Delegado' || d.rol === 'DelegadoClub');
-            });
+            const list = Array.isArray(data) ? data : [];
+            const delegadosFiltrados = list
+                .filter((d) => {
+                    const idClubDelegado = getUsuarioClubId(d);
+                    const rol = getUsuarioRol(d);
+                    return (
+                        clubIdActual != null &&
+                        String(idClubDelegado) === String(clubIdActual) &&
+                        isDelegadoClubRole(rol)
+                    );
+                })
+                .map(mapAuthUserToDelegado);
             setDelegados(delegadosFiltrados);
         } catch (error) {
             console.error('Error cargando delegados:', error);
+            setDelegados([]);
         } finally {
             setLoading(false);
         }
@@ -61,8 +77,8 @@ const ClubDelegados = () => {
         }
     };
 
-    const filteredDelegados = delegados.filter(delegado =>
-        (delegado.nombreCompleto || delegado.nombrePersona || '').toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredDelegados = delegados.filter((delegado) =>
+        getUsuarioNombre(delegado).toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     if (loading) return <div className="loading-container"><div className="spinner"></div></div>;

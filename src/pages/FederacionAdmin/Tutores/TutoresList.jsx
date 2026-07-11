@@ -444,6 +444,7 @@ const TutoresList = () => {
                         setSelectedTutorForDocs(null);
                     }}
                     personName={selectedTutorForDocs.nombrePersona || `${selectedTutorForDocs.persona?.nombre || ''} ${selectedTutorForDocs.persona?.apellido || ''}`}
+                    personDocumento={selectedTutorForDocs.documento || selectedTutorForDocs.persona?.documento || selectedTutorForDocs.persona?.dni}
                     personId={selectedTutorForDocs.idPersona}
                 />
             )}

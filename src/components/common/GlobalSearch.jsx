@@ -147,7 +147,7 @@ const GlobalSearch = ({ isOpen, onClose, role }) => {
                                 <Shield size={24} />
                                 <span>Delegados</span>
                             </div>
-                            <div className="quick-item" onClick={() => navigateTo(role === 'CLUB' ? '/club/info' : '/dashboard/clubes')}>
+                            <div className="quick-item" onClick={() => navigateTo(role === 'CLUB' ? '/club' : '/dashboard/clubes')}>
                                 <User size={24} />
                                 <span>Perfiles</span>
                             </div>

@@ -28,7 +28,7 @@ const MobileNavBar = ({ role, onSearchClick }) => {
                 <span>Gestión</span>
             </NavLink>
 
-            <NavLink to={role === 'CLUB' ? '/club/info' : '/dashboard/federacion'} className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
+            <NavLink to={role === 'CLUB' ? '/club' : '/dashboard/federacion'} className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
                 <User size={24} />
                 <span>Perfil</span>
             </NavLink>

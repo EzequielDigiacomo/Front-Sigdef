@@ -10,7 +10,7 @@ import DocumentViewerModal from '../../../components/common/DocumentViewerModal'
 import { Plus, Edit, Trash2, Search, FileText, Eye, ChevronUp, ChevronDown, ChevronsUpDown, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useSort } from '../../../hooks/useSort';
 import { withFederationScope } from '../../../utils/apiHelpers';
-import { getCategoriaLabel, getEstadoPagoLabel, getEstadoPagoColor } from '../../../utils/enums';
+import { getCategoriaLabel, getEstadoPagoLabel, getEstadoPagoColor, TIPO_DOCUMENTO_MAP } from '../../../utils/enums';
 import './Atletas.css';
 import Modal from '../../../components/common/Modal';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
@@ -586,56 +586,48 @@ const AtletasList = () => {
                                                     {getEstadoPagoLabel(atleta.estadoPago)}
                                                 </span>
                                             </td>
-                                            <td style={{ minWidth: '110px' }}>
-                                                <div className="flex flex-col items-center justify-center gap-2">
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="p-1 h-auto"
-                                                            title="Subir documentos"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
+                                            <td className="docs-col">
+                                                <div
+                                                    className="docs-cell"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    title={`${atleta.cantidadDocumentos || 0} de ${Object.keys(TIPO_DOCUMENTO_MAP).length} documentos`}
+                                                >
+                                                    <div className="docs-cell-actions">
+                                                        <button
+                                                            type="button"
+                                                            className="docs-icon-btn"
+                                                            title="Subir documento"
+                                                            onClick={() => {
                                                                 setSelectedAthleteForUpload(atleta);
                                                                 loadDocuments(atleta.idPersona);
                                                                 setShowUploadModal(true);
                                                             }}
                                                         >
-                                                            <Plus size={18} className="text-primary" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="p-1 h-auto"
+                                                            <Plus size={14} />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="docs-icon-btn"
                                                             title="Ver documentos"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
+                                                            onClick={() => {
                                                                 setSelectedAthleteForViewer(atleta);
                                                                 setShowViewerModal(true);
                                                             }}
                                                         >
-                                                            <Eye size={18} className="text-primary" />
-                                                        </Button>
+                                                            <Eye size={14} />
+                                                        </button>
                                                     </div>
-                                                    <div 
-                                                        className="w-full flex flex-col px-1" 
-                                                        title={`${atleta.cantidadDocumentos || 0} de 7 documentos subidos`} 
-                                                        onClick={(e) => e.stopPropagation()}
-                                                    >
-                                                        <div style={{ display: 'flex', gap: '2px', width: '100%', height: '5px' }}>
-                                                            {[...Array(7)].map((_, i) => (
-                                                                <div 
-                                                                    key={i} 
-                                                                    style={{ 
-                                                                        flex: 1, 
-                                                                        borderRadius: '2px',
-                                                                        backgroundColor: i < (atleta.cantidadDocumentos || 0) ? '#10b981' : 'rgba(255, 255, 255, 0.1)' 
-                                                                    }}
-                                                                ></div>
+                                                    <div className="docs-cell-meter">
+                                                        <div className="docs-segments">
+                                                            {Object.keys(TIPO_DOCUMENTO_MAP).map((key, i) => (
+                                                                <span
+                                                                    key={key}
+                                                                    className={`docs-segment ${(atleta.cantidadDocumentos || 0) > i ? 'filled' : ''}`}
+                                                                />
                                                             ))}
                                                         </div>
-                                                        <span style={{ fontSize: '10px', color: '#9ca3af', textAlign: 'center', marginTop: '4px' }}>
-                                                            {atleta.cantidadDocumentos || 0}/7 Docs
+                                                        <span className="docs-count">
+                                                            {atleta.cantidadDocumentos || 0}/{Object.keys(TIPO_DOCUMENTO_MAP).length}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -694,6 +686,7 @@ const AtletasList = () => {
                         setSelectedAthleteForViewer(null);
                     }}
                     personName={selectedAthleteForViewer.nombrePersona}
+                    personDocumento={selectedAthleteForViewer.documento}
                     personId={selectedAthleteForViewer.idPersona}
                 />
             )}
