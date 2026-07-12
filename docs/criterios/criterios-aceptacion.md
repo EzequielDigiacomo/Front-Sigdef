@@ -36,6 +36,16 @@
 - [ ] Overlay scrolleable; no queda el contenido arriba fuera de pantalla.
 - [ ] Sin scroll horizontal innecesario en grilla de usuarios (contenedor ≥ contenido).
 
+## F. Mensajería SIGDEF
+
+Matriz completa: [mensajeria-aislamiento.md](./mensajeria-aislamiento.md).
+
+- [ ] Admin/Club/Super ven **Mensajes** en el menú con badge de no leídos.
+- [ ] Club solo 1:1 con admin de su fed (sin tab Comunicados).
+- [ ] Admin/Super pueden enviar comunicado masivo y ver desglose.
+- [ ] Hilo creado en SIGDEF **no** aparece en SportTrack (y al revés).
+- [ ] Burbujas propias y ajenas con el mismo estilo (compactas, izquierda/derecha).
+
 ## Definition of Done (DoD)
 
 1. Código en FrontSigdef guardado y coherente con esta lista.  

@@ -17,6 +17,11 @@ Usuario con rol **Admin** / federación: padrón federativo, clubes, atletas, en
 | Pagos | Afiliaciones / cobros |
 | Federación | Datos de la federación |
 | Gestión de Accesos | Logins (club / usuario) y contraseñas |
+| Mensajes | Chat 1:1 y comunicados masivos a clubes (solo SIGDEF) |
+
+## Mensajes
+
+Ver guía: [mensajes.md](./mensajes.md). Podés escribir a SuperAdmin o a clubes de tu federación, y enviar **comunicados masivos** (un hilo privado por club). No se mezcla con la bandeja de SportTrack.
 
 ## Formularios
 

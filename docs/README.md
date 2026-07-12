@@ -2,7 +2,7 @@
 
 **Única carpeta de documentación del frontend.** Todo lo demás (raíz del repo, `SIGDEF_Dev_Documentation/`, `.agent/`) debe apuntar aquí.
 
-**Última actualización:** 2026-07-11
+**Última actualización:** 2026-07-12
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Carpeta | Para qué sirve |
 |---------|----------------|
-| [guias-usuario/](./guias-usuario/) | Manuales y guías paso a paso (Federación, Club, Accesos) |
+| [guias-usuario/](./guias-usuario/) | Manuales y guías paso a paso (Federación, Club, Accesos, Mensajes) |
 | [casos-de-uso/](./casos-de-uso/) | Casos de uso y flujos de negocio |
 | [criterios/](./criterios/) | Criterios de aceptación / Definition of Done |
 | [cambios/](./cambios/) | Registro de cambios guardados (changelogs por fecha) |
@@ -40,12 +40,18 @@ API típica: `https://sporttrack-sigdef.onrender.com/api` (o la de `.env`).
 | Usuario Club / Delegado | [guias-usuario/manual-club.md](./guias-usuario/manual-club.md) |
 | Gestión de logins y claves | [guias-usuario/gestion-accesos-contrasenas.md](./guias-usuario/gestion-accesos-contrasenas.md) |
 | Tutores y menores | [guias-usuario/tutores-paso-a-paso.md](./guias-usuario/tutores-paso-a-paso.md) |
+| Mensajes internos | [guias-usuario/mensajes.md](./guias-usuario/mensajes.md) |
 | QA / aceptación | [criterios/criterios-aceptacion.md](./criterios/criterios-aceptacion.md) |
+| QA mensajería / aislamiento | [criterios/mensajeria-aislamiento.md](./criterios/mensajeria-aislamiento.md) |
 | Desarrollador | [tecnico/README.md](./tecnico/README.md) |
-| Qué se guardó en jul-2026 | [cambios/2026-07-ui-tutores-accesos.md](./cambios/2026-07-ui-tutores-accesos.md) |
+| Diagramas (UML / arquitectura) | [tecnico/diagramas-sistema.md](./tecnico/diagramas-sistema.md) |
+| Qué se guardó en jul-2026 (UI) | [cambios/2026-07-ui-tutores-accesos.md](./cambios/2026-07-ui-tutores-accesos.md) |
+| Mensajería jul-2026 | [cambios/2026-07-mensajeria-sigdef.md](./cambios/2026-07-mensajeria-sigdef.md) |
 
 ---
 
 ## Relación con el backend
 
-El backend documentado vive en el repo **SportTrack-Sigdef** → carpeta `docs/`.
+El backend documentado vive en el repo **SportTrack-Sigdef** → carpeta `docs/` (diagramas canónicos en `docs/tecnico/diagramas/`).
+
+SportTrack (competencias/Live): repo **SportTrack-Front** → `docs/tecnico/diagramas/`.

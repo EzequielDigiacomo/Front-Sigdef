@@ -6,3 +6,4 @@
 | [delegados-y-cuentas-club.md](./delegados-y-cuentas-club.md) | Delegado persona vs login de club |
 | [gestion-usuarios-admin.md](./gestion-usuarios-admin.md) | Admin edita accesos y contraseñas |
 | [casos-generales.md](./casos-generales.md) | Casos transversales (resumen) |
+| [mensajes-internos.md](./mensajes-internos.md) | Mensajes 1:1 y campañas SIGDEF |

@@ -14,6 +14,11 @@ Usuario con rol **Club** (delegado/acceso al panel del club): atletas, entrenado
 | Tutores | Tutores vinculados a atletas del club (incluye los dados de alta por Federación) |
 | Delegados | Personas delegado del club (**no** la cuenta de login institucional) |
 | Eventos | Eventos propios y disponibles |
+| Mensajes | Chat 1:1 con el admin de la federación (solo SIGDEF) |
+
+## Mensajes
+
+Ver guía: [mensajes.md](./mensajes.md). El club puede leer y responder; **no** envía comunicados masivos. La bandeja no se mezcla con SportTrack.
 
 ## Atletas
 

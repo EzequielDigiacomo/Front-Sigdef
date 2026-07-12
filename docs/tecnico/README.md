@@ -12,6 +12,8 @@
 | Guía desarrollo | [../referencia/08-GUIA-DESARROLLO.md](../referencia/08-GUIA-DESARROLLO.md) |
 | SaaS / Superadmin | [../referencia/13-SaaS-MultiTenant-Superadmin.md](../referencia/13-SaaS-MultiTenant-Superadmin.md) |
 | Control de acceso por plan | [../referencia/CONTROL_ACCESO_PLAN.md](../referencia/CONTROL_ACCESO_PLAN.md) |
+| Mensajería (aislamiento) | Guía usuario: [../guias-usuario/mensajes.md](../guias-usuario/mensajes.md) · API: SportTrack-Sigdef `docs/guias/mensajeria-aislamiento.md` |
+| Diagramas del sistema | [diagramas-sistema.md](./diagramas-sistema.md) · carpeta [diagramas/](./diagramas/) |
 | Helpers delegados / cuentas club | Código: `src/utils/delegadoHelpers.js` |
 | Modales | `src/components/common/Modal.jsx`, `ConfirmationModal.jsx` |
 
@@ -21,3 +23,4 @@
 - IDs de usuario de acceso: `idUsuario`.
 - Vínculos tutor–atleta: `ParticipanteId` + `IdTutor`.
 - Formularios de entidad: clase `compact-form` / `compact-form-card`.
+- Mensajería: siempre `X-Client-App: sigdef` (ya en `api.js`); no reutilizar bandeja SportTrack.
