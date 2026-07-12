@@ -28,48 +28,56 @@ const EntrenadorSeleccionList = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [coachesData, athletesData] = await Promise.all([
-                api.get(withFederationScope('/Entrenador/seleccion', fedId)).catch(() => []),
-                api.get(withFederationScope('/Atleta', fedId)).catch(() => [])
-            ]);
+            const coachesPromise = api
+                .get(withFederationScope('/Entrenador/seleccion', fedId))
+                .catch(() => []);
+            const athletesPromise = api.get(withFederationScope('/Atleta', fedId)).catch(() => []);
 
-            const selectionAthletes = (athletesData || []).filter(
-                (a) => !!(a.perteneceSeleccion ?? a.PerteneceSeleccion)
-            );
-
-            const categoryStats = Object.keys(CATEGORIA_MAP).map((key) => {
-                const categoryId = parseInt(key, 10);
-                const categoryLabel = CATEGORIA_MAP[key];
-
-                const coaches = (coachesData || []).filter(
-                    (c) => normalizeCategoriaId(c.categoriaSeleccion ?? c.CategoriaSeleccion) === categoryId
-                );
-                const coachNames = coaches.map(
-                    (c) =>
-                        c.nombrePersona ||
-                        c.NombrePersona ||
-                        `${c.nombre || c.Nombre || ''} ${c.apellido || c.Apellido || ''}`.trim() ||
-                        'Entrenador'
+            const buildStats = (coachesData, athletesData) => {
+                const selectionAthletes = (athletesData || []).filter(
+                    (a) => !!(a.perteneceSeleccion ?? a.PerteneceSeleccion)
                 );
 
-                const athleteCount = selectionAthletes.filter((a) => {
-                    const cat = a.categoria ?? a.Categoria;
-                    return normalizeCategoriaId(cat) === categoryId;
-                }).length;
+                return Object.keys(CATEGORIA_MAP).map((key) => {
+                    const categoryId = parseInt(key, 10);
+                    const categoryLabel = CATEGORIA_MAP[key];
 
-                return {
-                    id: categoryId,
-                    label: categoryLabel,
-                    coachNames,
-                    athleteCount,
-                    hasTrainer: coachNames.length > 0,
-                };
-            });
+                    const coaches = (coachesData || []).filter(
+                        (c) =>
+                            normalizeCategoriaId(c.categoriaSeleccion ?? c.CategoriaSeleccion) ===
+                            categoryId
+                    );
+                    const coachNames = coaches.map(
+                        (c) =>
+                            c.nombrePersona ||
+                            c.NombrePersona ||
+                            `${c.nombre || c.Nombre || ''} ${c.apellido || c.Apellido || ''}`.trim() ||
+                            'Entrenador'
+                    );
 
-            setStats(categoryStats);
+                    const athleteCount = selectionAthletes.filter((a) => {
+                        const cat = a.categoria ?? a.Categoria;
+                        return normalizeCategoriaId(cat) === categoryId;
+                    }).length;
+
+                    return {
+                        id: categoryId,
+                        label: categoryLabel,
+                        coachNames,
+                        athleteCount,
+                        hasTrainer: coachNames.length > 0,
+                    };
+                });
+            };
+
+            const coachesData = await coachesPromise;
+            setStats(buildStats(coachesData, []));
+            setLoading(false);
+
+            const athletesData = await athletesPromise;
+            setStats(buildStats(coachesData, athletesData));
         } catch (error) {
             console.error('Error loading selection dashboard:', error);
-        } finally {
             setLoading(false);
         }
     };

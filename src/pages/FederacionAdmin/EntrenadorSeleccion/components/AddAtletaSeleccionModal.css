@@ -154,6 +154,7 @@
     color: var(--text-secondary);
 }
 
+.loading-container .spinner,
 .spinner {
     border: 3px solid var(--border-color);
     border-top: 3px solid var(--primary);
@@ -162,6 +163,14 @@
     height: 40px;
     animation: spin 1s linear infinite;
     margin: 0 auto 1rem;
+}
+
+.btn .spinner,
+.btn-spinner {
+    width: 1rem !important;
+    height: 1rem !important;
+    margin: 0 !important;
+    border-width: 2px !important;
 }
 
 @keyframes spin {

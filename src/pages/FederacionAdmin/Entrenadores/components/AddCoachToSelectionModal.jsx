@@ -52,53 +52,61 @@ const AddCoachToSelectionModal = ({ isOpen, onClose, onSuccess, fedId }) => {
     const loadAvailableCoaches = async () => {
         setLoading(true);
         try {
-            const [coachesData, clubesData] = await Promise.all([
-                api.get(withFederationScope('/Entrenador', fedId)),
-                api.get(withFederationScope('/Clubes', fedId)).catch(() =>
-                    api.get(withFederationScope('/Club', fedId))
-                ),
-            ]);
+            const coachesPromise = api.get(withFederationScope('/Entrenador', fedId));
+            const clubesPromise = api
+                .get(withFederationScope('/Clubes', fedId))
+                .catch(() => api.get(withFederationScope('/Club', fedId)).catch(() => []));
 
-            const clubMap = {};
-            (clubesData || []).forEach((club) => {
-                const id = club.idClub ?? club.IdClub;
-                clubMap[id] = club.nombre || club.Nombre;
-            });
-
-            // Solo entrenadores de club que aún no están en el equipo de selección
+            const coachesData = await coachesPromise;
             const available = (coachesData || []).filter((c) => {
                 const inSeleccion = !!(c.perteneceSeleccion ?? c.PerteneceSeleccion);
                 return hasClub(c) && !inSeleccion;
             });
 
-            const enriched = available.map((coach) => {
-                const id = coach.participanteId ?? coach.ParticipanteId ?? coach.idPersona ?? coach.IdPersona;
-                const clubId = coach.idClub ?? coach.IdClub;
-                return {
-                    ...coach,
-                    idPersona: id,
-                    participanteId: id,
-                    idClub: clubId,
-                    nombrePersona: coach.nombrePersona || coach.NombrePersona || '-',
-                    documento: coach.documento || coach.Documento || '-',
-                    email: coach.email || coach.Email || '-',
-                    licencia: coach.licencia || coach.Licencia || '',
-                    nombreClub:
-                        coach.nombreClub ||
-                        coach.NombreClub ||
-                        coach.club?.nombre ||
-                        clubMap[clubId] ||
-                        'Club',
-                };
-            });
+            const mapEnriched = (list, clubMap = {}) =>
+                list.map((coach) => {
+                    const id =
+                        coach.participanteId ??
+                        coach.ParticipanteId ??
+                        coach.idPersona ??
+                        coach.IdPersona;
+                    const clubId = coach.idClub ?? coach.IdClub;
+                    return {
+                        ...coach,
+                        idPersona: id,
+                        participanteId: id,
+                        idClub: clubId,
+                        nombrePersona: coach.nombrePersona || coach.NombrePersona || '-',
+                        documento: coach.documento || coach.Documento || '-',
+                        email: coach.email || coach.Email || '-',
+                        licencia: coach.licencia || coach.Licencia || '',
+                        nombreClub:
+                            coach.nombreClub ||
+                            coach.NombreClub ||
+                            coach.club?.nombre ||
+                            clubMap[clubId] ||
+                            'Club',
+                    };
+                });
 
-            setCoaches(enriched);
-            setFilteredCoaches(enriched);
+            const first = mapEnriched(available);
+            setCoaches(first);
+            setFilteredCoaches(first);
+            setLoading(false);
+
+            const clubesData = await clubesPromise;
+            const clubMap = {};
+            (clubesData || []).forEach((club) => {
+                const id = club.idClub ?? club.IdClub;
+                clubMap[id] = club.nombre || club.Nombre;
+            });
+            const withClubs = mapEnriched(available, clubMap);
+            setCoaches(withClubs);
+            setFilteredCoaches(withClubs);
         } catch (error) {
             console.error('Error loading coaches:', error);
             setCoaches([]);
             setFilteredCoaches([]);
-        } finally {
             setLoading(false);
         }
     };

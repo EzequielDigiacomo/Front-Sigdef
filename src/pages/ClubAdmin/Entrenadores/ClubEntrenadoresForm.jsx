@@ -48,18 +48,15 @@ const ClubEntrenadoresForm = () => {
     const handleNavigateBack = () => {
         if (location.state?.returnPath) {
             navigate(location.state.returnPath);
-        } else if (fedId) {
-            navigate(`/superadmin/federacion/${fedId}/entrenadores`);
-        } else if (user?.role === 'FEDERACION') {
-            navigate('/dashboard/entrenadores');
-        } else {
-            navigate('/club/entrenadores');
+            return;
         }
+        navigate('/club/entrenadores');
     };
 
     const handleModalClose = () => {
-        setModalConfig(prev => ({ ...prev, isOpen: false }));
-        if (modalConfig.shouldNavigate) {
+        const shouldNav = modalConfig.shouldNavigate;
+        setModalConfig((prev) => ({ ...prev, isOpen: false, shouldNavigate: false }));
+        if (shouldNav) {
             handleNavigateBack();
         }
     };

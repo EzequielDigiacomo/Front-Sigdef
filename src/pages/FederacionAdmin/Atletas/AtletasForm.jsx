@@ -451,8 +451,9 @@ const AtletasForm = () => {
     };
 
     const handleCloseResultModal = () => {
-        setResultModal(prev => ({ ...prev, open: false }));
-        if (resultModal.type === 'success') {
+        const wasSuccess = resultModal.type === 'success';
+        setResultModal((prev) => ({ ...prev, open: false }));
+        if (wasSuccess) {
             if (location.state?.returnPath) {
                 navigate(location.state.returnPath);
             } else if (fedId) {

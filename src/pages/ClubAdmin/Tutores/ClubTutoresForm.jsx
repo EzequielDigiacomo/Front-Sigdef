@@ -44,8 +44,9 @@ const ClubTutoresForm = () => {
     });
 
     const handleModalClose = () => {
-        setModalConfig(prev => ({ ...prev, isOpen: false }));
-        if (modalConfig.shouldNavigate) {
+        const shouldNav = modalConfig.shouldNavigate;
+        setModalConfig((prev) => ({ ...prev, isOpen: false, shouldNavigate: false }));
+        if (shouldNav) {
             navigate('/club/tutores');
         }
     };
@@ -65,25 +66,15 @@ const ClubTutoresForm = () => {
 
             const preselectedAtletaId = searchParams.get('atletaId') || selectedAtletaId;
 
-            const [allAtletas, allPersonas, allRelaciones] = await Promise.all([
+            const [allAtletas, allRelaciones] = await Promise.all([
                 api.get('/Atleta').catch(() => []),
-                api.get('/Persona').catch(() => []),
                 api.get('/AtletaTutor').catch(() => []),
             ]);
 
-            const getPersonaId = (p) =>
-                p.idPersona ?? p.IdPersona ?? p.participanteId ?? p.ParticipanteId;
             const getAtletaId = (a) =>
                 a.idPersona ?? a.IdPersona ?? a.participanteId ?? a.ParticipanteId;
             const getRelAtletaId = (r) =>
                 r.idAtleta ?? r.IdAtleta ?? r.participanteId ?? r.ParticipanteId;
-
-            const personasMap = new Map(
-                (Array.isArray(allPersonas) ? allPersonas : []).map((p) => [
-                    Number(getPersonaId(p)),
-                    p,
-                ])
-            );
 
             const atletasConTutorIds = new Set(
                 (Array.isArray(allRelaciones) ? allRelaciones : [])
@@ -98,25 +89,28 @@ const ClubTutoresForm = () => {
                 })
                 .map((a) => {
                     const idPersona = Number(getAtletaId(a));
-                    const persona = personasMap.get(idPersona) || a.participante || a.Participante || {};
+                    const persona = a.participante || a.Participante || {};
+                    const nombreFromPersona =
+                        persona.nombre || persona.Nombre
+                            ? `${persona.nombre || persona.Nombre} ${
+                                  persona.apellido || persona.Apellido || ''
+                              }`.trim()
+                            : '';
                     return {
                         ...a,
                         idPersona,
-                        nombrePersona: persona
-                            ? `${persona.nombre || persona.Nombre || ''} ${
-                                  persona.apellido || persona.Apellido || ''
-                              }`.trim() ||
-                              a.nombrePersona ||
-                              a.NombrePersona ||
-                              'Sin Nombre'
-                            : a.nombrePersona || a.NombrePersona || 'Sin Nombre',
+                        nombrePersona:
+                            a.nombrePersona ||
+                            a.NombrePersona ||
+                            nombreFromPersona ||
+                            'Sin Nombre',
                         documento:
+                            a.documento ||
+                            a.Documento ||
                             persona.documento ||
                             persona.Documento ||
                             persona.dni ||
                             persona.Dni ||
-                            a.documento ||
-                            a.Documento ||
                             '-',
                     };
                 })

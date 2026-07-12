@@ -92,11 +92,16 @@ const ClubAtletas = () => {
                 data = [];
             }
 
-            // /Atleta/club a veces no trae fecha; /Atleta sí (participante)
             const needsEnrichment =
                 !Array.isArray(data) ||
                 data.length === 0 ||
-                data.every((a) => !a.fechaNacimiento && !a.FechaNacimiento && !a.participante && !a.Participante);
+                data.every(
+                    (a) =>
+                        !a.fechaNacimiento &&
+                        !a.FechaNacimiento &&
+                        !a.participante &&
+                        !a.Participante
+                );
 
             if (needsEnrichment) {
                 const all = await api.get('/Atleta').catch(() => []);
@@ -111,67 +116,73 @@ const ClubAtletas = () => {
                 });
             }
 
+            const mapAtletas = (list, conTutor = new Set()) =>
+                (list || []).map((atleta) => {
+                    const athleteId =
+                        atleta.idPersona ??
+                        atleta.IdPersona ??
+                        atleta.participanteId ??
+                        atleta.ParticipanteId;
+                    const persona = atleta.participante || atleta.Participante || {};
+
+                    const firstName = persona?.nombre ?? persona?.Nombre ?? '';
+                    const lastName = persona?.apellido ?? persona?.Apellido ?? '';
+                    const doc =
+                        atleta.documento ||
+                        atleta.Documento ||
+                        persona?.documento ||
+                        persona?.Documento ||
+                        persona?.dni ||
+                        persona?.Dni ||
+                        '';
+                    const fechaNacimiento =
+                        atleta.fechaNacimiento ||
+                        atleta.FechaNacimiento ||
+                        persona?.fechaNacimiento ||
+                        persona?.FechaNacimiento ||
+                        null;
+                    const edadRaw = atleta.edad ?? atleta.Edad;
+                    const edad =
+                        edadRaw != null && Number(edadRaw) >= 0 && Number(edadRaw) <= 120
+                            ? Number(edadRaw)
+                            : calcEdad(fechaNacimiento);
+                    const idNum = Number(athleteId);
+
+                    return {
+                        ...atleta,
+                        idPersona: athleteId,
+                        nombrePersona:
+                            atleta.nombrePersona ||
+                            atleta.NombrePersona ||
+                            (firstName || lastName ? `${firstName} ${lastName}`.trim() : '-'),
+                        documento: doc || '-',
+                        categoria: atleta.categoria ?? atleta.Categoria ?? null,
+                        categoriaId: atleta.categoriaId ?? atleta.CategoriaId ?? null,
+                        categoriaNombre: atleta.categoriaNombre ?? atleta.CategoriaNombre ?? null,
+                        fechaNacimiento,
+                        edad,
+                        tieneTutor:
+                            conTutor.has(idNum) ||
+                            (Array.isArray(atleta.tutores) && atleta.tutores.length > 0) ||
+                            (Array.isArray(atleta.Tutores) && atleta.Tutores.length > 0),
+                    };
+                });
+
+            // Pintar grilla sin esperar AtletaTutor
+            setAtletas(mapAtletas(data));
+            setLoading(false);
+
             const relaciones = await api.get('/AtletaTutor').catch(() => []);
             const conTutor = new Set(
                 (Array.isArray(relaciones) ? relaciones : [])
-                    .map((r) => Number(r.idAtleta ?? r.IdAtleta ?? r.participanteId ?? r.ParticipanteId))
+                    .map((r) =>
+                        Number(r.idAtleta ?? r.IdAtleta ?? r.participanteId ?? r.ParticipanteId)
+                    )
                     .filter((id) => Number.isFinite(id))
             );
-
-            const enrichedData = (data || []).map((atleta) => {
-                const athleteId =
-                    atleta.idPersona ??
-                    atleta.IdPersona ??
-                    atleta.participanteId ??
-                    atleta.ParticipanteId;
-                const persona = atleta.participante || atleta.Participante || {};
-
-                const firstName = persona?.nombre ?? persona?.Nombre ?? '';
-                const lastName = persona?.apellido ?? persona?.Apellido ?? '';
-                const doc =
-                    atleta.documento ||
-                    atleta.Documento ||
-                    persona?.documento ||
-                    persona?.Documento ||
-                    persona?.dni ||
-                    persona?.Dni ||
-                    '';
-                const fechaNacimiento =
-                    atleta.fechaNacimiento ||
-                    atleta.FechaNacimiento ||
-                    persona?.fechaNacimiento ||
-                    persona?.FechaNacimiento ||
-                    null;
-                const edadRaw = atleta.edad ?? atleta.Edad;
-                const edad =
-                    edadRaw != null && Number(edadRaw) >= 0 && Number(edadRaw) <= 120
-                        ? Number(edadRaw)
-                        : calcEdad(fechaNacimiento);
-                const idNum = Number(athleteId);
-
-                return {
-                    ...atleta,
-                    idPersona: athleteId,
-                    nombrePersona:
-                        atleta.nombrePersona ||
-                        atleta.NombrePersona ||
-                        (firstName || lastName ? `${firstName} ${lastName}`.trim() : '-'),
-                    documento: doc || '-',
-                    categoria: atleta.categoria ?? atleta.Categoria ?? null,
-                    categoriaId: atleta.categoriaId ?? atleta.CategoriaId ?? null,
-                    categoriaNombre: atleta.categoriaNombre ?? atleta.CategoriaNombre ?? null,
-                    fechaNacimiento,
-                    edad,
-                    tieneTutor:
-                        conTutor.has(idNum) ||
-                        (Array.isArray(atleta.tutores) && atleta.tutores.length > 0) ||
-                        (Array.isArray(atleta.Tutores) && atleta.Tutores.length > 0),
-                };
-            });
-            setAtletas(enrichedData);
+            setAtletas(mapAtletas(data, conTutor));
         } catch (error) {
             console.error('Error cargando atletas:', error);
-        } finally {
             setLoading(false);
         }
     };
@@ -405,11 +416,21 @@ const ClubAtletas = () => {
             const athleteId = Number(
                 atleta.idPersona ?? atleta.IdPersona ?? atleta.participanteId ?? atleta.ParticipanteId
             );
-            const [persona, relaciones] = await Promise.all([
-                api.get(`/Persona/${athleteId}`),
-                api.get('/AtletaTutor').catch(() => []),
-            ]);
 
+            // Preferir detalle de atleta (ya trae participante) antes que dump Persona
+            let persona = atleta.participante || atleta.Participante || null;
+            try {
+                const detail = await api.get(`/Atleta/${athleteId}`, { silentErrors: true });
+                persona =
+                    detail?.participante ||
+                    detail?.Participante ||
+                    detail ||
+                    persona;
+            } catch {
+                /* usar datos de fila */
+            }
+
+            const relaciones = await api.get('/AtletaTutor').catch(() => []);
             let tutorDetailsObj = null;
 
             const relacion = (Array.isArray(relaciones) ? relaciones : []).find((r) => {
@@ -420,15 +441,15 @@ const ClubAtletas = () => {
             });
 
             const tutorInfo =
-                relacion ||
-                (atleta.tutores || atleta.Tutores)?.[0] ||
-                null;
+                relacion || (atleta.tutores || atleta.Tutores)?.[0] || null;
 
             if (tutorInfo) {
                 const tutorId = tutorInfo.idTutor || tutorInfo.IdTutor;
                 if (tutorId) {
                     try {
-                        const tutorPersona = await api.get(`/Persona/${tutorId}`);
+                        const tutorRes = await api.get(`/Tutor/${tutorId}`, { silentErrors: true });
+                        const tutorPersona =
+                            tutorRes?.participante || tutorRes?.Participante || tutorRes || {};
                         tutorDetailsObj = {
                             idPersona: tutorId,
                             idRelacion:
@@ -436,25 +457,34 @@ const ClubAtletas = () => {
                                 tutorInfo.idAtletaTutor ||
                                 tutorInfo.IdAtletaTutor ||
                                 null,
-                            nombre: tutorPersona
-                                ? `${tutorPersona.nombre || tutorPersona.Nombre || ''} ${
-                                      tutorPersona.apellido || tutorPersona.Apellido || ''
-                                  }`.trim()
-                                : tutorInfo.nombreTutor || tutorInfo.NombreTutor || 'Tutor',
+                            nombre:
+                                tutorRes?.nombrePersona ||
+                                tutorRes?.NombrePersona ||
+                                `${tutorPersona.nombre || tutorPersona.Nombre || ''} ${
+                                    tutorPersona.apellido || tutorPersona.Apellido || ''
+                                }`.trim() ||
+                                tutorInfo.nombreTutor ||
+                                tutorInfo.NombreTutor ||
+                                'Tutor',
                             telefono:
+                                tutorRes?.telefono ||
+                                tutorRes?.Telefono ||
                                 tutorPersona?.telefono ||
                                 tutorPersona?.Telefono ||
                                 '',
-                            email: tutorPersona?.email || tutorPersona?.Email || '',
+                            email:
+                                tutorRes?.email ||
+                                tutorRes?.Email ||
+                                tutorPersona?.email ||
+                                tutorPersona?.Email ||
+                                '',
                         };
                     } catch (tutorError) {
                         console.error('Error fetching tutor details:', tutorError);
                         tutorDetailsObj = {
                             idPersona: tutorId,
                             nombre:
-                                tutorInfo.nombreTutor ||
-                                tutorInfo.NombreTutor ||
-                                'Tutor',
+                                tutorInfo.nombreTutor || tutorInfo.NombreTutor || 'Tutor',
                             telefono: '',
                             email: '',
                         };

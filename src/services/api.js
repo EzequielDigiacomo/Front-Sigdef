@@ -219,9 +219,20 @@ export const api = {
 
 /** Despierta el API (p. ej. Render cold start) sin bloquear la UI. */
 let apiWarmupPromise = null;
-export const warmupApi = () => {
+export const warmupApi = (user) => {
     if (apiWarmupPromise) return apiWarmupPromise;
-    apiWarmupPromise = api.get('/auth/me', { silentErrors: true }).catch(() => null);
+    const fedId = user?.idFederacion || user?.federacionId || user?.IdFederacion;
+    apiWarmupPromise = (async () => {
+        try {
+            if (fedId) {
+                await api.get(`/Federaciones/${fedId}`, { silentErrors: true });
+            } else {
+                await api.get('/auth/me', { silentErrors: true });
+            }
+        } catch {
+            /* ignore */
+        }
+    })();
     return apiWarmupPromise;
 };
 

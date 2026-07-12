@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, X, Key } from 'lucide-react';
+import { Check, X, Key, UserX, UserCheck } from 'lucide-react';
 import DataTable from '../../../../components/common/DataTable';
 import TableActions from '../../../../components/common/TableActions';
 import EditUserModal from '../../../../components/modals/EditUserModal';
@@ -14,6 +14,8 @@ const getUserId = (u) =>
 
 const getUsername = (u) => u?.username || u?.Username || '';
 
+const isUserActive = (u) => u?.estaActivo ?? u?.EstaActivo ?? true;
+
 const UserTable = ({ users, clubs = [], onUserUpdated }) => {
     const [editingUser, setEditingUser] = useState(null);
     const [passwordUser, setPasswordUser] = useState(null);
@@ -23,6 +25,8 @@ const UserTable = ({ users, clubs = [], onUserUpdated }) => {
     });
     const [loadingPassword, setLoadingPassword] = useState(false);
     const [passwordError, setPasswordError] = useState('');
+    const [toggleUser, setToggleUser] = useState(null);
+    const [loadingToggle, setLoadingToggle] = useState(false);
     const [alertModal, setAlertModal] = useState({
         isOpen: false,
         title: '',
@@ -125,6 +129,59 @@ const UserTable = ({ users, clubs = [], onUserUpdated }) => {
 
     const handleCloseEditModal = () => setEditingUser(null);
 
+    const handleToggleAccessClick = (user) => setToggleUser(user);
+
+    const handleCloseToggleModal = () => {
+        if (loadingToggle) return;
+        setToggleUser(null);
+    };
+
+    const handleConfirmToggleAccess = async () => {
+        if (!toggleUser) return;
+
+        const id = getUserId(toggleUser);
+        if (id == null) {
+            setToggleUser(null);
+            setAlertModal({
+                isOpen: true,
+                title: 'Error',
+                message: 'No se pudo identificar el usuario.',
+                type: 'danger',
+            });
+            return;
+        }
+
+        const username = getUsername(toggleUser);
+        const wasActive = isUserActive(toggleUser);
+
+        setLoadingToggle(true);
+        try {
+            await api.patch(`/Auth/usuarios/${id}/toggle-activo`);
+            setToggleUser(null);
+            setAlertModal({
+                isOpen: true,
+                title: wasActive ? 'Acceso deshabilitado' : 'Acceso habilitado',
+                message: wasActive
+                    ? `${username} quedó inactivo y no podrá iniciar sesión.`
+                    : `${username} quedó activo y ya puede iniciar sesión.`,
+                type: 'success',
+            });
+            onUserUpdated?.();
+        } catch (error) {
+            console.error('Error al cambiar estado de acceso:', error);
+            setAlertModal({
+                isOpen: true,
+                title: 'Error',
+                message:
+                    error?.message ||
+                    'No se pudo cambiar el acceso del usuario. Intente nuevamente.',
+                type: 'danger',
+            });
+        } finally {
+            setLoadingToggle(false);
+        }
+    };
+
     const handleEditPasswordClick = (user) => {
         setPasswordUser(user);
         setPasswordForm({ newPassword: '', confirmPassword: '' });
@@ -197,21 +254,40 @@ const UserTable = ({ users, clubs = [], onUserUpdated }) => {
                 data={users}
                 keyField="idUsuario"
                 emptyMessage="No hay usuarios registrados"
-                actions={(row) => (
-                    <TableActions
-                        row={row}
-                        onEdit={handleEdit}
-                        customActions={[
-                            {
-                                title: 'Editar contraseña',
-                                icon: <Key size={18} />,
-                                children: ' ',
-                                onClick: handleEditPasswordClick,
-                                className: 'text-amber-500',
-                            },
-                        ]}
-                    />
-                )}
+                actions={(row) => {
+                    const activo = isUserActive(row);
+                    return (
+                        <TableActions
+                            row={row}
+                            onEdit={handleEdit}
+                            customActions={[
+                                {
+                                    title: 'Editar contraseña',
+                                    icon: <Key size={18} />,
+                                    onClick: handleEditPasswordClick,
+                                    className: 'text-amber-500',
+                                },
+                                {
+                                    title: activo
+                                        ? 'Deshabilitar acceso (bloquear login)'
+                                        : 'Habilitar acceso (permitir login)',
+                                    icon: activo ? (
+                                        <UserX
+                                            size={18}
+                                            style={{ color: 'var(--danger)' }}
+                                        />
+                                    ) : (
+                                        <UserCheck
+                                            size={18}
+                                            style={{ color: 'var(--success)' }}
+                                        />
+                                    ),
+                                    onClick: handleToggleAccessClick,
+                                },
+                            ]}
+                        />
+                    );
+                }}
             />
 
             {editingUser && (
@@ -296,6 +372,28 @@ const UserTable = ({ users, clubs = [], onUserUpdated }) => {
                     </div>
                 </form>
             </Modal>
+
+            <ConfirmationModal
+                isOpen={!!toggleUser}
+                onClose={handleCloseToggleModal}
+                onConfirm={handleConfirmToggleAccess}
+                title={
+                    isUserActive(toggleUser)
+                        ? 'Deshabilitar acceso'
+                        : 'Habilitar acceso'
+                }
+                message={
+                    isUserActive(toggleUser)
+                        ? `¿Deshabilitar a ${getUsername(toggleUser)}? No podrá iniciar sesión hasta que lo vuelvas a habilitar.`
+                        : `¿Habilitar a ${getUsername(toggleUser)}? Recuperará el acceso para iniciar sesión.`
+                }
+                type={isUserActive(toggleUser) ? 'danger' : 'info'}
+                confirmText={
+                    isUserActive(toggleUser) ? 'Deshabilitar' : 'Habilitar'
+                }
+                cancelText="Cancelar"
+                isLoading={loadingToggle}
+            />
 
             <ConfirmationModal
                 isOpen={alertModal.isOpen}

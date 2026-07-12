@@ -1,15 +1,21 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Calendar, ChevronLeft, ChevronRight, Trophy, UserCheck, Award, Shield } from 'lucide-react';
+import {
+    LayoutDashboard, Users, Trophy, UserCheck, Award, Shield, Mail,
+    ChevronLeft, ChevronRight,
+} from 'lucide-react';
+import useUnreadMessages from '../../hooks/useUnreadMessages';
 import './Sidebar.css';
 
 const SidebarClub = ({ isOpen, closeMobile, isCollapsed, toggleSidebar }) => {
+    const { hasUnread, unreadCount } = useUnreadMessages(true);
+
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/club' },
         { icon: Users, label: 'Mis Atletas', path: '/club/atletas' },
         { icon: UserCheck, label: 'Mis Tutores', path: '/club/tutores' },
         { icon: Award, label: 'Mis Entrenadores', path: '/club/entrenadores' },
         { icon: Shield, label: 'Mis Delegados', path: '/club/delegados' },
-        //        { icon: Calendar, label: 'Mis Eventos', path: '/club/eventos' },
+        { icon: Mail, label: 'Mensajes', path: '/club/mensajes', showBadge: true },
     ];
 
     return (
@@ -37,10 +43,19 @@ const SidebarClub = ({ isOpen, closeMobile, isCollapsed, toggleSidebar }) => {
                             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
                             onClick={closeMobile}
                             title={isCollapsed ? item.label : ''}
-                            style={{ position: 'relative', zIndex: 102 }} // Ensure clickable
+                            end={item.path === '/club'}
+                            style={{ position: 'relative', zIndex: 102 }}
                         >
-                            <item.icon size={20} />
+                            <span className="nav-item-icon-wrap">
+                                <item.icon size={20} />
+                                {item.showBadge && hasUnread && (
+                                    <span className="nav-unread-dot" aria-label={`${unreadCount} no leídos`} />
+                                )}
+                            </span>
                             <span className="nav-label">{item.label}</span>
+                            {item.showBadge && hasUnread && (
+                                <span className="nav-unread-count">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                            )}
                         </NavLink>
                     ))}
                 </nav>

@@ -192,6 +192,12 @@
     border-radius: 8px;
 }
 
+.fed-form select.form-input {
+    height: auto;
+    min-height: 2.5rem;
+    padding: 0.45rem 2rem 0.45rem 0.65rem !important;
+}
+
 .fed-form .fed-name-field .form-input {
     min-height: 40px;
     height: 40px;

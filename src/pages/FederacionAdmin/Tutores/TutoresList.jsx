@@ -62,25 +62,49 @@ const TutoresList = () => {
     const [searchTermPersonas, setSearchTermPersonas] = useState('');
 
     const loadPersonasDisponibles = async () => {
+        // Evitar dump /Persona: la búsqueda es por documento al escribir
+        setPersonasDisponibles([]);
+    };
+
+    const searchPersonaByDocumento = async (documento) => {
+        const doc = String(documento || '').trim();
+        if (doc.length < 6) {
+            setPersonasDisponibles([]);
+            return;
+        }
         try {
-            const [personasData, tutoresData] = await Promise.all([
-                api.get('/Persona'),
-                api.get('/Tutor')
-            ]);
-            const tutorPersonaIds = new Set(tutoresData.map(t => t.idPersona));
-            const disponibles = personasData.filter(p => {
-                if (tutorPersonaIds.has(p.idPersona)) return false;
-                if (!p.fechaNacimiento) return false;
-                const nacimiento = new Date(p.fechaNacimiento);
+            const persona = await api.get(`/Persona/documento/${doc}`, { silentErrors: true });
+            if (!persona) {
+                setPersonasDisponibles([]);
+                return;
+            }
+            const id = persona.idPersona ?? persona.IdPersona ?? persona.participanteId;
+            const yaEsTutor = tutores.some((t) => String(t.idPersona) === String(id));
+            if (yaEsTutor) {
+                setPersonasDisponibles([]);
+                return;
+            }
+            const fecha = persona.fechaNacimiento || persona.FechaNacimiento;
+            if (fecha) {
+                const nacimiento = new Date(fecha);
                 const hoy = new Date();
                 let edad = hoy.getFullYear() - nacimiento.getFullYear();
                 const mes = hoy.getMonth() - nacimiento.getMonth();
                 if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) edad--;
-                return edad >= 18;
-            });
-            setPersonasDisponibles(disponibles);
-        } catch (err) {
-            console.error('Error cargando personas disponibles:', err);
+                if (edad < 18) {
+                    setPersonasDisponibles([]);
+                    return;
+                }
+            }
+            setPersonasDisponibles([{
+                ...persona,
+                idPersona: id,
+                nombre: persona.nombre || persona.Nombre,
+                apellido: persona.apellido || persona.Apellido,
+                documento: persona.documento || persona.Documento || doc,
+            }]);
+        } catch {
+            setPersonasDisponibles([]);
         }
     };
 
@@ -123,30 +147,41 @@ const TutoresList = () => {
 
     const confirmDelete = async () => {
         if (!tutorToDelete) return;
+        const idPersona = tutorToDelete.idPersona;
+        const prevTutores = tutores;
+        const prevRelaciones = atletaTutorRelaciones;
+
+        setTutores((list) => list.filter((t) => String(t.idPersona) !== String(idPersona)));
+        setAtletaTutorRelaciones((rels) =>
+            rels.filter((r) => String(r.idTutor) !== String(idPersona))
+        );
+        setShowDeleteModal(false);
+        setTutorToDelete(null);
+
         try {
-            const relaciones = atletaTutorRelaciones.filter(r => r.idTutor === tutorToDelete.idPersona);
+            const relaciones = prevRelaciones.filter((r) => String(r.idTutor) === String(idPersona));
             if (relaciones.length > 0) {
-                await Promise.all(relaciones.map(async r => {
-                    const idRelacion = r.id || r.idAtletaTutor;
-                    try {
-                        if (idRelacion) await api.delete(`/AtletaTutor/${idRelacion}`);
-                        else await api.delete(`/AtletaTutor/${r.idAtleta}/${r.idTutor}`);
-                    } catch (err) {
-                        console.warn('Fallo al borrar relación, intentando estrategia alternativa...', err);
-                        if (idRelacion && err.response?.status === 404) {
-                            await api.delete(`/AtletaTutor/${r.idAtleta}/${r.idTutor}`);
+                await Promise.all(
+                    relaciones.map(async (r) => {
+                        const idRelacion = r.id || r.idAtletaTutor;
+                        try {
+                            if (idRelacion) await api.delete(`/AtletaTutor/${idRelacion}`);
+                            else await api.delete(`/AtletaTutor/${r.idAtleta}/${r.idTutor}`);
+                        } catch (err) {
+                            if (idRelacion && err.response?.status === 404) {
+                                await api.delete(`/AtletaTutor/${r.idAtleta}/${r.idTutor}`);
+                            }
                         }
-                    }
-                }));
+                    })
+                );
             }
-            await api.delete(`/Tutor/${tutorToDelete.idPersona}`);
-            setShowDeleteModal(false);
-            setTutorToDelete(null);
-            loadTutores();
+            await api.delete(`/Tutor/${idPersona}`);
             setSuccessMessage('Tutor eliminado exitosamente.');
             setShowSuccessModal(true);
         } catch (error) {
             console.error('Error eliminando tutor:', error);
+            setTutores(prevTutores);
+            setAtletaTutorRelaciones(prevRelaciones);
             alert('Error al eliminar tutor.');
         }
     };
@@ -162,45 +197,73 @@ const TutoresList = () => {
     const loadTutores = async () => {
         try {
             setLoading(true);
-            const [tutoresRes, relacionesRes, atletasRes, clubesRes] = await Promise.all([
-                api.get('/Tutor').catch(() => []),
-                api.get('/AtletaTutor').catch(() => []),
-                api.get(withFederationScope('/Atleta', fedId)).catch(() => []),
-                api.get(withFederationScope('/Clubes', fedId)).catch(() => []),
+
+            const tutoresPromise = api.get('/Tutor').catch(() => []);
+            const relacionesPromise = api.get('/AtletaTutor').catch(() => []);
+            const atletasPromise = api.get(withFederationScope('/Atleta', fedId)).catch(() => []);
+            const clubesPromise = api.get(withFederationScope('/Clubes', fedId)).catch(() => []);
+
+            const mapTutores = (tutoresRes) =>
+                (tutoresRes || []).map((tutor) => {
+                    const idPersona =
+                        tutor.idPersona ?? tutor.IdPersona ?? tutor.participanteId ?? tutor.ParticipanteId;
+                    return {
+                        ...tutor,
+                        idPersona,
+                        documento: tutor.documento || tutor.Documento || '-',
+                        telefono: tutor.telefono || tutor.Telefono || '-',
+                        email: tutor.email || tutor.Email || '-',
+                        nombrePersona: tutor.nombrePersona || tutor.NombrePersona || 'Tutor',
+                    };
+                });
+
+            // Mostrar tutores apenas llegan (sin esperar atletas/clubes)
+            const tutoresRes = await tutoresPromise;
+            const tutoresEnriquecidos = mapTutores(tutoresRes);
+            setTutores(tutoresEnriquecidos);
+            setLoading(false);
+
+            const [relacionesRes, atletasRes, clubesRes] = await Promise.all([
+                relacionesPromise,
+                atletasPromise,
+                clubesPromise,
             ]);
 
-            const clubesMap = new Map((clubesRes || []).map(c => [c.idClub || c.IdClub, c]));
+            const clubesMap = new Map((clubesRes || []).map((c) => [c.idClub || c.IdClub, c]));
 
-            const atletasEnriquecidos = (atletasRes || []).map(atleta => {
+            const atletasEnriquecidos = (atletasRes || []).map((atleta) => {
                 const club = clubesMap.get(atleta.idClub || atleta.IdClub);
                 const persona = atleta.participante || atleta.Participante || {};
-                const nombreFromPersona = persona.nombre || persona.Nombre
-                    ? `${persona.nombre || persona.Nombre} ${persona.apellido || persona.Apellido || ''}`.trim()
-                    : '';
+                const nombreFromPersona =
+                    persona.nombre || persona.Nombre
+                        ? `${persona.nombre || persona.Nombre} ${persona.apellido || persona.Apellido || ''}`.trim()
+                        : '';
                 const idPersona =
                     atleta.idPersona ?? atleta.IdPersona ?? atleta.participanteId ?? atleta.ParticipanteId;
 
                 return {
                     ...atleta,
                     idPersona,
-                    documento: atleta.documento || atleta.Documento || persona.documento || persona.Documento || '-',
-                    nombrePersona: atleta.nombrePersona || atleta.NombrePersona || nombreFromPersona || 'Atleta',
-                    fechaNacimiento: atleta.fechaNacimiento || atleta.FechaNacimiento || persona.fechaNacimiento || persona.FechaNacimiento || null,
-                    nombreClub: club ? (club.nombre || club.Nombre) : (atleta.nombreClub || atleta.NombreClub || atleta.club?.nombre || atleta.Club?.Nombre || 'Agente Libre')
+                    documento:
+                        atleta.documento || atleta.Documento || persona.documento || persona.Documento || '-',
+                    nombrePersona:
+                        atleta.nombrePersona || atleta.NombrePersona || nombreFromPersona || 'Atleta',
+                    fechaNacimiento:
+                        atleta.fechaNacimiento ||
+                        atleta.FechaNacimiento ||
+                        persona.fechaNacimiento ||
+                        persona.FechaNacimiento ||
+                        null,
+                    nombreClub: club
+                        ? club.nombre || club.Nombre
+                        : atleta.nombreClub ||
+                          atleta.NombreClub ||
+                          atleta.club?.nombre ||
+                          atleta.Club?.Nombre ||
+                          'Agente Libre',
                 };
             });
-            const tutoresEnriquecidos = (tutoresRes || []).map(tutor => {
-                const idPersona =
-                    tutor.idPersona ?? tutor.IdPersona ?? tutor.participanteId ?? tutor.ParticipanteId;
-                return {
-                    ...tutor,
-                    idPersona,
-                    documento: tutor.documento || tutor.Documento || '-',
-                    telefono: tutor.telefono || tutor.Telefono || '-',
-                    email: tutor.email || tutor.Email || '-',
-                    nombrePersona: tutor.nombrePersona || tutor.NombrePersona || 'Tutor'
-                };
-            });
+
             const atletaIds = new Set(
                 atletasEnriquecidos.map((a) => a.idPersona).filter((id) => id != null)
             );
@@ -216,23 +279,16 @@ const TutoresList = () => {
             let tutoresFinal = tutoresEnriquecidos;
 
             if (fedId && atletaIds.size > 0) {
-                relacionesFiltradas = relacionesFiltradas.filter((rel) =>
-                    atletaIds.has(rel.idAtleta)
-                );
-                const tutorIds = new Set(
-                    relacionesFiltradas.map((rel) => rel.idTutor)
-                );
-                tutoresFinal = tutoresEnriquecidos.filter((t) =>
-                    tutorIds.has(t.idPersona)
-                );
+                relacionesFiltradas = relacionesFiltradas.filter((rel) => atletaIds.has(rel.idAtleta));
+                const tutorIdsEnFed = new Set(relacionesFiltradas.map((r) => r.idTutor));
+                tutoresFinal = tutoresEnriquecidos.filter((t) => tutorIdsEnFed.has(t.idPersona));
             }
 
-            setTutores(tutoresFinal);
             setAtletas(atletasEnriquecidos);
             setAtletaTutorRelaciones(relacionesFiltradas);
+            setTutores(tutoresFinal);
         } catch (error) {
-            console.error('Error general en loadTutores:', error);
-        } finally {
+            console.error('Error cargando tutores:', error);
             setLoading(false);
         }
     };
@@ -620,21 +676,17 @@ const TutoresList = () => {
                         <div style={{ marginBottom: '1rem' }}>
                             <FormField
                                 icon={Search}
-                                placeholder="Buscar persona por nombre o DNI..."
+                                placeholder="Buscar por DNI (mín. 6 dígitos)..."
                                 value={searchTermPersonas}
-                                onChange={(e) => setSearchTermPersonas(e.target.value)}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    setSearchTermPersonas(value);
+                                    searchPersonaByDocumento(value);
+                                }}
                             />
                         </div>
                         <div style={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
-                            {personasDisponibles
-                                .filter(p => {
-                                    if (!searchTermPersonas) return true;
-                                    const term = searchTermPersonas.toLowerCase();
-                                    return (p.nombre?.toLowerCase().includes(term) ||
-                                        p.apellido?.toLowerCase().includes(term) ||
-                                        p.documento?.includes(term));
-                                })
-                                .map(p => (
+                            {personasDisponibles.map(p => (
                                     <div key={p.idPersona} style={{
                                         padding: '0.75rem',
                                         borderBottom: '1px solid var(--border-color)',
@@ -653,7 +705,9 @@ const TutoresList = () => {
                                 ))}
                             {personasDisponibles.length === 0 && (
                                 <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                    No se encontraron personas disponibles (mayores de 18 y no tutores).
+                                    {searchTermPersonas.trim().length < 6
+                                        ? 'Ingresá el DNI para buscar una persona mayor de edad.'
+                                        : 'No se encontró persona disponible con ese DNI.'}
                                 </div>
                             )}
                         </div>

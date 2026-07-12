@@ -137,8 +137,19 @@ button {
   color: var(--text-primary);
   font-family: inherit;
   font-size: 1rem;
+  line-height: 1.25;
   transition: all 0.2s ease;
   width: 100%;
+  box-sizing: border-box;
+}
+
+/* En Windows el padding vertical grande recorta el texto nativo del select */
+select.form-input {
+  padding: 0.55rem 2.25rem 0.55rem 1rem;
+  min-height: 2.75rem;
+  height: auto;
+  line-height: 1.25;
+  cursor: pointer;
 }
 
 .form-input:focus {
@@ -154,6 +165,24 @@ button {
 .form-input:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+  width: 100%;
+  align-items: end;
+}
+
+.filters-grid .filter-item,
+.filters-grid .form-group {
+  margin-bottom: 0;
+  width: 100%;
+}
+
+.filters-grid select.form-input {
+  width: 100%;
 }
 
 ::-webkit-scrollbar {

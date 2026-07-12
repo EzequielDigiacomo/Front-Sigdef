@@ -1,13 +1,15 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { NavLink } from 'react-router-dom';
-import { LogOut, User, Menu, LayoutDashboard, Shield, Users, Award, Calendar, ClipboardList, UserCheck, DollarSign, Trophy, Lock, Briefcase } from 'lucide-react';
+import { LogOut, User, Menu, LayoutDashboard, Shield, Users, Award, UserCheck, DollarSign, Trophy, Lock, Briefcase, Mail } from 'lucide-react';
 import Button from '../common/Button';
 import ThemeToggle from '../common/ThemeToggle';
+import useUnreadMessages from '../../hooks/useUnreadMessages';
 import './Navbar.css';
 
 const Navbar = ({ toggleSidebar, hideSidebarToggle }) => {
     const { user, logout } = useAuth();
+    const { hasUnread, unreadCount } = useUnreadMessages(true);
 
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -15,11 +17,10 @@ const Navbar = ({ toggleSidebar, hideSidebarToggle }) => {
         { icon: Users, label: 'Atletas', path: '/dashboard/atletas' },
         { icon: Award, label: 'Entrenadores', path: '/dashboard/entrenadores' },
         { icon: Trophy, label: 'Selecciones', path: '/dashboard/selecciones' },
-        //        { icon: Calendar, label: 'Eventos', path: '/dashboard/eventos' },
-        //        { icon: ClipboardList, label: 'Inscripciones', path: '/dashboard/inscripciones' },
         { icon: Briefcase, label: 'Delegados Club', path: '/dashboard/delegados' },
         { icon: UserCheck, label: 'Tutores', path: '/dashboard/tutores' },
         { icon: DollarSign, label: 'Pagos', path: '/dashboard/pagos' },
+        { icon: Mail, label: 'Mensajes', path: '/dashboard/mensajes', showBadge: true },
         { icon: Trophy, label: 'Federación', path: '/dashboard/federacion' },
     ];
 
@@ -46,8 +47,12 @@ const Navbar = ({ toggleSidebar, hideSidebarToggle }) => {
                             to={item.path}
                             className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
                             title={item.label}
+                            end={item.path === '/dashboard'}
                         >
                             <span className="nav-label">{item.label}</span>
+                            {item.showBadge && hasUnread && (
+                                <span className="nav-unread-dot" aria-label={`${unreadCount} no leídos`} />
+                            )}
                         </NavLink>
                     ))}
                 </div>
@@ -60,6 +65,9 @@ const Navbar = ({ toggleSidebar, hideSidebarToggle }) => {
                             title={item.label}
                         >
                             <span className="nav-label">{item.label}</span>
+                            {item.showBadge && hasUnread && (
+                                <span className="nav-unread-dot" aria-label={`${unreadCount} no leídos`} />
+                            )}
                         </NavLink>
                     ))}
                 </div>

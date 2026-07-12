@@ -23,9 +23,13 @@ const TutoresForm = () => {
     const goBack = () => {
         if (location.state?.returnPath) {
             navigate(location.state.returnPath);
-        } else {
-            navigate(-1);
+            return;
         }
+        if (fedId) {
+            navigate(`/superadmin/federacion/${fedId}/tutores`);
+            return;
+        }
+        navigate('/dashboard/tutores');
     };
 
     const [formData, setFormData] = useState({

@@ -3,10 +3,11 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
     LayoutDashboard, Globe, DollarSign, Activity, LogOut, User, Menu, ShieldAlert,
-    Building2, Users, Award, Shield, Cloud,
+    Building2, Users, Award, Shield, Cloud, Mail,
 } from 'lucide-react';
 import Button from '../common/Button';
 import ThemeToggle from '../common/ThemeToggle';
+import useUnreadMessages from '../../hooks/useUnreadMessages';
 import './MainLayout.css';
 
 const NAV_SECTIONS = [
@@ -18,6 +19,7 @@ const NAV_SECTIONS = [
             { icon: Cloud, label: 'Planes SaaS', path: '/superadmin/planes' },
             { icon: DollarSign, label: 'Suscripciones', path: '/superadmin/suscripciones' },
             { icon: Activity, label: 'Auditoría', path: '/superadmin/auditoria' },
+            { icon: Mail, label: 'Mensajes', path: '/superadmin/mensajes', showBadge: true },
         ],
     },
     {
@@ -42,6 +44,7 @@ const MainLayoutSuper = () => {
     const { logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    const { hasUnread, unreadCount } = useUnreadMessages(true);
 
     useEffect(() => {
         const onResize = () => {
@@ -81,10 +84,23 @@ const MainLayoutSuper = () => {
                     fontWeight: active ? '600' : 'normal',
                     transition: 'var(--transition)',
                     fontSize: '0.9rem',
+                    position: 'relative',
                 }}
             >
-                <item.icon size={18} />
-                <span>{item.label}</span>
+                <span style={{ position: 'relative', display: 'inline-flex' }}>
+                    <item.icon size={18} />
+                    {item.showBadge && hasUnread && (
+                        <span
+                            className="nav-unread-dot"
+                            aria-label={`${unreadCount} no leídos`}
+                            style={{ position: 'absolute', top: -2, right: -4 }}
+                        />
+                    )}
+                </span>
+                <span style={{ flex: 1 }}>{item.label}</span>
+                {item.showBadge && hasUnread && (
+                    <span className="nav-unread-count">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                )}
             </NavLink>
         );
     };

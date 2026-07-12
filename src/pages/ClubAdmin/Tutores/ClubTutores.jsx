@@ -18,6 +18,8 @@ const ClubTutores = () => {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [feedbackModal, setFeedbackModal] = useState({ isOpen: false, title: '', message: '', type: 'info' });
+    const [tutorToDelete, setTutorToDelete] = useState(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     useEffect(() => {
         fetchTutores();
@@ -111,20 +113,29 @@ const ClubTutores = () => {
         }
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm('¿Estás seguro de que deseas eliminar este tutor?')) {
-            try {
-                await api.delete(`/Tutor/${id}`);
-                setTutores(tutores.filter(t => t.idPersona !== id));
-            } catch (error) {
-                console.error('Error al eliminar tutor:', error);
-                setFeedbackModal({
-                    isOpen: true,
-                    title: 'Error',
-                    message: 'Error al eliminar el tutor. Por favor, intenta nuevamente.',
-                    type: 'danger'
-                });
-            }
+    const handleDeleteClick = (tutor) => {
+        setTutorToDelete(tutor);
+        setShowDeleteModal(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!tutorToDelete) return;
+        const id = tutorToDelete.idPersona;
+        const prev = tutores;
+        setShowDeleteModal(false);
+        setTutorToDelete(null);
+        setTutores((list) => list.filter((t) => String(t.idPersona) !== String(id)));
+        try {
+            await api.delete(`/Tutor/${id}`);
+        } catch (error) {
+            console.error('Error al eliminar tutor:', error);
+            setTutores(prev);
+            setFeedbackModal({
+                isOpen: true,
+                title: 'Error',
+                message: 'Error al eliminar el tutor. Por favor, intenta nuevamente.',
+                type: 'danger',
+            });
         }
     };
 
@@ -207,10 +218,23 @@ const ClubTutores = () => {
                             variant="danger"
                             size="sm"
                             icon={Trash2}
-                            onClick={() => handleDelete(tutor.idPersona)}
+                            onClick={() => handleDeleteClick(tutor)}
                         />
                     </div>
                 )}
+            />
+            <ConfirmationModal
+                isOpen={showDeleteModal}
+                onClose={() => {
+                    setShowDeleteModal(false);
+                    setTutorToDelete(null);
+                }}
+                onConfirm={handleConfirmDelete}
+                title="Eliminar tutor"
+                message={`¿Estás seguro de que deseas eliminar a ${tutorToDelete?.nombrePersona || 'este tutor'}?`}
+                confirmText="Eliminar"
+                cancelText="Cancelar"
+                type="danger"
             />
             <ConfirmationModal
                 isOpen={feedbackModal.isOpen}

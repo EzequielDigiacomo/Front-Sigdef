@@ -65,90 +65,99 @@ const ClubInfo = () => {
         try {
             setLoading(true);
 
-            const [club, atletasRaw, entrenadoresRaw, tutoresRaw, relacionesRaw, personasRaw, usuariosRaw] =
-                await Promise.all([
-                    api.get(`/Club/${clubId}`),
-                    api.get('/Atleta').catch(() => []),
-                    api.get('/Entrenador').catch(() => []),
-                    api.get('/Tutor').catch(() => []),
-                    api.get('/AtletaTutor').catch(() => []),
-                    api.get('/Persona').catch(() => []),
-                    api.get('/Auth/usuarios').catch(() => []),
-                ]);
+            const clubPromise = api.get(`/Club/${clubId}`);
+            const atletasPromise = api.get('/Atleta').catch(() => []);
+            const entrenadoresPromise = api.get('/Entrenador').catch(() => []);
+            const tutoresPromise = api.get('/Tutor').catch(() => []);
+            const relacionesPromise = api.get('/AtletaTutor').catch(() => []);
+            const usuariosPromise = api.get('/Auth/usuarios').catch(() => []);
 
+            // Club primero → UI base sin esperar padrones
+            const club = await clubPromise;
             const alDia = pick(club, 'pagoAfiliacionAlDia', 'PagoAfiliacionAlDia') !== false;
             setAfiliacionAlDia(alDia);
+            setClubData({
+                ...club,
+                nombre: pick(club, 'nombre', 'Nombre') || user.clubNombre || user.nombre,
+                siglas: pick(club, 'sigla', 'Sigla', 'siglas', 'Siglas') || '',
+                direccion: pick(club, 'direccion', 'Direccion') || 'No especificada',
+                telefono: pick(club, 'telefono', 'Telefono') || 'No especificado',
+                email: pick(club, 'email', 'Email') || user.email,
+                totalAtletas: 0,
+                totalEntrenadores: 0,
+                totalTutores: 0,
+                totalDelegados: 0,
+                logros: club.logros || [],
+            });
+            setLoading(false);
+
+            const [atletasRaw, entrenadoresRaw, tutoresRaw, relacionesRaw, usuariosRaw] =
+                await Promise.all([
+                    atletasPromise,
+                    entrenadoresPromise,
+                    tutoresPromise,
+                    relacionesPromise,
+                    usuariosPromise,
+                ]);
 
             const atletas = Array.isArray(atletasRaw) ? atletasRaw : [];
             const atletasDelClub = atletas.filter(
                 (a) => String(a.idClub ?? a.IdClub ?? a.clubId) === String(clubId)
             );
-            const atletaIds = new Set(atletasDelClub.map((a) => a.idPersona ?? a.IdPersona ?? a.participanteId));
-
-            const personasMap = new Map(
-                (Array.isArray(personasRaw) ? personasRaw : []).map((p) => [
-                    p.idPersona ?? p.IdPersona ?? p.participanteId ?? p.ParticipanteId,
-                    p,
-                ])
+            const atletaIds = new Set(
+                atletasDelClub.map((a) => a.idPersona ?? a.IdPersona ?? a.participanteId)
             );
+
+            const nombreAtleta = (a) => {
+                const persona = a.participante || a.Participante || {};
+                const fromNested =
+                    persona.nombre || persona.Nombre
+                        ? `${persona.nombre || persona.Nombre} ${persona.apellido || persona.Apellido || ''}`.trim()
+                        : '';
+                return a.nombrePersona || a.NombrePersona || fromNested || 'Atleta';
+            };
 
             setAtletasRecientes(
-                atletasDelClub.map((a) => {
-                    const id = a.idPersona ?? a.IdPersona ?? a.participanteId;
-                    const persona = personasMap.get(id);
-                    const nombre = persona
-                        ? `${persona.nombre ?? ''} ${persona.apellido ?? ''}`.trim()
-                        : a.nombrePersona || a.NombrePersona || 'Atleta';
-                    return {
-                        id,
-                        nombre: nombre || 'Atleta',
-                        fecha: a.fechaCreacion || a.FechaCreacion || null,
-                    };
-                })
+                atletasDelClub.map((a) => ({
+                    id: a.idPersona ?? a.IdPersona ?? a.participanteId,
+                    nombre: nombreAtleta(a),
+                    fecha: a.fechaCreacion || a.FechaCreacion || null,
+                }))
             );
 
-            // Entrenadores
             const entrenadoresDelClub = (Array.isArray(entrenadoresRaw) ? entrenadoresRaw : [])
                 .filter((e) => String(e.idClub ?? e.IdClub) === String(clubId))
                 .map((e) => {
-                    const id = e.idPersona ?? e.IdPersona;
-                    const persona = personasMap.get(id);
+                    const id = e.idPersona ?? e.IdPersona ?? e.participanteId ?? e.ParticipanteId;
                     return {
                         ...e,
                         idPersona: id,
-                        nombre: persona
-                            ? `${persona.nombre ?? ''} ${persona.apellido ?? ''}`.trim()
-                            : e.nombrePersona || 'Entrenador',
+                        nombre: e.nombrePersona || e.NombrePersona || 'Entrenador',
                         licencia: e.licencia || e.Licencia || '—',
-                        fecha: e.fechaCreacion || e.FechaCreacion || persona?.fechaCreacion || persona?.FechaCreacion || null,
+                        fecha: e.fechaCreacion || e.FechaCreacion || null,
                     };
                 });
             setEntrenadores(entrenadoresDelClub);
 
-            // Tutores vinculados a atletas del club
             const relaciones = Array.isArray(relacionesRaw) ? relacionesRaw : [];
             const tutorIds = new Set(
                 relaciones
-                    .filter((r) => atletaIds.has(r.idAtleta ?? r.IdAtleta))
+                    .filter((r) => atletaIds.has(r.idAtleta ?? r.IdAtleta ?? r.participanteId))
                     .map((r) => r.idTutor ?? r.IdTutor)
             );
             const tutoresDelClub = (Array.isArray(tutoresRaw) ? tutoresRaw : [])
                 .filter((t) => tutorIds.has(t.idPersona ?? t.IdPersona ?? t.participanteId))
                 .map((t) => {
                     const id = t.idPersona ?? t.IdPersona ?? t.participanteId;
-                    const persona = personasMap.get(id);
                     return {
                         idPersona: id,
-                        nombre: persona
-                            ? `${persona.nombre ?? ''} ${persona.apellido ?? ''}`.trim()
-                            : t.nombrePersona || 'Tutor',
-                        telefono: persona?.telefono || persona?.Telefono || '—',
-                        fecha: t.fechaCreacion || t.FechaCreacion || persona?.fechaCreacion || persona?.FechaCreacion || null,
+                        nombre: t.nombrePersona || t.NombrePersona || 'Tutor',
+                        telefono: t.telefono || t.Telefono || '—',
+                        fecha: t.fechaCreacion || t.FechaCreacion || null,
                     };
                 });
             setTutores(tutoresDelClub);
 
-            // Delegados (usuarios del club)
             const delegadosDelClub = (Array.isArray(usuariosRaw) ? usuariosRaw : [])
                 .filter((d) => {
                     const idClubDelegado = d.idClub || d.IdClub || d.clubId || d.ClubId;
@@ -175,7 +184,8 @@ const ClubInfo = () => {
                 });
             setDelegados(delegadosDelClub);
 
-            setClubData({
+            setClubData((prev) => ({
+                ...(prev || {}),
                 ...club,
                 nombre: pick(club, 'nombre', 'Nombre') || user.clubNombre || user.nombre,
                 siglas: pick(club, 'sigla', 'Sigla', 'siglas', 'Siglas') || '',
@@ -187,7 +197,7 @@ const ClubInfo = () => {
                 totalTutores: tutoresDelClub.length,
                 totalDelegados: delegadosDelClub.length,
                 logros: club.logros || [],
-            });
+            }));
         } catch (error) {
             console.error('Error al cargar información del club:', error);
 

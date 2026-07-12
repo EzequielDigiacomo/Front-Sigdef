@@ -56,8 +56,9 @@ const ClubAtletasForm = () => {
     });
 
     const handleModalClose = () => {
-        setModalConfig(prev => ({ ...prev, isOpen: false }));
-        if (modalConfig.shouldNavigate) {
+        const shouldNav = modalConfig.shouldNavigate;
+        setModalConfig((prev) => ({ ...prev, isOpen: false, shouldNavigate: false }));
+        if (shouldNav) {
             navigate('/club/atletas');
         }
     };

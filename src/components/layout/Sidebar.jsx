@@ -1,21 +1,25 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Users, Trophy, Calendar, Shield, DollarSign, UserCheck, ClipboardList, Award, ChevronLeft, ChevronRight, Lock, Briefcase } from 'lucide-react';
+import {
+    LayoutDashboard, Users, Trophy, Shield, UserCheck, Award,
+    ChevronLeft, ChevronRight, Lock, Briefcase, Mail,
+} from 'lucide-react';
+import useUnreadMessages from '../../hooks/useUnreadMessages';
 import './Sidebar.css';
 
 const Sidebar = ({ isOpen, closeMobile, isCollapsed, toggleSidebar }) => {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const { hasUnread, unreadCount } = useUnreadMessages(true);
 
     const navItems = [
-        { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-        { icon: Shield, label: 'Clubes', path: '/clubes' },
-        { icon: Users, label: 'Atletas', path: '/atletas' },
-        { icon: Award, label: 'Entrenadores', path: '/entrenadores' },
-        //        { icon: Calendar, label: 'Eventos', path: '/eventos' },
-        //        { icon: ClipboardList, label: 'Inscripciones', path: '/inscripciones' },
-        { icon: Briefcase, label: 'Delegados Club', path: '/delegados' },
-//        { icon: DollarSign, label: 'Pagos', path: '/pagos' },
+        { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+        { icon: Shield, label: 'Clubes', path: '/dashboard/clubes' },
+        { icon: Users, label: 'Atletas', path: '/dashboard/atletas' },
+        { icon: Award, label: 'Entrenadores', path: '/dashboard/entrenadores' },
+        { icon: Briefcase, label: 'Delegados Club', path: '/dashboard/delegados' },
+        { icon: UserCheck, label: 'Tutores', path: '/dashboard/tutores' },
+        { icon: Mail, label: 'Mensajes', path: '/dashboard/mensajes', showBadge: true },
         { icon: Trophy, label: 'Federación', path: '/dashboard/federacion' },
     ];
 
@@ -54,9 +58,18 @@ const Sidebar = ({ isOpen, closeMobile, isCollapsed, toggleSidebar }) => {
                             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
                             onClick={(e) => handleNavigation(e, item.path)}
                             title={isCollapsed ? item.label : ''}
+                            end={item.path === '/dashboard'}
                         >
-                            <item.icon size={20} />
+                            <span className="nav-item-icon-wrap">
+                                <item.icon size={20} />
+                                {item.showBadge && hasUnread && (
+                                    <span className="nav-unread-dot" aria-label={`${unreadCount} no leídos`} />
+                                )}
+                            </span>
                             <span className="nav-label">{item.label}</span>
+                            {item.showBadge && hasUnread && (
+                                <span className="nav-unread-count">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                            )}
                         </NavLink>
                     ))}
                 </nav>

@@ -12,15 +12,15 @@ const Button = ({
 }) => {
   return (
     <button
-      className={`btn btn-${variant} btn-${size} ${className}  ${isLoading ? 'loading' : ''}`}
+      className={`btn btn-${variant} btn-${size} ${className} ${isLoading ? 'btn-loading' : ''}`}
       disabled={isLoading || props.disabled}
       {...props}
     >
       {isLoading ? (
-        <span className="spinner"></span>
+        <span className="btn-spinner" aria-hidden="true" />
       ) : (
         <>
-          {Icon && <Icon size={18} className={children ? "icon-spacing" : ""} />}
+          {Icon && <Icon size={18} className={children ? 'icon-spacing' : ''} />}
           {children}
         </>
       )}

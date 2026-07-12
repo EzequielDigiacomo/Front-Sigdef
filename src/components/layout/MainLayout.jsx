@@ -6,6 +6,7 @@ import MobileNavBar from './MobileNavBar';
 import GlobalSearch from '../common/GlobalSearch';
 import { useDevice } from '../../hooks/useDevice';
 import { useAuth } from '../../context/AuthContext';
+import { warmupApi } from '../../services/api';
 import './MainLayout.css';
 
 const MainLayout = () => {
@@ -13,6 +14,10 @@ const MainLayout = () => {
     const [searchOpen, setSearchOpen] = useState(false);
     const { isNative } = useDevice();
     const { user } = useAuth();
+
+    React.useEffect(() => {
+        if (user) warmupApi(user);
+    }, [user?.idFederacion, user?.federacionId]);
 
     return (
         <div className={`app-container ${isNative ? 'is-mobile' : ''}`}>

@@ -18,13 +18,17 @@ const DelegadosForm = () => {
     const [clubes, setClubes] = useState([]);
     const [federacionNombre, setFederacionNombre] = useState('');
 
-    // Helper de navegación hacia atrás: usa el returnPath provisto por la lista, o vuelve al historial
+    // Helper de navegación: vuelve a la grilla de delegados
     const goBack = () => {
         if (location.state?.returnPath) {
             navigate(location.state.returnPath);
-        } else {
-            navigate(-1);
+            return;
         }
+        if (fedId) {
+            navigate(`/superadmin/federacion/${fedId}/delegados`);
+            return;
+        }
+        navigate('/dashboard/delegados');
     };
 
     // Estado del formulario unificado (Persona + Delegado)
@@ -135,8 +139,9 @@ const DelegadosForm = () => {
     };
 
     const handleModalClose = () => {
-        setModalConfig(prev => ({ ...prev, isOpen: false }));
-        if (modalConfig.shouldNavigate) {
+        const shouldNav = modalConfig.shouldNavigate;
+        setModalConfig((prev) => ({ ...prev, isOpen: false, shouldNavigate: false }));
+        if (shouldNav) {
             goBack();
         }
     };

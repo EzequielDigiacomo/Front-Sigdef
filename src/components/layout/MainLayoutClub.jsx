@@ -6,6 +6,7 @@ import MobileNavBar from './MobileNavBar';
 import GlobalSearch from '../common/GlobalSearch';
 import { useDevice } from '../../hooks/useDevice';
 import { useAuth } from '../../context/AuthContext';
+import { warmupApi } from '../../services/api';
 import './MainLayout.css';
 
 const MainLayoutClub = () => {
@@ -15,6 +16,10 @@ const MainLayoutClub = () => {
     const [searchOpen, setSearchOpen] = useState(false);
     const { isNative } = useDevice();
     const { user } = useAuth();
+
+    useEffect(() => {
+        if (user) warmupApi(user);
+    }, [user?.idClub, user?.idFederacion]);
 
     useEffect(() => {
         if (isNative) return; // No necesitamos temporizador de inactividad en mobile app

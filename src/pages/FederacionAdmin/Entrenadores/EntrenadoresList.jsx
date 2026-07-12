@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../../services/api';
 import DataTable from '../../../components/common/DataTable';
 import Card from '../../../components/common/Card';
-import { Award, Search, Filter, Edit, Trash2, Plus, Eye, UserCog, UserPlus, UserMinus, ArrowLeft } from 'lucide-react';
+import { Award, Search, Edit, Trash2, Plus, Eye, UserCog, UserPlus, UserMinus, ArrowLeft } from 'lucide-react';
 import FormField from '../../../components/forms/FormField';
 import FormSelect from '../../../components/forms/FormSelect';
 import Pagination from '../../../components/common/Pagination';
@@ -73,38 +73,42 @@ const EntrenadoresList = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [entrenadoresData, clubesData] = await Promise.all([
-                api.get(withFederationScope('/Entrenador', fedId)),
-                api.get(withFederationScope('/Clubes', fedId)),
-            ]);
+            const entrenadoresPromise = api.get(withFederationScope('/Entrenador', fedId));
+            const clubesPromise = api.get(withFederationScope('/Clubes', fedId)).catch(() => []);
 
-            const enrichedEntrenadores = (entrenadoresData || []).map((ent) => {
-                const id = ent.participanteId ?? ent.ParticipanteId ?? ent.idPersona ?? ent.IdPersona;
-                return {
-                    ...ent,
-                    id,
-                    idPersona: id,
-                    participanteId: id,
-                    idClub: ent.idClub ?? ent.IdClub ?? null,
-                    nombrePersona: ent.nombrePersona || ent.NombrePersona || '-',
-                    documento: ent.documento || ent.Documento || '-',
-                    email: ent.email || ent.Email || '-',
-                    telefono: ent.telefono || ent.Telefono || '-',
-                    licencia: ent.licencia || ent.Licencia || '-',
-                    nombreClub: ent.nombreClub || ent.NombreClub || '',
-                    categoriaSeleccion: ent.categoriaSeleccion ?? ent.CategoriaSeleccion ?? '',
-                    perteneceSeleccion: !!(ent.perteneceSeleccion ?? ent.PerteneceSeleccion ?? false),
-                    becadoEnard: !!(ent.becadoEnard ?? ent.BecadoEnard),
-                    becadoSdn: !!(ent.becadoSdn ?? ent.BecadoSdn),
-                    montoBeca: ent.montoBeca ?? ent.MontoBeca ?? 0,
-                    presentoAptoMedico: !!(ent.presentoAptoMedico ?? ent.PresentoAptoMedico),
-                };
-            });
-            setEntrenadores(enrichedEntrenadores);
+            const mapEntrenadores = (entrenadoresData) =>
+                (entrenadoresData || []).map((ent) => {
+                    const id = ent.participanteId ?? ent.ParticipanteId ?? ent.idPersona ?? ent.IdPersona;
+                    return {
+                        ...ent,
+                        id,
+                        idPersona: id,
+                        participanteId: id,
+                        idClub: ent.idClub ?? ent.IdClub ?? null,
+                        nombrePersona: ent.nombrePersona || ent.NombrePersona || '-',
+                        documento: ent.documento || ent.Documento || '-',
+                        email: ent.email || ent.Email || '-',
+                        telefono: ent.telefono || ent.Telefono || '-',
+                        licencia: ent.licencia || ent.Licencia || '-',
+                        nombreClub: ent.nombreClub || ent.NombreClub || '',
+                        categoriaSeleccion: ent.categoriaSeleccion ?? ent.CategoriaSeleccion ?? '',
+                        perteneceSeleccion: !!(ent.perteneceSeleccion ?? ent.PerteneceSeleccion ?? false),
+                        becadoEnard: !!(ent.becadoEnard ?? ent.BecadoEnard),
+                        becadoSdn: !!(ent.becadoSdn ?? ent.BecadoSdn),
+                        montoBeca: ent.montoBeca ?? ent.MontoBeca ?? 0,
+                        presentoAptoMedico: !!(ent.presentoAptoMedico ?? ent.PresentoAptoMedico),
+                    };
+                });
+
+            // Pintar grilla apenas llegan entrenadores (sin esperar clubes)
+            const entrenadoresData = await entrenadoresPromise;
+            setEntrenadores(mapEntrenadores(entrenadoresData));
+            setLoading(false);
+
+            const clubesData = await clubesPromise;
             setClubes(clubesData || []);
         } catch (error) {
             console.error('Error fetching entrenadores:', error);
-        } finally {
             setLoading(false);
         }
     };
@@ -466,7 +470,6 @@ const EntrenadoresList = () => {
                     {!isNative && (
                         <div className="filter-item">
                             <FormSelect
-                                icon={Filter}
                                 name="club"
                                 value={filters.club}
                                 onChange={handleFilterChange}
@@ -482,7 +485,6 @@ const EntrenadoresList = () => {
                     )}
                     <div className="filter-item">
                         <FormSelect
-                            icon={Filter}
                             name="ambito"
                             value={filters.ambito}
                             onChange={handleFilterChange}

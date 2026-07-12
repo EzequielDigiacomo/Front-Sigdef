@@ -1,13 +1,15 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { NavLink } from 'react-router-dom';
-import { LogOut, User, Menu, LayoutDashboard, Users, Calendar, Trophy, UserCheck, Award, Shield } from 'lucide-react';
+import { LogOut, User, Menu, LayoutDashboard, Users, UserCheck, Award, Shield, Mail } from 'lucide-react';
 import Button from '../common/Button';
 import ThemeToggle from '../common/ThemeToggle';
+import useUnreadMessages from '../../hooks/useUnreadMessages';
 import './Navbar.css';
 
 const NavbarClub = ({ toggleSidebar, hideSidebarToggle }) => {
     const { user, logout } = useAuth();
+    const { hasUnread, unreadCount } = useUnreadMessages(true);
 
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/club' },
@@ -15,8 +17,7 @@ const NavbarClub = ({ toggleSidebar, hideSidebarToggle }) => {
         { icon: UserCheck, label: 'Tutores', path: '/club/tutores' },
         { icon: Award, label: 'Entrenadores', path: '/club/entrenadores' },
         { icon: Shield, label: 'Delegados', path: '/club/delegados' },
-        //        { icon: Calendar, label: 'Eventos', path: '/club/eventos' },
-        //        { icon: Trophy, label: 'Disponibles', path: '/club/eventos-disponibles' },
+        { icon: Mail, label: 'Mensajes', path: '/club/mensajes', showBadge: true },
     ];
 
     return (
@@ -38,8 +39,12 @@ const NavbarClub = ({ toggleSidebar, hideSidebarToggle }) => {
                             to={item.path}
                             className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
                             title={item.label}
+                            end={item.path === '/club'}
                         >
                             <span className="nav-label">{item.label}</span>
+                            {item.showBadge && hasUnread && (
+                                <span className="nav-unread-dot" aria-label={`${unreadCount} no leídos`} />
+                            )}
                         </NavLink>
                     ))}
                 </div>

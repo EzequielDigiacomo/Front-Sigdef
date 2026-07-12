@@ -50,78 +50,92 @@ const AddAtletaSeleccionModal = ({ isOpen, onClose, onSuccess, categoryId }) => 
     const loadAthletesByCategory = async () => {
         setLoading(true);
         try {
-            const [athletesData, clubesData] = await Promise.all([
-                api.get('/Atleta'),
-                api.get('/Club')
-            ]);
+            const athletesPromise = api.get('/Atleta');
+            const clubesPromise = api.get('/Club').catch(() => []);
 
+            const athletesData = await athletesPromise;
+            const available = (athletesData || []).filter(
+                (a) => !(a.perteneceSeleccion ?? a.PerteneceSeleccion)
+            );
+
+            const mapEnriched = (list, clubMap = {}) =>
+                list.map((athlete) => {
+                    const persona = athlete.participante || athlete.Participante || {};
+                    const fechaNac =
+                        athlete.fechaNacimiento ||
+                        athlete.FechaNacimiento ||
+                        persona.fechaNacimiento ||
+                        persona.FechaNacimiento;
+
+                    let edad = athlete.edad ?? athlete.Edad ?? null;
+                    if (edad == null && fechaNac) {
+                        const hoy = new Date();
+                        const nacimiento = new Date(fechaNac);
+                        edad = hoy.getFullYear() - nacimiento.getFullYear();
+                        const mes = hoy.getMonth() - nacimiento.getMonth();
+                        if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+                            edad--;
+                        }
+                    }
+
+                    const clubName =
+                        athlete.nombreClub ||
+                        athlete.NombreClub ||
+                        athlete.club?.nombre ||
+                        athlete.Club?.Nombre ||
+                        (athlete.idClub ? clubMap[athlete.idClub] : null) ||
+                        'Agente Libre';
+
+                    const nombreFromPersona =
+                        persona.nombre || persona.Nombre
+                            ? `${persona.nombre || persona.Nombre} ${persona.apellido || persona.Apellido || ''}`.trim()
+                            : '';
+
+                    return {
+                        ...athlete,
+                        edad,
+                        nombrePersona:
+                            athlete.nombrePersona || athlete.NombrePersona || nombreFromPersona || '-',
+                        documento:
+                            athlete.documento ||
+                            athlete.Documento ||
+                            persona.documento ||
+                            persona.Documento ||
+                            '-',
+                        nombreClub: clubName,
+                    };
+                });
+
+            const filterByCategory = (enriched) => {
+                const categoryRange = CATEGORY_RANGES.find((r) => r.categoryId === categoryId);
+                return enriched.filter((athlete) => {
+                    if (athlete.edad == null) return false;
+                    if (categoryRange.minAge && categoryRange.maxAge) {
+                        return athlete.edad >= categoryRange.minAge && athlete.edad <= categoryRange.maxAge;
+                    }
+                    if (categoryRange.maxAge) return athlete.edad <= categoryRange.maxAge;
+                    if (categoryRange.minAge) return athlete.edad >= categoryRange.minAge;
+                    return false;
+                });
+            };
+
+            const firstPass = filterByCategory(mapEnriched(available));
+            setAthletes(firstPass);
+            setFilteredAthletes(firstPass);
+            setLoading(false);
+
+            const clubesData = await clubesPromise;
             const clubMap = {};
-            (clubesData || []).forEach(club => {
+            (clubesData || []).forEach((club) => {
                 clubMap[club.idClub ?? club.IdClub] = club.nombre || club.Nombre;
             });
-
-            const available = (athletesData || []).filter(a => !(a.perteneceSeleccion ?? a.PerteneceSeleccion));
-
-            const enriched = available.map(athlete => {
-                const persona = athlete.participante || athlete.Participante || {};
-                const fechaNac =
-                    athlete.fechaNacimiento ||
-                    athlete.FechaNacimiento ||
-                    persona.fechaNacimiento ||
-                    persona.FechaNacimiento;
-
-                let edad = athlete.edad ?? athlete.Edad ?? null;
-                if (edad == null && fechaNac) {
-                    const hoy = new Date();
-                    const nacimiento = new Date(fechaNac);
-                    edad = hoy.getFullYear() - nacimiento.getFullYear();
-                    const mes = hoy.getMonth() - nacimiento.getMonth();
-                    if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
-                        edad--;
-                    }
-                }
-
-                const clubName = athlete.nombreClub || athlete.NombreClub ||
-                    athlete.club?.nombre || athlete.Club?.Nombre ||
-                    (athlete.idClub ? clubMap[athlete.idClub] : null) ||
-                    'Agente Libre';
-
-                const nombreFromPersona = persona.nombre || persona.Nombre
-                    ? `${persona.nombre || persona.Nombre} ${persona.apellido || persona.Apellido || ''}`.trim()
-                    : '';
-
-                return {
-                    ...athlete,
-                    edad,
-                    nombrePersona: athlete.nombrePersona || athlete.NombrePersona || nombreFromPersona || '-',
-                    documento: athlete.documento || athlete.Documento || persona.documento || persona.Documento || '-',
-                    nombreClub: clubName
-                };
-            });
-
-            const categoryRange = CATEGORY_RANGES.find(r => r.categoryId === categoryId);
-            const filtered = enriched.filter(athlete => {
-                if (athlete.edad == null) return false;
-
-                if (categoryRange.minAge && categoryRange.maxAge) {
-                    return athlete.edad >= categoryRange.minAge && athlete.edad <= categoryRange.maxAge;
-                }
-                if (categoryRange.maxAge) {
-                    return athlete.edad <= categoryRange.maxAge;
-                }
-                if (categoryRange.minAge) {
-                    return athlete.edad >= categoryRange.minAge;
-                }
-                return false;
-            });
-
-            setAthletes(filtered);
-            setFilteredAthletes(filtered);
+            const withClubs = filterByCategory(mapEnriched(available, clubMap));
+            setAthletes(withClubs);
+            setFilteredAthletes(withClubs);
         } catch (error) {
             console.error('Error loading athletes:', error);
             setAthletes([]);
             setFilteredAthletes([]);
-        } finally {
             setLoading(false);
         }
     };

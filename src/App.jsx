@@ -42,6 +42,7 @@ import EntrenadoresForm from './pages/FederacionAdmin/Entrenadores/EntrenadoresF
 import UserManagement from './pages/FederacionAdmin/Usuarios/UserManagement';
 import FederacionDetalles from './pages/FederacionAdmin/Federacion/FederacionDetalles';
 import PagosClubes from './pages/FederacionAdmin/Pagos/PagosClubes';
+import MensajesPage from './pages/Shared/MensajesPage';
 
 import ClubInfo from './pages/ClubAdmin/Info/ClubInfo';
 import ClubAtletas from './pages/ClubAdmin/Atletas/ClubAtletas';
@@ -88,8 +89,8 @@ const PrivateRoute = ({ children, allowedRoles }) => {
   const { isAuthenticated, loading, user } = useAuth();
 
   React.useEffect(() => {
-    if (isAuthenticated) warmupApi();
-  }, [isAuthenticated]);
+    if (isAuthenticated) warmupApi(user);
+  }, [isAuthenticated, user?.idFederacion, user?.federacionId]);
 
   if (loading) return <div>Cargando...</div>;
 
@@ -223,6 +224,7 @@ function App() {
               <Route path="pagos" element={<PagosClubes />} />
               <Route path="federacion" element={<FederacionDetalles />} />
               <Route path="usuarios" element={<UserManagement />} />
+              <Route path="mensajes" element={<MensajesPage modo="admin" />} />
             </Route>
 
             { }
@@ -252,6 +254,7 @@ function App() {
               <Route path="delegados" element={<ClubDelegados />} />
               <Route path="delegados/nuevo" element={<ClubDelegadosForm />} />
               <Route path="delegados/editar/:id" element={<ClubDelegadosForm />} />
+              <Route path="mensajes" element={<MensajesPage modo="club" />} />
               { /*
               <Route path="inscripciones/nuevo" element={<InscripcionesForm />} />
 */ }
@@ -271,6 +274,7 @@ function App() {
               <Route path="auditoria" element={<Auditoria />} />
               <Route path="planes" element={<SuperAdminPlanes />} />
               <Route path="modulos/:moduleKey" element={<SuperAdminModulePicker />} />
+              <Route path="mensajes" element={<MensajesPage modo="super" />} />
 
               {/* Vista SuperAdmin dentro de una federación específica */}
               <Route path="federacion/:fedId" element={<FederacionView />} />
