@@ -1,0 +1,79 @@
+.atleta-ficha {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem 1.25rem;
+    padding: 1.25rem;
+    background-color: var(--bg-secondary);
+    border-radius: 10px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.atleta-ficha-header {
+    grid-column: 1 / -1;
+    text-align: center;
+    margin-bottom: 0.25rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.75rem;
+}
+
+.atleta-ficha-header h2 {
+    margin: 0;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 1.15rem;
+}
+
+.atleta-ficha-header p {
+    margin: 0.25rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+}
+
+.atleta-ficha .detail-label {
+    font-size: 0.7rem;
+    margin-bottom: 2px;
+    display: block;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.atleta-ficha .detail-value {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    word-break: break-word;
+}
+
+.atleta-ficha-docs {
+    grid-column: 1 / -1;
+    margin-top: 0.5rem;
+}
+
+.atleta-ficha-docs-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.atleta-ficha-docs-actions > * {
+    flex: 1 1 140px;
+}
+
+.atleta-ficha-footer-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+    padding: 0.5rem 0;
+}
+
+@media (max-width: 720px) {
+    .atleta-ficha {
+        grid-template-columns: 1fr;
+    }
+}

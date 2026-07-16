@@ -5,9 +5,14 @@ import Button from './Button';
 import ConfirmationModal from './ConfirmationModal';
 import { api } from '../../services/api';
 import { TIPO_DOCUMENTO_MAP } from '../../utils/enums';
+import { useAuth } from '../../context/AuthContext';
+import { extractPlanFromUser } from '../../utils/planHelpers';
 import './DocumentUploadModal.css';
 
 const DocumentUploadModal = ({ isOpen, onClose, onSuccess, personId, personName }) => {
+    const { user } = useAuth();
+    const plan = extractPlanFromUser(user) || user?.plan;
+    const imagesAllowed = !!plan?.permitirCargaImagenes;
     const [selectedFile, setSelectedFile] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
     const [tipoDocumento, setTipoDocumento] = useState('0');
@@ -27,10 +32,13 @@ const DocumentUploadModal = ({ isOpen, onClose, onSuccess, personId, personName 
     const handleFileSelect = (file) => {
         console.log('📁 Archivo seleccionado:', file.name, 'Tamaño:', file.size, 'bytes');
 
-        // Validar tipo
-        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'];
+        const allowedTypes = imagesAllowed
+            ? ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf']
+            : ['application/pdf'];
         if (!allowedTypes.includes(file.type)) {
-            alert('Solo se permiten imágenes (JPG, PNG, GIF) o PDF.');
+            alert(imagesAllowed
+                ? 'Solo se permiten imágenes (JPG, PNG, GIF) o PDF.'
+                : 'Tu plan solo permite PDF. Las imágenes requieren Ecosistema.');
             return;
         }
 
@@ -222,7 +230,7 @@ const DocumentUploadModal = ({ isOpen, onClose, onSuccess, personId, personName 
                                 type="file"
                                 ref={fileInputRef}
                                 onChange={handleFileChange}
-                                accept="image/*,.pdf"
+                                accept={imagesAllowed ? 'image/*,.pdf' : '.pdf'}
                                 hidden
                             />
                             <div className="upload-placeholder">

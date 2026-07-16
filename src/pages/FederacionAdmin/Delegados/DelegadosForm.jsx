@@ -7,6 +7,7 @@ import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import { ArrowLeft, Save, Search } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { withFederationScope } from '../../../utils/apiHelpers';
+import { canAccessDashboardClub, extractPlanFromUser } from '../../../utils/planHelpers';
 import '../../../styles/CompactForm.css';
 
 const DelegadosForm = () => {
@@ -14,6 +15,7 @@ const DelegadosForm = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
+    const clubLoginAllowed = canAccessDashboardClub(extractPlanFromUser(user) || user?.plan);
     const [loading, setLoading] = useState(false);
     const [clubes, setClubes] = useState([]);
     const [federacionNombre, setFederacionNombre] = useState('');
@@ -153,6 +155,14 @@ const DelegadosForm = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!id && !clubLoginAllowed) {
+            showModal(
+                'Plan insuficiente',
+                'Tu plan no incluye login Club / delegados. Actualizá a Profesional o superior.',
+                'danger'
+            );
+            return;
+        }
         setLoading(true);
 
         try {
@@ -200,6 +210,14 @@ const DelegadosForm = () => {
                     <h2 className="page-title">Crear / Asignar Delegado</h2>
                 </div>
             </div>
+
+            {!id && !clubLoginAllowed && (
+                <Card className="compact-form-card" style={{ marginBottom: '1rem' }}>
+                    <p style={{ margin: 0, color: 'var(--color-danger, #b91c1c)' }}>
+                        El plan Esencial no incluye dashboard/login Club. Actualizá a Profesional o Ecosistema para crear delegados.
+                    </p>
+                </Card>
+            )}
 
             <Card className="compact-form-card">
                 <form onSubmit={handleSubmit}>
@@ -354,7 +372,13 @@ const DelegadosForm = () => {
                         <Button type="button" variant="secondary" size="sm" onClick={goBack}>
                             Cancelar
                         </Button>
-                        <Button type="submit" variant="primary" size="sm" isLoading={loading}>
+                        <Button
+                            type="submit"
+                            variant="primary"
+                            size="sm"
+                            isLoading={loading}
+                            disabled={!id && !clubLoginAllowed}
+                        >
                             <Save size={16} className="mr-2" /> Guardar Delegado
                         </Button>
                     </div>

@@ -9,6 +9,7 @@ import DocumentUploadModal from '../../../../components/common/DocumentUploadMod
 import DocumentViewerModal from '../../../../components/common/DocumentViewerModal';
 import { getCategoriaLabel, getEstadoPagoLabel, getEstadoPagoColor } from '../../../../utils/enums';
 import AssignTutorModal from './AssignTutorModal';
+import './AtletaDetailModal.css';
 
 const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '/dashboard/atletas' }) => {
     const navigate = useNavigate();
@@ -175,7 +176,7 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
                 title="Detalle del Atleta"
                 size="large"
                 footer={
-                    <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap', width: '100%', padding: '0.5rem 0' }}>
+                    <div className="atleta-ficha-footer-actions">
                         <Button variant="secondary" onClick={onClose}>Cerrar</Button>
 
                         {athlete.edad < 18 && (
@@ -203,42 +204,34 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
                     </div>
                 }
             >
-                <div id="modal-content-export" style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: 'repeat(3, 1fr)', 
-                    gap: '0.85rem', 
-                    padding: '1rem', 
-                    backgroundColor: 'var(--bg-secondary)',
-                    borderRadius: '8px',
-                    margin: '0.25rem'
-                }}>
-                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-                        <h2 style={{ margin: 0, color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '1.15rem' }}>
+                <div id="modal-content-export" className="atleta-ficha">
+                    <div className="atleta-ficha-header">
+                        <h2>
                             <FileText size={18} /> Ficha del Atleta
                         </h2>
-                        <p style={{ margin: '0.15rem 0 0', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>SIGDEF - Sistema de Gestión Deportiva</p>
+                        <p>SIGDEF - Sistema de Gestión Deportiva</p>
                     </div>
 
                     <div>
-                        <label className="detail-label" style={{ fontSize: '0.7rem', marginBottom: '2px' }}>Nombre Completo</label>
-                        <div className="detail-value" style={{ fontSize: '0.85rem' }}>{athlete.nombrePersona || `${athlete.nombre} ${athlete.apellido}`}</div>
+                        <label className="detail-label">Nombre Completo</label>
+                        <div className="detail-value">{athlete.nombrePersona || `${athlete.nombre} ${athlete.apellido}`}</div>
                     </div>
                     <div>
-                        <label className="detail-label" style={{ fontSize: '0.7rem', marginBottom: '2px' }}>Documento</label>
-                        <div className="detail-value" style={{ fontSize: '0.85rem' }}>{athlete.documento || athlete.Documento}</div>
+                        <label className="detail-label">Documento</label>
+                        <div className="detail-value">{athlete.documento || athlete.Documento}</div>
                     </div>
                     <div>
-                        <label className="detail-label" style={{ fontSize: '0.7rem', marginBottom: '2px' }}>Club</label>
-                        <div className="detail-value" style={{ fontSize: '0.85rem' }}>{athlete.nombreClub || 'Agente Libre'}</div>
+                        <label className="detail-label">Club</label>
+                        <div className="detail-value">{athlete.nombreClub || 'Agente Libre'}</div>
                     </div>
 
                     <div>
-                        <label className="detail-label" style={{ fontSize: '0.7rem', marginBottom: '2px' }}>Categoría</label>
-                        <div className="detail-value" style={{ fontSize: '0.85rem' }}>{getCategoriaLabel(athlete.categoria)}</div>
+                        <label className="detail-label">Categoría</label>
+                        <div className="detail-value">{getCategoriaLabel(athlete.categoria)}</div>
                     </div>
                     <div>
-                        <label className="detail-label" style={{ fontSize: '0.7rem', marginBottom: '2px' }}>Selección Nacional</label>
-                        <div className="detail-value" style={{ fontSize: '0.85rem' }}>
+                        <label className="detail-label">Selección Nacional</label>
+                        <div className="detail-value">
                             {athlete.perteneceSeleccion ? (
                                 <span className="badge badge-success" style={{ fontSize: '0.7rem', padding: '0px 6px' }}>Sí</span>
                             ) : (
@@ -247,7 +240,7 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
                         </div>
                     </div>
                     <div>
-                        <label className="detail-label" style={{ fontSize: '0.7rem', marginBottom: '2px' }}>Estado de Pago</label>
+                        <label className="detail-label">Estado de Pago</label>
                         <div className="detail-value">
                             <select 
                                 value={athlete.estadoPago ?? 0}
@@ -273,17 +266,17 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
                         </div>
                     </div>
 
-                    <div style={{ gridColumn: '1 / 2' }}>
-                        <label className="detail-label" style={{ fontSize: '0.7rem', marginBottom: '2px' }}>Fecha de Nacimiento</label>
-                        <div className="detail-value" style={{ fontSize: '0.85rem' }}>
+                    <div>
+                        <label className="detail-label">Fecha de Nacimiento</label>
+                        <div className="detail-value">
                             {athlete.fechaNacimiento ? new Date(athlete.fechaNacimiento).toLocaleDateString() : '-'}
                             {athlete.edad !== null && ` (${athlete.edad} años)`}
                         </div>
                     </div>
 
                     {athlete.edad < 18 && (
-                        <div style={{ gridColumn: '2 / -1' }}>
-                            <label className="detail-label" style={{ fontSize: '0.7rem', marginBottom: '2px' }}>Tutor(es) Responsables</label>
+                        <div style={{ gridColumn: '1 / -1' }}>
+                            <label className="detail-label">Tutor(es) Responsables</label>
                             <div className="detail-value" style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                                 {loadingTutor ? (
                                     <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Cargando...</span>
@@ -334,17 +327,16 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
                         </div>
                     )}
 
-                    <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem' }}>
-                        <label className="detail-label" style={{ fontSize: '0.7rem', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div className="atleta-ficha-docs">
+                        <label className="detail-label" style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <FileText size={14} /> Documentación del Atleta
                         </label>
-                        <div style={{ display: 'flex', gap: '10px' }}>
+                        <div className="atleta-ficha-docs-actions">
                             <Button
                                 variant="secondary"
                                 size="sm"
                                 icon={Eye}
                                 onClick={() => setShowViewerModal(true)}
-                                style={{ flex: 1, fontSize: '0.75rem' }}
                             >
                                 Ver / Gestionar
                             </Button>
@@ -356,7 +348,6 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
                                     loadDocuments();
                                     setShowUploadModal(true);
                                 }}
-                                style={{ flex: 1, fontSize: '0.75rem' }}
                             >
                                 Subir Nueva
                             </Button>

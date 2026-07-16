@@ -209,10 +209,10 @@ const DocumentViewerModal = ({ isOpen, onClose, personId, personName, personDocu
                     setSelectedDoc(null);
                 }}
                 title={TIPO_DOCUMENTO_MAP[selectedDoc.tipoDocumento] || 'Documento'}
-                size="large"
+                size={isImage ? 'medium' : 'large'}
                 variant="document"
             >
-                <div className="document-preview-container">
+                <div className={`document-preview-container ${isImage ? 'is-image' : ''}`}>
                     {isImage ? (
                         <img
                             src={url}
@@ -249,7 +249,7 @@ const DocumentViewerModal = ({ isOpen, onClose, personId, personName, personDocu
                 isOpen={isOpen}
                 onClose={onClose}
                 title={`Documentos de ${personName}`}
-                size="large"
+                size="medium"
                 variant="document"
             >
                 <div className="document-viewer-content">

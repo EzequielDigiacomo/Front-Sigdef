@@ -3,9 +3,11 @@ import { useAuth } from '../../../../context/AuthContext';
 import Button from '../../../../components/common/Button';
 import ConfirmationModal from '../../../../components/common/ConfirmationModal';
 import { api } from '../../../../services/api';
+import { canAccessDashboardClub, extractPlanFromUser } from '../../../../utils/planHelpers';
 
 const RegisterClubForm = ({ onUserCreated }) => {
     const { user } = useAuth();
+    const clubLoginAllowed = canAccessDashboardClub(extractPlanFromUser(user) || user?.plan);
     const [formData, setFormData] = useState({
         idClub: '',
         username: '',
@@ -15,7 +17,8 @@ const RegisterClubForm = ({ onUserCreated }) => {
         rol: 'Club'
     });
 
-    const isFormValid = formData.idClub &&
+    const isFormValid = clubLoginAllowed &&
+        formData.idClub &&
         formData.username.length >= 4 &&
         formData.password.length >= 6 &&
         formData.password === formData.confirmPassword;
@@ -59,6 +62,16 @@ const RegisterClubForm = ({ onUserCreated }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        if (!clubLoginAllowed) {
+            setResultModal({
+                open: true,
+                type: 'danger',
+                title: 'Plan insuficiente',
+                message: 'Tu plan no incluye login Club. Actualizá a Profesional o superior.'
+            });
+            return;
+        }
+
         if (!formData.idClub) {
             setResultModal({
                 open: true,
@@ -101,14 +114,14 @@ const RegisterClubForm = ({ onUserCreated }) => {
 
         setLoading(true);
         try {
-            const payload = {
-                ...formData,
-                idClub: Number(formData.idClub),
+            await api.post('/Auth/register', {
+                username: formData.username,
+                password: formData.password,
+                email: `${formData.username}@club.local`,
+                clubId: Number(formData.idClub),
                 rol: 'Club',
-                Role: 'Club'
-            };
-
-            await api.post('/Auth/registrar-club', payload);
+                rolFederacion: 'Club',
+            });
 
             setResultModal({
                 open: true,
@@ -144,6 +157,14 @@ const RegisterClubForm = ({ onUserCreated }) => {
             <form onSubmit={handleSubmit} className="form-container">
                 <h3 className="form-title">Registrar Nuevo Club</h3>
 
+                {!clubLoginAllowed && (
+                    <div className="form-group" style={{ marginBottom: '1rem' }}>
+                        <small style={{ color: 'var(--color-danger, #b91c1c)' }}>
+                            El plan Esencial no incluye dashboard/login Club. Actualizá a Profesional o Ecosistema.
+                        </small>
+                    </div>
+                )}
+
                 <div className="form-group">
                     <label htmlFor="idClub">Seleccionar Club</label>
                     <select
@@ -153,6 +174,7 @@ const RegisterClubForm = ({ onUserCreated }) => {
                         onChange={handleChange}
                         className="form-input"
                         required
+                        disabled={!clubLoginAllowed}
                     >
                         <option value="">Seleccione un club...</option>
                         {clubs.map(club => (
@@ -174,6 +196,7 @@ const RegisterClubForm = ({ onUserCreated }) => {
                         onChange={handleChange}
                         className="form-input"
                         required
+                        disabled={!clubLoginAllowed}
                     />
                 </div>
 
@@ -188,6 +211,7 @@ const RegisterClubForm = ({ onUserCreated }) => {
                             onChange={handleChange}
                             className="form-input"
                             required
+                            disabled={!clubLoginAllowed}
                         />
                     </div>
                     <div className="form-group" style={{ marginBottom: '1rem' }}    >
@@ -200,6 +224,7 @@ const RegisterClubForm = ({ onUserCreated }) => {
                             onChange={handleChange}
                             className="form-input"
                             required
+                            disabled={!clubLoginAllowed}
                         />
                     </div>
                 </div>
@@ -211,6 +236,7 @@ const RegisterClubForm = ({ onUserCreated }) => {
                             name="estaActivo"
                             checked={formData.estaActivo}
                             onChange={handleChange}
+                            disabled={!clubLoginAllowed}
                         />
                         <span>Cuenta Activa</span>
                     </label>
@@ -221,6 +247,7 @@ const RegisterClubForm = ({ onUserCreated }) => {
                     variant={isFormValid ? "primary" : "secondary"}
                     isLoading={loading}
                     className="mt-6 w-full"
+                    disabled={!clubLoginAllowed || loading}
                 >
                     Registrar Club
                 </Button>

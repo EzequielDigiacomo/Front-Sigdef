@@ -131,16 +131,16 @@ const AssignCoachModal = ({ isOpen, onClose, onSuccess, categoryId, categoryLabe
     if (!isOpen) return null;
 
     return (
-        <div className="modal-overlay">
-            <div className="modal-content">
-                <div className="modal-header">
-                    <h3 className="modal-title">Asignar Entrenador - {categoryLabel}</h3>
-                    <button className="modal-close" onClick={onClose}>
+        <div className="legacy-picker-modal-overlay">
+            <div className="legacy-picker-modal">
+                <div className="legacy-picker-modal-header">
+                    <h3 className="legacy-picker-modal-title">Asignar Entrenador - {categoryLabel}</h3>
+                    <button className="legacy-picker-modal-close" onClick={onClose}>
                         <X size={24} />
                     </button>
                 </div>
 
-                <div className="modal-body">
+                <div className="legacy-picker-modal-body">
                     <div className="mb-4">
                         <FormField
                             icon={Search}
@@ -187,7 +187,7 @@ const AssignCoachModal = ({ isOpen, onClose, onSuccess, categoryId, categoryLabe
                     </div>
                 </div>
 
-                <div className="modal-footer">
+                <div className="legacy-picker-modal-footer">
                     <Button variant="ghost" onClick={onClose} disabled={submitting}>
                         Cancelar
                     </Button>

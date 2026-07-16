@@ -161,16 +161,16 @@ const AddCoachToSelectionModal = ({ isOpen, onClose, onSuccess, fedId }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="modal-overlay">
-            <div className="modal-content">
-                <div className="modal-header">
-                    <h3 className="modal-title">Vincular entrenador de club</h3>
-                    <button className="modal-close" onClick={onClose}>
+        <div className="legacy-picker-modal-overlay">
+            <div className="legacy-picker-modal">
+                <div className="legacy-picker-modal-header">
+                    <h3 className="legacy-picker-modal-title">Vincular entrenador de club</h3>
+                    <button className="legacy-picker-modal-close" onClick={onClose}>
                         <X size={24} />
                     </button>
                 </div>
 
-                <div className="modal-body">
+                <div className="legacy-picker-modal-body">
                     <p className="modal-hint">
                         Se listan los entrenadores de club que todavía no forman parte del equipo de selección.
                         Al vincularlos figurarán en ambas grillas.
@@ -219,7 +219,7 @@ const AddCoachToSelectionModal = ({ isOpen, onClose, onSuccess, fedId }) => {
                     </div>
                 </div>
 
-                <div className="modal-footer">
+                <div className="legacy-picker-modal-footer">
                     <Button variant="ghost" onClick={onClose} disabled={submitting}>
                         Cancelar
                     </Button>
