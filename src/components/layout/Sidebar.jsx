@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
     LayoutDashboard, Users, Trophy, Shield, UserCheck, Award,
-    ChevronLeft, ChevronRight, Lock, Briefcase, Mail,
+    ChevronLeft, ChevronRight, Lock, Briefcase, Mail, ClipboardList,
 } from 'lucide-react';
 import useUnreadMessages from '../../hooks/useUnreadMessages';
 import './Sidebar.css';
@@ -19,6 +19,7 @@ const Sidebar = ({ isOpen, closeMobile, isCollapsed, toggleSidebar }) => {
         { icon: Award, label: 'Entrenadores', path: '/dashboard/entrenadores' },
         { icon: Briefcase, label: 'Delegados Club', path: '/dashboard/delegados' },
         { icon: UserCheck, label: 'Tutores', path: '/dashboard/tutores' },
+        { icon: ClipboardList, label: 'Registro Inscripciones', path: '/dashboard/registro-inscripciones' },
         { icon: Mail, label: 'Mensajes', path: '/dashboard/mensajes', showBadge: true },
         { icon: Trophy, label: 'Federación', path: '/dashboard/federacion' },
     ];

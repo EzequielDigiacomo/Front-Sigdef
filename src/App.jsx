@@ -43,6 +43,7 @@ import UserManagement from './pages/FederacionAdmin/Usuarios/UserManagement';
 import FederacionDetalles from './pages/FederacionAdmin/Federacion/FederacionDetalles';
 import PagosClubes from './pages/FederacionAdmin/Pagos/PagosClubes';
 import MensajesPage from './pages/Shared/MensajesPage';
+import RegistroInscripciones from './pages/Shared/RegistroInscripciones';
 
 import ClubInfo from './pages/ClubAdmin/Info/ClubInfo';
 import ClubAtletas from './pages/ClubAdmin/Atletas/ClubAtletas';
@@ -222,6 +223,7 @@ function App() {
               <Route path="selecciones/categoria/:categoryId" element={<SeleccionCategoriaDetalle />} />
 
               <Route path="pagos" element={<PagosClubes />} />
+              <Route path="registro-inscripciones" element={<RegistroInscripciones modo="admin" />} />
               <Route path="federacion" element={<FederacionDetalles />} />
               <Route path="usuarios" element={<UserManagement />} />
               <Route path="mensajes" element={<MensajesPage modo="admin" />} />
@@ -254,6 +256,7 @@ function App() {
               <Route path="delegados" element={<ClubDelegados />} />
               <Route path="delegados/nuevo" element={<ClubDelegadosForm />} />
               <Route path="delegados/editar/:id" element={<ClubDelegadosForm />} />
+              <Route path="registro-inscripciones" element={<RegistroInscripciones modo="club" />} />
               <Route path="mensajes" element={<MensajesPage modo="club" />} />
               { /*
               <Route path="inscripciones/nuevo" element={<InscripcionesForm />} />

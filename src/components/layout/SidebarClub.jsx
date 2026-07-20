@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
     LayoutDashboard, Users, Trophy, UserCheck, Award, Shield, Mail,
-    ChevronLeft, ChevronRight,
+    ChevronLeft, ChevronRight, ClipboardList,
 } from 'lucide-react';
 import useUnreadMessages from '../../hooks/useUnreadMessages';
 import './Sidebar.css';
@@ -15,6 +15,7 @@ const SidebarClub = ({ isOpen, closeMobile, isCollapsed, toggleSidebar }) => {
         { icon: UserCheck, label: 'Mis Tutores', path: '/club/tutores' },
         { icon: Award, label: 'Mis Entrenadores', path: '/club/entrenadores' },
         { icon: Shield, label: 'Mis Delegados', path: '/club/delegados' },
+        { icon: ClipboardList, label: 'Mis Inscripciones', path: '/club/registro-inscripciones' },
         { icon: Mail, label: 'Mensajes', path: '/club/mensajes', showBadge: true },
     ];
 
