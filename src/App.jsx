@@ -303,6 +303,7 @@ function App() {
               <Route path="federacion/:fedId/tutores/nuevo" element={<TutoresForm />} />
               <Route path="federacion/:fedId/tutores/:id/edit" element={<TutoresForm />} />
               <Route path="federacion/:fedId/pagos" element={<PagosClubes />} />
+              <Route path="federacion/:fedId/registro-inscripciones" element={<RegistroInscripciones modo="admin" />} />
             </Route>
 
             { }

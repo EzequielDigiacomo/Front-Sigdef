@@ -4,7 +4,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { api } from '../../../services/api';
 import {
     MapPin, Phone, Mail, Users, Award, User, CheckCircle2, AlertCircle,
-    UserCheck, Shield, ChevronRight, ChevronLeft, Clock,
+    UserCheck, Shield, ChevronRight, ChevronLeft, Clock, ClipboardList,
 } from 'lucide-react';
 import { pick } from '../../../utils/apiHelpers';
 import './ClubInfo.css';
@@ -324,6 +324,15 @@ const ClubInfo = () => {
             icon: Shield,
             tone: 'violet',
             hint: 'Accesos del club',
+        },
+        {
+            key: 'inscripciones',
+            label: 'Inscripciones',
+            count: 'Ver',
+            path: '/club/registro-inscripciones',
+            icon: ClipboardList,
+            tone: 'blue',
+            hint: 'Registro por prueba',
         },
     ];
 
