@@ -12,6 +12,7 @@ import { Plus, Edit, Trash2, Search, Award, CheckCircle, XCircle, Eye } from 'lu
 import DataTable from '../../../components/common/DataTable';
 import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
+import { matchesSearch } from '../../../utils/searchUtils';
 import '../Entrenadores/ClubEntrenadores.css';
 
 const ClubEntrenadores = () => {
@@ -95,8 +96,15 @@ const ClubEntrenadores = () => {
         }
     };
 
-    const filteredEntrenadores = entrenadores.filter(entrenador =>
-        entrenador.nombrePersona?.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredEntrenadores = entrenadores.filter((entrenador) =>
+        matchesSearch(
+            searchTerm,
+            entrenador.nombrePersona,
+            entrenador.documento,
+            entrenador.email,
+            entrenador.telefono,
+            entrenador.licencia,
+        )
     );
 
     if (loading) return <div className="loading-container"><div className="spinner"></div></div>;

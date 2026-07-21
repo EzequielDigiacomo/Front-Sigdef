@@ -19,6 +19,7 @@ import {
     getUsuarioNombre,
     getUsuarioUsername,
 } from '../../../utils/delegadoHelpers';
+import { matchesSearch } from '../../../utils/searchUtils';
 import '../Atletas/ClubAtletas.css';
 
 const ClubDelegados = () => {
@@ -124,7 +125,18 @@ const ClubDelegados = () => {
     };
 
     const filteredDelegados = delegados.filter((delegado) =>
-        getUsuarioNombre(delegado).toLowerCase().includes(searchTerm.toLowerCase())
+        matchesSearch(
+            searchTerm,
+            getUsuarioNombre(delegado),
+            getUsuarioUsername(delegado),
+            delegado.dni,
+            delegado.documento,
+            delegado.Documento,
+            delegado.email,
+            delegado.Email,
+            delegado.telefono,
+            delegado.Telefono,
+        )
     );
 
     if (loading) return <div className="loading-container"><div className="spinner"></div></div>;

@@ -6,6 +6,7 @@ import { Trophy, Calendar, MapPin, Users, UserPlus, Search } from 'lucide-react'
 import Button from '../../../components/common/Button';
 import Card from '../../../components/common/Card';
 import FormField from '../../../components/forms/FormField';
+import { matchesSearch } from '../../../utils/searchUtils';
 import './EventosDisponibles.css';
 
 const EventosDisponibles = () => {
@@ -30,25 +31,28 @@ const EventosDisponibles = () => {
             const inscripciones = await api.get('/Inscripcion');
 
             console.log('Todos los eventos:', todosEventos);
-            console.log('Mi Club ID:', user.clubId);
+            console.log('Mi Club ID:', user?.idClub ?? user?.clubId);
 
+            const myClubId = user?.idClub ?? user?.clubId ?? user?.IdClub;
             const eventosDisponibles = todosEventos
                 .filter(e => {
 
-                    const esOtroClub = e.idClub != user.clubId;
+                    const esOtroClub = e.idClub != myClubId;
 
                     const esFuturo = new Date(e.fechaFin) >= new Date();
                     return esOtroClub && esFuturo;
                 })
                 .map(evento => {
 
-                    const clubOrganizador = clubes.find(c => c.id === evento.idClub);
+                    const clubOrganizador = clubes.find(c => c.id === evento.idClub || c.idClub === evento.idClub);
 
-                    const inscritosTotal = inscripciones.filter(i => i.idEvento === evento.idEvento).length;
+                    const inscritosTotal = inscripciones.filter(i => i.idEvento === evento.idEvento || i.idEvento === evento.id).length;
 
                     return {
                         ...evento,
-                        organizador: clubOrganizador ? clubOrganizador.nombre : 'Federación Argentina',
+                        nombre: evento.nombre ?? evento.Nombre ?? '',
+                        ubicacion: evento.ubicacion ?? evento.Ubicacion ?? '',
+                        organizador: clubOrganizador ? (clubOrganizador.nombre ?? clubOrganizador.Nombre) : 'Federación Argentina',
                         inscritosTotal,
                         cupoMaximo: evento.cupoMaximo || 100
                     };
@@ -67,10 +71,13 @@ const EventosDisponibles = () => {
         navigate(`/club/inscripciones/nuevo?eventoId=${eventoId}`);
     };
 
-    const filteredEventos = eventos.filter(evento =>
-        evento.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        evento.ubicacion.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        evento.organizador.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredEventos = eventos.filter((evento) =>
+        matchesSearch(
+            searchTerm,
+            evento.nombre,
+            evento.ubicacion,
+            evento.organizador,
+        )
     );
 
     const calcularCuposDisponibles = (inscritosTotal, cupoMaximo) => {

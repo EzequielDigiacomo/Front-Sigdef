@@ -1,8 +1,12 @@
 import { api } from './api';
 
 const PagoService = {
-    getHistorial: async () => {
-        return api.get('/pagos/historial');
+    getHistorial: async (fedId) => {
+        const endpoint =
+            fedId != null && fedId !== ''
+                ? `/pagos/historial?idFederacion=${encodeURIComponent(String(fedId))}`
+                : '/pagos/historial';
+        return api.get(endpoint);
     },
 
     registrarPago: async (pagoData) => {
@@ -19,6 +23,17 @@ const PagoService = {
 
     toggleInscripcionStatus: async (inscripcionId, pagado) => {
         return api.put(`/pagos/inscripciones/${inscripcionId}/toggle`, pagado);
+    },
+
+    eliminarPago: async (pagoId) => {
+        return api.delete(`/pagos/${pagoId}`);
+    },
+
+    eliminarPagos: async (ids) => {
+        return api.delete('/pagos/bulk', {
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(ids),
+        });
     },
 };
 

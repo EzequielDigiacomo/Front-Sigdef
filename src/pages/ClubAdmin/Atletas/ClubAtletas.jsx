@@ -16,6 +16,7 @@ import DocumentViewerModal from '../../../components/common/DocumentViewerModal'
 import { getEstadoPagoLabel, getEstadoPagoColor, getCategoriaLabel, PARENTESCO_MAP } from '../../../utils/enums';
 import { TutorStatusCell, calcEdad } from '../../../components/common/TutorStatusCell';
 import { buildAtletaUpdatePayload, getParticipanteId } from '../../../utils/atletaUtils';
+import { matchesSearch } from '../../../utils/searchUtils';
 import './ClubAtletas.css';
 
 const ESTADO_PAGO_PAGADO = 1;
@@ -504,7 +505,15 @@ const ClubAtletas = () => {
         return formatCategoria({ categoria: atletaOrCategoria });
     };
 
-    const filteredAtletas = atletas.filter(atleta => (atleta.nombrePersona || '').toLowerCase().includes(searchTerm.toLowerCase()));
+    const filteredAtletas = atletas.filter((atleta) =>
+        matchesSearch(
+            searchTerm,
+            atleta.nombrePersona,
+            atleta.documento,
+            atleta.categoriaNombre,
+            formatCategoria(atleta),
+        )
+    );
 
     if (loading) return <div className="loading-container"><div className="spinner"></div></div>;
 

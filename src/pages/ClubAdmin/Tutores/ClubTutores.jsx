@@ -8,6 +8,7 @@ import Card from '../../../components/common/Card';
 import FormField from '../../../components/forms/FormField';
 import DataTable from '../../../components/common/DataTable';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
+import { matchesSearch } from '../../../utils/searchUtils';
 import '../Atletas/ClubAtletas.css';
 
 const ClubTutores = () => {
@@ -139,10 +140,16 @@ const ClubTutores = () => {
         }
     };
 
-    const filteredTutores = tutores.filter(tutor => {
-        const nombreCompleto = (tutor.nombrePersona || '').toLowerCase();
-        return nombreCompleto.includes(searchTerm.toLowerCase());
-    });
+    const filteredTutores = tutores.filter((tutor) =>
+        matchesSearch(
+            searchTerm,
+            tutor.nombrePersona,
+            tutor.documento,
+            tutor.email,
+            tutor.telefono,
+            tutor.atletaVinculado,
+        )
+    );
 
     if (loading) {
         return (
