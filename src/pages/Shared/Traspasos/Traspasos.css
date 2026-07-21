@@ -1,0 +1,219 @@
+.traspasos-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.traspasos-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.traspasos-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--text-primary);
+}
+
+.traspasos-subnav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.traspasos-subnav a {
+    padding: 0.45rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.875rem;
+    text-decoration: none;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    transition: all 0.15s ease;
+}
+
+.traspasos-subnav a.active {
+    color: var(--primary);
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.traspasos-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+}
+
+.traspasos-alert-warning {
+    background: color-mix(in srgb, var(--warning, #f59e0b) 15%, transparent);
+    border: 1px solid color-mix(in srgb, var(--warning, #f59e0b) 40%, transparent);
+    color: var(--text-primary);
+}
+
+.traspasos-alert-success {
+    background: color-mix(in srgb, var(--success) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--success) 35%, transparent);
+}
+
+.traspasos-alert-error {
+    background: color-mix(in srgb, var(--danger) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+}
+
+.traspasos-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.traspasos-filter-btn {
+    padding: 0.35rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.traspasos-filter-btn.active {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.traspasos-validacion-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.traspasos-validacion-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.traspasos-validacion-item.ok {
+    border-color: color-mix(in srgb, var(--success) 40%, transparent);
+}
+
+.traspasos-validacion-item.fail {
+    border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+}
+
+.traspasos-validacion-item strong {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.traspasos-validacion-item span {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.traspasos-search-box {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.traspasos-search-box input {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.6rem 0.85rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-primary);
+}
+
+.traspasos-result-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.traspasos-result-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+}
+
+.traspasos-result-item h4 {
+    margin: 0 0 0.25rem;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.traspasos-result-item p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.traspasos-empty {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: var(--text-secondary);
+}
+
+.traspasos-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.traspasos-detail-grid label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.2rem;
+}
+
+.traspasos-detail-grid div {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.traspasos-row-click {
+    cursor: pointer;
+}
+
+.traspasos-row-click:hover {
+    background: var(--bg-secondary);
+}
+
+.traspasos-periodo-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+}
+
+@media (max-width: 768px) {
+    .traspasos-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

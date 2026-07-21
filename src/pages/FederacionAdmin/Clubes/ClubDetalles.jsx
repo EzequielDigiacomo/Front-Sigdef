@@ -595,10 +595,10 @@ const ClubDetalles = () => {
                                                 if (hasClub) {
                                                     setConfirmModalState({
                                                         isOpen: true,
-                                                        step: 'transfer_warning',
+                                                        step: 'transfer_blocked',
                                                         athlete: atleta,
                                                         message: `Este atleta pertenece a ${atleta.nombreClub}.`,
-                                                        subMessage: 'Si continúas, el atleta será dado de baja de su club actual y asignado a este.'
+                                                        subMessage: 'Los traspasos entre clubes deben gestionarse mediante el módulo formal de Traspasos. El club destino debe iniciar la solicitud desde su panel (/club/traspasos).'
                                                     });
                                                 } else {
                                                     setConfirmModalState({
@@ -634,31 +634,33 @@ const ClubDetalles = () => {
                         }
                     }}
                     title={
-                        confirmModalState.step === 'transfer_warning' ? 'Advertencia de Transferencia' :
+                        confirmModalState.step === 'transfer_blocked' ? 'Traspaso formal requerido' :
                             confirmModalState.step === 'confirm' ? 'Confirmar Acción' :
                                 confirmModalState.step === 'success' ? '¡Operación Exitosa!' :
                                     confirmModalState.step === 'error' ? 'Error' : 'Procesando...'
                     }
                     footer={
                         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                            {confirmModalState.step === 'transfer_warning' && (
+                            {confirmModalState.step === 'transfer_blocked' && (
                                 <>
                                     <Button
                                         variant="secondary"
                                         onClick={() => setConfirmModalState(prev => ({ ...prev, isOpen: false }))}
                                     >
-                                        Cancelar
+                                        Cerrar
                                     </Button>
                                     <Button
-                                        style={{ backgroundColor: 'var(--danger)', color: 'white' }}
-                                        onClick={() => setConfirmModalState(prev => ({
-                                            ...prev,
-                                            step: 'confirm',
-                                            message: '¿Estás seguro de realizar la transferencia?',
-                                            subMessage: 'Esta acción es definitiva.'
-                                        }))}
+                                        variant="primary"
+                                        onClick={() => {
+                                            setConfirmModalState(prev => ({ ...prev, isOpen: false }));
+                                            setShowAddAtletaModal(false);
+                                            const traspasosPath = isSuperAdminView
+                                                ? `/superadmin/federacion/${fedId}/traspasos`
+                                                : '/dashboard/traspasos';
+                                            navigate(traspasosPath);
+                                        }}
                                     >
-                                        Entiendo, Continuar
+                                        Ir a Traspasos
                                     </Button>
                                 </>
                             )}
@@ -795,9 +797,9 @@ const ClubDetalles = () => {
                     }
                 >
                     <div style={{ padding: '1rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-                        {confirmModalState.step === 'transfer_warning' && (
+                        {confirmModalState.step === 'transfer_blocked' && (
                             <>
-                                <AlertTriangle size={48} className="text-amber-500" style={{ color: 'var(--warning)' }} />
+                                <AlertTriangle size={48} style={{ color: 'var(--warning)' }} />
                                 <div>
                                     <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--warning)' }}>{confirmModalState.message}</h4>
                                     <p style={{ margin: 0, color: 'var(--text-secondary)' }}>

@@ -1,20 +1,23 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { NavLink } from 'react-router-dom';
-import { LogOut, User, Menu, LayoutDashboard, Shield, Users, Award, UserCheck, DollarSign, Trophy, Lock, Briefcase, Mail } from 'lucide-react';
+import { LogOut, User, Menu, LayoutDashboard, Shield, Users, Award, UserCheck, DollarSign, Trophy, Lock, Briefcase, Mail, ArrowRightLeft } from 'lucide-react';
 import Button from '../common/Button';
 import ThemeToggle from '../common/ThemeToggle';
 import useUnreadMessages from '../../hooks/useUnreadMessages';
+import usePendingTraspasos from '../../hooks/usePendingTraspasos';
 import './Navbar.css';
 
 const Navbar = ({ toggleSidebar, hideSidebarToggle }) => {
     const { user, logout } = useAuth();
     const { hasUnread, unreadCount } = useUnreadMessages(true);
+    const { hasPending, pendingCount } = usePendingTraspasos(true);
 
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
         { icon: Shield, label: 'Clubes', path: '/dashboard/clubes' },
         { icon: Users, label: 'Atletas', path: '/dashboard/atletas' },
+        { icon: ArrowRightLeft, label: 'Traspasos', path: '/dashboard/traspasos', showBadge: true, badgeCount: pendingCount, hasBadge: hasPending },
         { icon: Award, label: 'Entrenadores', path: '/dashboard/entrenadores' },
         { icon: Trophy, label: 'Selecciones', path: '/dashboard/selecciones' },
         { icon: Briefcase, label: 'Delegados Club', path: '/dashboard/delegados' },
@@ -50,8 +53,8 @@ const Navbar = ({ toggleSidebar, hideSidebarToggle }) => {
                             end={item.path === '/dashboard'}
                         >
                             <span className="nav-label">{item.label}</span>
-                            {item.showBadge && hasUnread && (
-                                <span className="nav-unread-dot" aria-label={`${unreadCount} no leídos`} />
+                            {item.showBadge && (item.hasBadge ?? hasUnread) && (
+                                <span className="nav-unread-dot" aria-label={`${item.badgeCount ?? unreadCount} pendientes`} />
                             )}
                         </NavLink>
                     ))}
@@ -65,8 +68,8 @@ const Navbar = ({ toggleSidebar, hideSidebarToggle }) => {
                             title={item.label}
                         >
                             <span className="nav-label">{item.label}</span>
-                            {item.showBadge && hasUnread && (
-                                <span className="nav-unread-dot" aria-label={`${unreadCount} no leídos`} />
+                            {item.showBadge && (item.hasBadge ?? hasUnread) && (
+                                <span className="nav-unread-dot" aria-label={`${item.badgeCount ?? unreadCount} pendientes`} />
                             )}
                         </NavLink>
                     ))}

@@ -59,6 +59,14 @@ import ClubEntrenadoresForm from './pages/ClubAdmin/Entrenadores/ClubEntrenadore
 import ClubDelegados from './pages/ClubAdmin/Delegados/ClubDelegados';
 import ClubDelegadosForm from './pages/ClubAdmin/Delegados/ClubDelegadosForm';
 
+import TraspasosBandeja from './pages/FederacionAdmin/Traspasos/TraspasosBandeja';
+import PeriodosTraspaso from './pages/FederacionAdmin/Traspasos/PeriodosTraspaso';
+import TraspasoDetalle from './pages/FederacionAdmin/Traspasos/TraspasoDetalle';
+import TraspasosClubLayout from './pages/ClubAdmin/Traspasos/TraspasosClubLayout';
+import TraspasosSolicitar from './pages/ClubAdmin/Traspasos/TraspasosSolicitar';
+import TraspasosEntrantes from './pages/ClubAdmin/Traspasos/TraspasosEntrantes';
+import TraspasosSalientes from './pages/ClubAdmin/Traspasos/TraspasosSalientes';
+
 import { ThemeProvider } from './context/ThemeContext';
 import { warmupApi } from './services/api';
 
@@ -227,6 +235,9 @@ function App() {
               <Route path="federacion" element={<FederacionDetalles />} />
               <Route path="usuarios" element={<UserManagement />} />
               <Route path="mensajes" element={<MensajesPage modo="admin" />} />
+              <Route path="traspasos" element={<TraspasosBandeja />} />
+              <Route path="traspasos/periodos" element={<PeriodosTraspaso />} />
+              <Route path="traspasos/:id" element={<TraspasoDetalle />} />
             </Route>
 
             { }
@@ -258,6 +269,12 @@ function App() {
               <Route path="delegados/editar/:id" element={<ClubDelegadosForm />} />
               <Route path="registro-inscripciones" element={<RegistroInscripciones modo="club" />} />
               <Route path="mensajes" element={<MensajesPage modo="club" />} />
+              <Route path="traspasos" element={<TraspasosClubLayout />}>
+                <Route index element={<Navigate to="solicitar" replace />} />
+                <Route path="solicitar" element={<TraspasosSolicitar />} />
+                <Route path="entrantes" element={<TraspasosEntrantes />} />
+                <Route path="salientes" element={<TraspasosSalientes />} />
+              </Route>
               { /*
               <Route path="inscripciones/nuevo" element={<InscripcionesForm />} />
 */ }
@@ -304,6 +321,9 @@ function App() {
               <Route path="federacion/:fedId/tutores/:id/edit" element={<TutoresForm />} />
               <Route path="federacion/:fedId/pagos" element={<PagosClubes />} />
               <Route path="federacion/:fedId/registro-inscripciones" element={<RegistroInscripciones modo="admin" />} />
+              <Route path="federacion/:fedId/traspasos" element={<TraspasosBandeja />} />
+              <Route path="federacion/:fedId/traspasos/periodos" element={<PeriodosTraspaso />} />
+              <Route path="federacion/:fedId/traspasos/:id" element={<TraspasoDetalle />} />
             </Route>
 
             { }

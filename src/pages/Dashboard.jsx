@@ -5,6 +5,7 @@ import Card from '../components/common/Card';
 import {
     Users, Shield, DollarSign, Award, Trophy, Briefcase, UserCheck, Lock,
     ChevronLeft, ChevronRight, Activity, AlertTriangle, KeyRound, UserPlus, ClipboardList,
+    ArrowRightLeft,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import './Dashboard.css';
@@ -179,6 +180,7 @@ const Dashboard = () => {
         { label: 'Delegados', icon: Briefcase, path: '/dashboard/delegados', color: '#ef4444', description: 'Representantes de clubes' },
         { label: 'Tutores', icon: UserCheck, path: '/dashboard/tutores', color: '#ec4899', description: 'Tutoría de atletas menores' },
         { label: 'Pagos', icon: DollarSign, path: '/dashboard/pagos', color: '#06b6d4', description: 'Control de cuotas y transacciones' },
+        { label: 'Traspasos', icon: ArrowRightLeft, path: '/dashboard/traspasos', color: '#a855f7', description: 'Solicitudes y aprobación de traspasos' },
         { label: 'Registro Inscripciones', icon: ClipboardList, path: '/dashboard/registro-inscripciones', color: '#0ea5e9', description: 'Consulta de atletas inscriptos por prueba' },
         { label: 'Federación', icon: Shield, path: '/dashboard/federacion', color: '#64748b', description: 'Información institucional' },
     ];

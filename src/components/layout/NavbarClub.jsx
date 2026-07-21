@@ -1,19 +1,22 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { NavLink } from 'react-router-dom';
-import { LogOut, User, Menu, LayoutDashboard, Users, UserCheck, Award, Shield, Mail } from 'lucide-react';
+import { LogOut, User, Menu, LayoutDashboard, Users, UserCheck, Award, Shield, Mail, ArrowRightLeft } from 'lucide-react';
 import Button from '../common/Button';
 import ThemeToggle from '../common/ThemeToggle';
 import useUnreadMessages from '../../hooks/useUnreadMessages';
+import usePendingTraspasos from '../../hooks/usePendingTraspasos';
 import './Navbar.css';
 
 const NavbarClub = ({ toggleSidebar, hideSidebarToggle }) => {
     const { user, logout } = useAuth();
     const { hasUnread, unreadCount } = useUnreadMessages(true);
+    const { hasPending, pendingCount } = usePendingTraspasos(true);
 
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/club' },
         { icon: Users, label: 'Atletas', path: '/club/atletas' },
+        { icon: ArrowRightLeft, label: 'Traspasos', path: '/club/traspasos', showBadge: true, badgeCount: pendingCount, hasBadge: hasPending },
         { icon: UserCheck, label: 'Tutores', path: '/club/tutores' },
         { icon: Award, label: 'Entrenadores', path: '/club/entrenadores' },
         { icon: Shield, label: 'Delegados', path: '/club/delegados' },
@@ -42,8 +45,8 @@ const NavbarClub = ({ toggleSidebar, hideSidebarToggle }) => {
                             end={item.path === '/club'}
                         >
                             <span className="nav-label">{item.label}</span>
-                            {item.showBadge && hasUnread && (
-                                <span className="nav-unread-dot" aria-label={`${unreadCount} no leídos`} />
+                            {item.showBadge && (item.hasBadge ?? hasUnread) && (
+                                <span className="nav-unread-dot" aria-label={`${item.badgeCount ?? unreadCount} pendientes`} />
                             )}
                         </NavLink>
                     ))}

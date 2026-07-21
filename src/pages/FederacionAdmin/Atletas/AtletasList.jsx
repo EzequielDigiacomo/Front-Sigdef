@@ -16,6 +16,7 @@ import './Atletas.css';
 import Modal from '../../../components/common/Modal';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import AtletaDetailModal from './components/AtletaDetailModal';
+import { buildAtletaUpdatePayload, getParticipanteId } from '../../../utils/atletaUtils';
 import * as XLSX from 'xlsx';
 import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
@@ -184,8 +185,9 @@ const AtletasList = () => {
             
             let count = 0;
             for (const atleta of clubAtletas) {
-                const payload = { ...atleta, estadoPago: bulkStatus };
-                await api.put(`/Atleta/${atleta.idPersona || atleta.IdPersona}`, payload);
+                const participanteId = getParticipanteId(atleta);
+                const payload = buildAtletaUpdatePayload(atleta, { estadoPago: bulkStatus });
+                await api.put(`/Atleta/${participanteId}`, payload);
                 count++;
             }
             

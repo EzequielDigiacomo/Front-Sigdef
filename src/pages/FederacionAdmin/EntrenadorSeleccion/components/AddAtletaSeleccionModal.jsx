@@ -6,6 +6,7 @@ import { AlertCircle, Search, X, Check, Loader2, UserPlus } from 'lucide-react';
 import { CATEGORY_RANGES } from '../../../../utils/categoryConfig';
 import { getCategoriaLabel } from '../../../../utils/enums';
 import ConfirmationModal from '../../../../components/common/ConfirmationModal';
+import { buildAtletaUpdatePayload, getParticipanteId } from '../../../../utils/atletaUtils';
 import './AddAtletaSeleccionModal.css';
 
 const AddAtletaSeleccionModal = ({ isOpen, onClose, onSuccess, categoryId }) => {
@@ -145,17 +146,16 @@ const AddAtletaSeleccionModal = ({ isOpen, onClose, onSuccess, categoryId }) => 
 
         setAdding(true);
         try {
-            const updatedAthlete = {
-                ...selectedAthlete,
+            const updatedAthlete = buildAtletaUpdatePayload(selectedAthlete, {
                 perteneceSeleccion: true,
                 categoria: categoryId,
-                // Add default values for new selection members if needed
                 becadoEnard: false,
                 becadoSdn: false,
-                montoBeca: 0
-            };
+                montoBeca: 0,
+            });
 
-            await api.put(`/Atleta/${selectedAthlete.idPersona}`, updatedAthlete);
+            const participanteId = getParticipanteId(selectedAthlete);
+            await api.put(`/Atleta/${participanteId}`, updatedAthlete);
             onSuccess();
         } catch (error) {
             console.error('Error adding athlete:', error);

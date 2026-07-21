@@ -9,3 +9,4 @@ Manuales operativos y guías paso a paso del frontend SIGDEF (FrontSigdef).
 | [gestion-accesos-contrasenas.md](./gestion-accesos-contrasenas.md) | Usuarios, roles y edición de contraseñas |
 | [tutores-paso-a-paso.md](./tutores-paso-a-paso.md) | Alta, vínculo tutor–atleta menor |
 | [mensajes.md](./mensajes.md) | Bandeja 1:1 y comunicados masivos (SIGDEF) |
+| [traspasos-paso-a-paso.md](./traspasos-paso-a-paso.md) | Traspasos de atletas entre clubes |

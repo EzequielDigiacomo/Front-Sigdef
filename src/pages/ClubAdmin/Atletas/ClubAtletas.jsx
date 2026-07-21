@@ -15,6 +15,7 @@ import DocumentUploadModal from '../../../components/common/DocumentUploadModal'
 import DocumentViewerModal from '../../../components/common/DocumentViewerModal';
 import { getEstadoPagoLabel, getEstadoPagoColor, getCategoriaLabel, PARENTESCO_MAP } from '../../../utils/enums';
 import { TutorStatusCell, calcEdad } from '../../../components/common/TutorStatusCell';
+import { buildAtletaUpdatePayload, getParticipanteId } from '../../../utils/atletaUtils';
 import './ClubAtletas.css';
 
 const ESTADO_PAGO_PAGADO = 1;
@@ -35,24 +36,9 @@ const formatCategoria = (atleta) => {
     return '-';
 };
 
-const buildAtletaUpdatePayload = (atleta, estadoPago) => ({
-    participanteId: atleta.idPersona ?? atleta.participanteId ?? atleta.ParticipanteId,
-    idClub: atleta.idClub ?? atleta.IdClub ?? null,
-    estadoPago,
-    perteneceSeleccion: atleta.perteneceSeleccion ?? atleta.PerteneceSeleccion ?? false,
-    categoria: atleta.categoria ?? atleta.Categoria ?? null,
-    becadoEnard: atleta.becadoEnard ?? atleta.BecadoEnard ?? false,
-    becadoSdn: atleta.becadoSdn ?? atleta.BecadoSdn ?? false,
-    montoBeca: atleta.montoBeca ?? atleta.MontoBeca ?? 0,
-    presentoAptoMedico: atleta.presentoAptoMedico ?? atleta.PresentoAptoMedico ?? false,
-    fechaAptoMedico: atleta.fechaAptoMedico ?? atleta.FechaAptoMedico ?? null,
-    fechaCreacion: atleta.fechaCreacion ?? atleta.FechaCreacion ?? new Date().toISOString(),
-});
-
 const ClubAtletas = () => {
     const { isNative } = useDevice();
     const { user } = useAuth();
-    // ... rest of component
     const navigate = useNavigate();
     const [atletas, setAtletas] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -299,7 +285,7 @@ const ClubAtletas = () => {
 
         setUpdatingPagoId(id);
         try {
-            await api.put(`/Atleta/${id}`, buildAtletaUpdatePayload(atleta, nextStatus));
+            await api.put(`/Atleta/${id}`, buildAtletaUpdatePayload(atleta, { estadoPago: nextStatus }));
             setAtletas((prev) =>
                 prev.map((a) =>
                     String(a.idPersona) === String(id) ? { ...a, estadoPago: nextStatus } : a
@@ -365,7 +351,7 @@ const ClubAtletas = () => {
                 try {
                     for (const atleta of atletas) {
                         if (atleta.estadoPago !== ESTADO_PAGO_PAGADO) {
-                            await api.put(`/Atleta/${atleta.idPersona}`, buildAtletaUpdatePayload(atleta, ESTADO_PAGO_PAGADO));
+                            await api.put(`/Atleta/${atleta.idPersona}`, buildAtletaUpdatePayload(atleta, { estadoPago: ESTADO_PAGO_PAGADO }));
                         }
                     }
                     setFeedbackModal({

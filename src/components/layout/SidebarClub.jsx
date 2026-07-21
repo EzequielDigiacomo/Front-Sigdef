@@ -1,17 +1,20 @@
 import { NavLink } from 'react-router-dom';
 import {
     LayoutDashboard, Users, Trophy, UserCheck, Award, Shield, Mail,
-    ChevronLeft, ChevronRight, ClipboardList,
+    ChevronLeft, ChevronRight, ClipboardList, ArrowRightLeft,
 } from 'lucide-react';
 import useUnreadMessages from '../../hooks/useUnreadMessages';
+import usePendingTraspasos from '../../hooks/usePendingTraspasos';
 import './Sidebar.css';
 
 const SidebarClub = ({ isOpen, closeMobile, isCollapsed, toggleSidebar }) => {
     const { hasUnread, unreadCount } = useUnreadMessages(true);
+    const { hasPending, pendingCount } = usePendingTraspasos(true);
 
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/club' },
         { icon: Users, label: 'Mis Atletas', path: '/club/atletas' },
+        { icon: ArrowRightLeft, label: 'Traspasos', path: '/club/traspasos', showBadge: true, badgeCount: pendingCount, hasBadge: hasPending },
         { icon: UserCheck, label: 'Mis Tutores', path: '/club/tutores' },
         { icon: Award, label: 'Mis Entrenadores', path: '/club/entrenadores' },
         { icon: Shield, label: 'Mis Delegados', path: '/club/delegados' },
@@ -49,13 +52,15 @@ const SidebarClub = ({ isOpen, closeMobile, isCollapsed, toggleSidebar }) => {
                         >
                             <span className="nav-item-icon-wrap">
                                 <item.icon size={20} />
-                                {item.showBadge && hasUnread && (
-                                    <span className="nav-unread-dot" aria-label={`${unreadCount} no leídos`} />
+                                {item.showBadge && (item.hasBadge ?? hasUnread) && (
+                                    <span className="nav-unread-dot" aria-label={`${item.badgeCount ?? unreadCount} pendientes`} />
                                 )}
                             </span>
                             <span className="nav-label">{item.label}</span>
-                            {item.showBadge && hasUnread && (
-                                <span className="nav-unread-count">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                            {item.showBadge && (item.hasBadge ?? hasUnread) && (
+                                <span className="nav-unread-count">
+                                    {(item.badgeCount ?? unreadCount) > 99 ? '99+' : (item.badgeCount ?? unreadCount)}
+                                </span>
                             )}
                         </NavLink>
                     ))}

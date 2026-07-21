@@ -2,7 +2,7 @@
 
 **Única carpeta de documentación del frontend.** Todo lo demás (raíz del repo, `SIGDEF_Dev_Documentation/`, `.agent/`) debe apuntar aquí.
 
-**Última actualización:** 2026-07-12
+**Última actualización:** 2026-07-21
 
 ---
 
@@ -16,6 +16,9 @@
 | [cambios/](./cambios/) | Registro de cambios guardados (changelogs por fecha) |
 | [tecnico/](./tecnico/) | Arquitectura, roles, API, desarrollo |
 | [referencia/](./referencia/) | Documentación histórica / legado numerado |
+
+**Plan activo:** [referencia/PLAN_TRASPASOS_ATLETAS.md](./referencia/PLAN_TRASPASOS_ATLETAS.md) — traspasos de atletas (SIGDEF, 5 fases).  
+**Flujo vigente:** [casos-de-uso/traspasos-atletas-flujo.md](./casos-de-uso/traspasos-atletas-flujo.md) — federación verifica deuda → club origen acepta/ejecuta.
 
 ---
 
@@ -38,6 +41,7 @@ API típica: `https://sporttrack-sigdef.onrender.com/api` (o la de `.env`).
 |-----------|------------|
 | Usuario Federación / Admin | [guias-usuario/manual-federacion.md](./guias-usuario/manual-federacion.md) |
 | Usuario Club / Delegado | [guias-usuario/manual-club.md](./guias-usuario/manual-club.md) |
+| Traspasos de atletas | [casos-de-uso/traspasos-atletas-flujo.md](./casos-de-uso/traspasos-atletas-flujo.md) · [guía paso a paso](./guias-usuario/traspasos-paso-a-paso.md) |
 | Gestión de logins y claves | [guias-usuario/gestion-accesos-contrasenas.md](./guias-usuario/gestion-accesos-contrasenas.md) |
 | Tutores y menores | [guias-usuario/tutores-paso-a-paso.md](./guias-usuario/tutores-paso-a-paso.md) |
 | Mensajes internos | [guias-usuario/mensajes.md](./guias-usuario/mensajes.md) |

@@ -9,6 +9,7 @@ import DocumentUploadModal from '../../../../components/common/DocumentUploadMod
 import DocumentViewerModal from '../../../../components/common/DocumentViewerModal';
 import { getCategoriaLabel, getEstadoPagoLabel, getEstadoPagoColor } from '../../../../utils/enums';
 import AssignTutorModal from './AssignTutorModal';
+import { buildAtletaUpdatePayload, getParticipanteId } from '../../../../utils/atletaUtils';
 import './AtletaDetailModal.css';
 
 const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '/dashboard/atletas' }) => {
@@ -84,24 +85,10 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
 
     const handleUpdateStatus = async (newStatus) => {
         try {
-            // Updated athlete object with new status
-            // Ensure we use the correct property names for the backend AtletaUpdateDto
-            const updatedPayload = {
-                idPersona: athlete.idPersona,
-                idClub: athlete.idClub,
-                estadoPago: newStatus,
-                perteneceSeleccion: athlete.perteneceSeleccion || false,
-                categoria: athlete.categoria,
-                becadoEnard: athlete.becadoEnard || false,
-                becadoSdn: athlete.becadoSdn || false,
-                montoBeca: athlete.montoBeca || 0,
-                presentoAptoMedico: athlete.presentoAptoMedico || false,
-                fechaAptoMedico: athlete.fechaAptoMedico,
-                fechaCreacion: athlete.fechaCreacion || new Date().toISOString()
-            };
-            
-            // We use PUT /Atleta/{id} typically for updates
-            await api.put(`/Atleta/${athlete.idPersona}`, updatedPayload);
+            const participanteId = getParticipanteId(athlete);
+            const updatedPayload = buildAtletaUpdatePayload(athlete, { estadoPago: newStatus });
+
+            await api.put(`/Atleta/${participanteId}`, updatedPayload);
             
             // Update local state if needed (or just refresh)
             if (onRefresh) onRefresh();
