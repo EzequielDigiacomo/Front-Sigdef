@@ -49,18 +49,6 @@ const UserTable = ({ users, clubs = [], onUserUpdated }) => {
             render: (value, row) => <strong>{value || getUsername(row)}</strong>,
         },
         {
-            key: 'password',
-            label: 'Contraseña',
-            render: () => (
-                <span
-                    className="text-muted"
-                    style={{ fontFamily: 'monospace', letterSpacing: '2px' }}
-                >
-                    ******
-                </span>
-            ),
-        },
-        {
             key: 'rol',
             label: 'Rol',
             render: (value, row) => {
@@ -117,7 +105,7 @@ const UserTable = ({ users, clubs = [], onUserUpdated }) => {
         },
         {
             key: 'fechaCreacion',
-            label: 'Fecha Creación',
+            label: 'Alta',
             render: (value, row) => {
                 const fecha = value || row.FechaCreacion;
                 return fecha ? new Date(fecha).toLocaleDateString() : '-';
@@ -254,6 +242,7 @@ const UserTable = ({ users, clubs = [], onUserUpdated }) => {
                 data={users}
                 keyField="idUsuario"
                 emptyMessage="No hay usuarios registrados"
+                className="users-access-table"
                 actions={(row) => {
                     const activo = isUserActive(row);
                     return (

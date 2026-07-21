@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/common/Button';
-import { Shield, Eye, EyeOff, Smartphone, HelpCircle } from 'lucide-react';
+import { Eye, EyeOff, HelpCircle, Send } from 'lucide-react';
 import { useDevice } from '../hooks/useDevice';
 import Modal from '../components/common/Modal';
+import { api } from '../services/api';
 import './Login.css';
 
 const Login = () => {
@@ -15,9 +16,23 @@ const Login = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showForgotModal, setShowForgotModal] = useState(false);
+    const [forgotUsername, setForgotUsername] = useState('');
+    const [forgotNota, setForgotNota] = useState('');
+    const [forgotError, setForgotError] = useState('');
+    const [forgotSuccess, setForgotSuccess] = useState('');
+    const [forgotLoading, setForgotLoading] = useState(false);
 
     const { login } = useAuth();
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (showForgotModal) {
+            setForgotUsername(username.trim());
+            setForgotNota('');
+            setForgotError('');
+            setForgotSuccess('');
+        }
+    }, [showForgotModal, username]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -36,19 +51,49 @@ const Login = () => {
         }
     };
 
+    const handleForgotSubmit = async (e) => {
+        e.preventDefault();
+        setForgotError('');
+        setForgotSuccess('');
+
+        const user = forgotUsername.trim();
+        if (!user) {
+            setForgotError('Indicá el usuario con el que intentás ingresar.');
+            return;
+        }
+
+        setForgotLoading(true);
+        try {
+            const res = await api.post('/Auth/solicitar-reset-password', {
+                username: user,
+                nota: forgotNota.trim() || null,
+            });
+            setForgotSuccess(
+                res?.message ||
+                    'Se envió un mensaje al administrador de tu federación para restablecer la contraseña.'
+            );
+        } catch (err) {
+            setForgotError(err.message || 'No se pudo enviar la solicitud. Intentá de nuevo.');
+        } finally {
+            setForgotLoading(false);
+        }
+    };
+
     return (
         <div className={`login-container ${isNative ? 'is-native' : ''}`}>
             <div className={`login-card glass-panel ${isNative ? 'mobile-card' : ''}`}>
                 <div className="login-header">
                     <div className="login-logo">
-                        <img 
-                            src="/logo_icon.png" 
-                            alt="Logo" 
-                            className="web-logo-img" 
+                        <img
+                            src="/logo_icon.png"
+                            alt="Logo"
+                            className="web-logo-img"
                             style={{ height: '50px', width: 'auto' }}
                         />
                     </div>
-                    <h2 className="text-gradient-green">{isNative ? 'SIGDEF Mobile' : 'Bienvenido a SIGDEF'}</h2>
+                    <h2 className="text-gradient-green">
+                        {isNative ? 'SIGDEF Mobile' : 'Bienvenido a SIGDEF'}
+                    </h2>
                     <p className="login-subtitle">
                         {isNative ? 'Tu deporte, en tu bolsillo' : 'Sistema de Gestión Deportiva'}
                     </p>
@@ -65,6 +110,7 @@ const Login = () => {
                             placeholder="Ingrese su usuario"
                             required
                             className="form-input"
+                            autoComplete="username"
                         />
                     </div>
 
@@ -72,19 +118,20 @@ const Login = () => {
                         <label htmlFor="password">Contraseña</label>
                         <div className="password-input-wrapper">
                             <input
-                                type={showPassword ? "text" : "password"}
+                                type={showPassword ? 'text' : 'password'}
                                 id="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="Ingrese su contraseña"
                                 required
                                 className="form-input"
+                                autoComplete="current-password"
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
                                 className="password-toggle-btn"
-                                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                             >
                                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                             </button>
@@ -93,26 +140,24 @@ const Login = () => {
 
                     {error && <div className="error-message">{error}</div>}
 
-                    <Button type="submit" variant="primary" size="lg" isLoading={isLoading} style={{ width: '100%' }}>
+                    <Button
+                        type="submit"
+                        variant="primary"
+                        size="lg"
+                        isLoading={isLoading}
+                        style={{ width: '100%' }}
+                    >
                         Iniciar Sesión
                     </Button>
 
                     <div className="forgot-password-container">
-                        <button 
-                            type="button" 
+                        <button
+                            type="button"
                             className="forgot-password-link"
                             onClick={() => setShowForgotModal(true)}
                         >
                             ¿Olvidó su contraseña?
                         </button>
-                    </div>
-
-                    <div className="login-info">
-                        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '1rem', textAlign: 'center' }}>
-                            <strong>Credenciales de prueba:</strong><br />
-                            <strong>Superadmin:</strong> superadmin / admin123<br />
-                            <strong>Federación:</strong> admin / admin123
-                        </p>
                     </div>
                 </form>
             </div>
@@ -120,35 +165,74 @@ const Login = () => {
             {showForgotModal && (
                 <Modal
                     isOpen={showForgotModal}
-                    onClose={() => setShowForgotModal(false)}
-                    title="Recuperación de Acceso"
+                    onClose={() => !forgotLoading && setShowForgotModal(false)}
+                    title="Recuperar contraseña"
                     footer={
-                        <Button variant="primary" onClick={() => setShowForgotModal(false)}>
-                            Entendido
-                        </Button>
+                        forgotSuccess ? (
+                            <Button variant="primary" onClick={() => setShowForgotModal(false)}>
+                                Cerrar
+                            </Button>
+                        ) : (
+                            <div className="forgot-modal-footer">
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => setShowForgotModal(false)}
+                                    disabled={forgotLoading}
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    variant="primary"
+                                    icon={Send}
+                                    isLoading={forgotLoading}
+                                    onClick={handleForgotSubmit}
+                                >
+                                    Enviar solicitud
+                                </Button>
+                            </div>
+                        )
                     }
                 >
-                    <div style={{ textAlign: 'center', padding: '1rem' }}>
-                        <div style={{ 
-                            backgroundColor: 'rgba(var(--primary-rgb), 0.1)', 
-                            width: '60px', 
-                            height: '60px', 
-                            borderRadius: '50%', 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center',
-                            margin: '0 auto 1.5rem',
-                            color: 'var(--primary)'
-                        }}>
-                            <HelpCircle size={32} />
+                    <div className="forgot-modal-body">
+                        <div className="forgot-modal-icon">
+                            <HelpCircle size={28} />
                         </div>
-                        <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Reseteo de Contraseña</h4>
-                        <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-                            Por razones de seguridad, el reseteo de contraseñas es gestionado manualmente por el <strong>Administrador de su Club</strong> o la <strong>Federación</strong>.
-                        </p>
-                        <p style={{ color: 'var(--text-secondary)', marginTop: '1rem', fontSize: '0.9rem' }}>
-                            Por favor, póngase en contacto con ellos de forma externa para solicitar la generación de una clave temporal.
-                        </p>
+                        {forgotSuccess ? (
+                            <p className="forgot-success">{forgotSuccess}</p>
+                        ) : (
+                            <>
+                                <p className="forgot-modal-text">
+                                    Se enviará un mensaje interno al <strong>administrador de tu federación</strong>{' '}
+                                    (por ejemplo, si tu usuario es de un club de esa federación, le llega a su admin)
+                                    para que te restablezca la contraseña.
+                                </p>
+                                <form className="forgot-form" onSubmit={handleForgotSubmit}>
+                                    <label className="forgot-field">
+                                        <span>Usuario</span>
+                                        <input
+                                            type="text"
+                                            value={forgotUsername}
+                                            onChange={(e) => setForgotUsername(e.target.value)}
+                                            placeholder="Ej. club1fec"
+                                            required
+                                            autoFocus
+                                            className="form-input"
+                                        />
+                                    </label>
+                                    <label className="forgot-field">
+                                        <span>Nota (opcional)</span>
+                                        <textarea
+                                            value={forgotNota}
+                                            onChange={(e) => setForgotNota(e.target.value)}
+                                            placeholder="Datos de contacto u otra información útil..."
+                                            rows={3}
+                                            className="form-input"
+                                        />
+                                    </label>
+                                    {forgotError && <div className="error-message">{forgotError}</div>}
+                                </form>
+                            </>
+                        )}
                     </div>
                 </Modal>
             )}

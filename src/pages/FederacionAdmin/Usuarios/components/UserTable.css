@@ -90,62 +90,97 @@
     width: 100%;
 }
 
-/* Evitar scroll horizontal en la grilla de usuarios */
 .user-management-container .users-table-panel {
-    overflow-x: hidden;
+    overflow-x: auto;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .user-management-container .users-table-panel .table-responsive {
-    overflow-x: hidden;
+    overflow-x: auto;
     width: 100%;
+    padding: 0 1rem 1rem;
+    box-sizing: border-box;
 }
 
+/* Llena el panel repartiendo el ancho entre columnas (sin hueco muerto) */
 .user-management-container .users-table-panel .data-table {
     width: 100%;
     table-layout: fixed;
+    border-collapse: collapse;
 }
 
 .user-management-container .users-table-panel .data-table th,
 .user-management-container .users-table-panel .data-table td {
-    padding: 0.45rem 0.5rem;
+    padding: 0.55rem 0.65rem;
     font-size: 0.8rem;
+    vertical-align: middle;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
+/* Usuario */
 .user-management-container .users-table-panel .data-table th:nth-child(1),
 .user-management-container .users-table-panel .data-table td:nth-child(1) {
-    width: 16%;
+    width: 24%;
 }
 
+/* Rol */
 .user-management-container .users-table-panel .data-table th:nth-child(2),
 .user-management-container .users-table-panel .data-table td:nth-child(2) {
-    width: 10%;
+    width: 18%;
 }
 
+.user-management-container .users-table-panel .data-table td:nth-child(2) .badge {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+/* Club */
 .user-management-container .users-table-panel .data-table th:nth-child(3),
 .user-management-container .users-table-panel .data-table td:nth-child(3) {
-    width: 12%;
+    width: 20%;
 }
 
+/* Estado */
 .user-management-container .users-table-panel .data-table th:nth-child(4),
 .user-management-container .users-table-panel .data-table td:nth-child(4) {
     width: 14%;
 }
 
+/* Alta */
 .user-management-container .users-table-panel .data-table th:nth-child(5),
 .user-management-container .users-table-panel .data-table td:nth-child(5) {
     width: 12%;
 }
 
-.user-management-container .users-table-panel .data-table th:nth-child(6),
-.user-management-container .users-table-panel .data-table td:nth-child(6) {
-    width: 12%;
-}
-
+/* Acciones */
 .user-management-container .users-table-panel .data-table th:last-child,
 .user-management-container .users-table-panel .data-table td:last-child {
     width: 12%;
+    overflow: visible;
     text-align: center;
+}
+
+.user-management-container .users-table-panel .actions-cell {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    flex-wrap: nowrap;
+    max-width: 100%;
+}
+
+.user-management-container .users-table-panel .actions-cell .btn {
+    margin: 0;
+    padding: 0.2rem;
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+    flex-shrink: 0;
 }
