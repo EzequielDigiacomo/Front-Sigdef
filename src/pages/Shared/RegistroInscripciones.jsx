@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import FormField from '../../components/forms/FormField';
+import PageHeader from '../../components/common/PageHeader';
 import { Search, ClipboardList, Trash2, Download, RefreshCw } from 'lucide-react';
 import '../FederacionAdmin/Atletas/Atletas.css';
 
@@ -150,14 +151,12 @@ const RegistroInscripciones = ({ modo = 'admin' }) => {
 
     return (
         <div className="page-container">
-            <div className="page-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <ClipboardList size={28} />
-                    <div>
-                        <h2 className="page-title">{titulo}</h2>
-                        <p style={{ margin: 0, opacity: 0.7, fontSize: '0.9rem' }}>{subtitulo}</p>
-                    </div>
-                </div>
+            <PageHeader
+                title={titulo}
+                subtitle={subtitulo}
+                icon={ClipboardList}
+                backTo="/dashboard"
+                actions={(
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                     <Button variant="secondary" onClick={loadInscripciones} disabled={loading}>
                         <RefreshCw size={18} /> Actualizar
@@ -168,7 +167,8 @@ const RegistroInscripciones = ({ modo = 'admin' }) => {
                         </Button>
                     )}
                 </div>
-            </div>
+                )}
+            />
 
             <Card>
                 <div className="filters-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>

@@ -5,20 +5,23 @@ import Button from '../../../components/common/Button';
 import Card from '../../../components/common/Card';
 import FormField from '../../../components/forms/FormField';
 import {
-    Plus, Edit, Trash2, Search, Users, Target, Briefcase, ArrowLeft,
+    Plus, Edit, Trash2, Search, Users, Target, Briefcase,
     Mail, Phone, MapPin, Building2, CheckCircle2, AlertCircle, Eye,
 } from 'lucide-react';
 import { useDevice } from '../../../hooks/useDevice';
 import { withFederationScope, getClubFederationId, pick } from '../../../utils/apiHelpers';
+import PageHeader from '../../../components/common/PageHeader';
 import './Clubes.css';
 
 const getAfiliacionLabel = (alDia) => (alDia ? 'Al Día (Anual)' : 'Deudor');
 const getAfiliacionBadgeClass = (alDia) => (alDia ? 'badge-success' : 'badge-danger');
 
 const ClubesList = () => {
-    const { isNative } = useDevice();
+    const { isNative, isMobile } = useDevice();
+    const isMobileView = isMobile || isNative;
     const { fedId } = useParams();
     const isSuperAdminView = Boolean(fedId);
+    const backTo = isSuperAdminView ? `/superadmin/federacion/${fedId}` : '/dashboard';
     const [clubes, setClubes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -239,38 +242,28 @@ const ClubesList = () => {
     );
 
     return (
-        <div className={`page-container clubes-page ${isNative ? 'mobile-view' : ''}`}>
+        <div className={`page-container clubes-page ${isMobileView ? 'mobile-view' : ''}`}>
             {isSuperAdminView && (
                 <div className="clubes-sa-banner">
-                    <button
-                        type="button"
-                        onClick={() => navigate(`/superadmin/federacion/${fedId}`)}
-                        className="clubes-sa-back"
-                    >
-                        <ArrowLeft size={15} /> Volver al dashboard de la federación
-                    </button>
-                    <span className="clubes-sa-sep">|</span>
                     <span className="clubes-sa-note">Modo Supervisión SuperAdmin</span>
                 </div>
             )}
 
-            <div className="page-header">
-                <div>
-                    <h2 className="page-title">
-                        {isSuperAdminView ? 'Clubes de la Federación' : (isNative ? 'Clubes' : 'Gestión de Clubes')}
-                    </h2>
-                    <p className="clubes-count">
-                        {filteredClubes.length} club{filteredClubes.length !== 1 ? 'es' : ''}
-                    </p>
-                </div>
-                <Button
-                    onClick={() => navigate('nuevo', { state: { returnPath: basePath } })}
-                    variant="primary"
-                    icon={Plus}
-                >
-                    {isNative ? 'Nuevo' : 'Nuevo Club'}
-                </Button>
-            </div>
+            <PageHeader
+                title={isSuperAdminView ? 'Clubes de la Federación' : (isMobileView ? 'Clubes' : 'Gestión de Clubes')}
+                subtitle={`${filteredClubes.length} club${filteredClubes.length !== 1 ? 'es' : ''}`}
+                backTo={backTo}
+                backLabel={isSuperAdminView ? 'Dashboard federación' : 'Dashboard'}
+                actions={(
+                    <Button
+                        onClick={() => navigate('nuevo', { state: { returnPath: basePath } })}
+                        variant="primary"
+                        icon={Plus}
+                    >
+                        {isMobileView ? 'Nuevo' : 'Nuevo Club'}
+                    </Button>
+                )}
+            />
 
             <Card className="clubes-shell">
                 <div className="filters-bar">

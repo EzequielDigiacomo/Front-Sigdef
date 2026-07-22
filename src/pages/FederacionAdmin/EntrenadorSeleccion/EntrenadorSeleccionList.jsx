@@ -5,11 +5,13 @@ import Card from '../../../components/common/Card';
 import { Users, Award, ChevronRight, User, Plus } from 'lucide-react';
 import { CATEGORIA_MAP, normalizeCategoriaId } from '../../../utils/enums';
 import { withFederationScope } from '../../../utils/apiHelpers';
+import PageHeader from '../../../components/common/PageHeader';
 import './EntrenadorSeleccion.css?v=2';
 
 const EntrenadorSeleccionList = () => {
     const { fedId } = useParams();
     const isSuperAdminView = Boolean(fedId);
+    const backTo = isSuperAdminView ? `/superadmin/federacion/${fedId}` : '/dashboard';
     const [stats, setStats] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
@@ -114,23 +116,23 @@ const EntrenadorSeleccionList = () => {
 
     return (
         <div className="dashboard-selection-container fade-in">
-            <div className="dashboard-selection-header">
-                <div>
-                    <h1 className="dashboard-title">
-                        <Award className="text-primary" size={32} />
-                        Selección Nacional
-                    </h1>
-                    <p className="dashboard-subtitle">Vista general de categorías y cuerpo técnico</p>
-                </div>
-                <button
-                    className="btn-primary"
-                    onClick={() => navigate(`${baseEntrenadores}/nuevo`)}
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                >
-                    <Plus size={20} />
-                    Crear Entrenador
-                </button>
-            </div>
+            <PageHeader
+                title="Selección Nacional"
+                subtitle="Vista general de categorías y cuerpo técnico"
+                icon={Award}
+                backTo={backTo}
+                backLabel={isSuperAdminView ? 'Dashboard federación' : 'Dashboard'}
+                actions={(
+                    <button
+                        className="btn-primary"
+                        onClick={() => navigate(`${baseEntrenadores}/nuevo`)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    >
+                        <Plus size={20} />
+                        Crear Entrenador
+                    </button>
+                )}
+            />
 
             {loading ? (
                 <div className="flex-center h-64">

@@ -3,6 +3,7 @@ import { Shield, UserPlus } from 'lucide-react';
 import RegisterClubForm from './components/RegisterClubForm';
 import RegisterPersonForm from './components/RegisterPersonForm';
 import UserTable from './components/UserTable';
+import PageHeader from '../../../components/common/PageHeader';
 import { api } from '../../../services/api';
 import './UserManagement.css';
 
@@ -39,10 +40,11 @@ const UserManagement = () => {
 
     return (
         <div className="user-management-container fade-in">
-            <div className="page-header">
-                <h1 className="text-gradient">Gestión de Accesos</h1>
-                <p className="text-secondary">Administración de usuarios y credenciales</p>
-            </div>
+            <PageHeader
+                title="Gestión de Accesos"
+                subtitle="Administración de usuarios y credenciales"
+                backTo="/dashboard"
+            />
 
             <div className="tabs-container glass-panel">
                 <div className="tabs-header">

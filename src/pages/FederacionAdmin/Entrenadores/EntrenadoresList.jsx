@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../../services/api';
 import DataTable from '../../../components/common/DataTable';
 import Card from '../../../components/common/Card';
-import { Award, Search, Edit, Trash2, Plus, Eye, UserCog, UserPlus, UserMinus, ArrowLeft } from 'lucide-react';
+import { Award, Search, Edit, Trash2, Plus, Eye, UserCog, UserPlus, UserMinus } from 'lucide-react';
 import FormField from '../../../components/forms/FormField';
 import FormSelect from '../../../components/forms/FormSelect';
 import Pagination from '../../../components/common/Pagination';
@@ -17,6 +17,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Button from '../../../components/common/Button';
 import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
+import PageHeader from '../../../components/common/PageHeader';
 import EntrenadorDetailModal from './components/EntrenadorDetailModal';
 
 const hasClub = (item) => {
@@ -25,9 +26,11 @@ const hasClub = (item) => {
 };
 
 const EntrenadoresList = () => {
-    const { isNative } = useDevice();
+    const { isNative, isMobile } = useDevice();
+    const isMobileView = isMobile || isNative;
     const { fedId } = useParams();
     const isSuperAdminView = Boolean(fedId);
+    const backTo = isSuperAdminView ? `/superadmin/federacion/${fedId}` : '/dashboard';
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -385,7 +388,7 @@ const EntrenadoresList = () => {
     ];
 
     return (
-        <div className={`page-container ${isNative ? 'mobile-view' : ''}`}>
+        <div className={`page-container ${isMobileView ? 'mobile-view' : ''}`}>
             {isSuperAdminView && (
                 <div
                     style={{
@@ -400,60 +403,41 @@ const EntrenadoresList = () => {
                         marginBottom: '1rem',
                     }}
                 >
-                    <button
-                        type="button"
-                        onClick={() => navigate(`/superadmin/federacion/${fedId}`)}
-                        style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            color: '#60a5fa',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.3rem',
-                            fontWeight: '600',
-                            fontSize: '0.85rem',
-                            padding: 0,
-                        }}
-                    >
-                        <ArrowLeft size={15} /> Volver al dashboard de la federación
-                    </button>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                        Modo Supervisión SuperAdmin
+                    </span>
                 </div>
             )}
 
-            <div className="page-header">
-                <div>
-                    <h1 className="page-title">
-                        <Award size={24} className="text-primary" />
-                        {isNative ? 'Entrenadores' : 'Entrenadores'}
-                    </h1>
-                    {!isNative && (
-                        <p className="page-subtitle">
-                            Club y selección en un solo listado
-                        </p>
-                    )}
-                </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setShowAddCoachModal(true)}>
-                        {isNative ? (
-                            <UserPlus size={20} />
-                        ) : (
-                            <>
-                                <UserPlus size={20} /> Vincular a Selección
-                            </>
-                        )}
-                    </Button>
-                    <Button
-                        onClick={() =>
-                            navigate(`${basePath}/nuevo`, {
-                                state: { returnPath: location.pathname },
-                            })
-                        }
-                    >
-                        <Plus size={20} /> {isNative ? 'Crear' : 'Nuevo Entrenador'}
-                    </Button>
-                </div>
-            </div>
+            <PageHeader
+                title="Entrenadores"
+                subtitle={isMobileView ? undefined : 'Club y selección en un solo listado'}
+                icon={Award}
+                backTo={backTo}
+                backLabel={isSuperAdminView ? 'Dashboard federación' : 'Dashboard'}
+                actions={(
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={() => setShowAddCoachModal(true)}>
+                            {isMobileView ? (
+                                <UserPlus size={20} />
+                            ) : (
+                                <>
+                                    <UserPlus size={20} /> Vincular a Selección
+                                </>
+                            )}
+                        </Button>
+                        <Button
+                            onClick={() =>
+                                navigate(`${basePath}/nuevo`, {
+                                    state: { returnPath: location.pathname },
+                                })
+                            }
+                        >
+                            <Plus size={20} /> {isMobileView ? 'Crear' : 'Nuevo Entrenador'}
+                        </Button>
+                    </div>
+                )}
+            />
 
             <Card className="mb-6">
                 <div className="filters-grid">
@@ -467,7 +451,7 @@ const EntrenadoresList = () => {
                             variant="dark-focused"
                         />
                     </div>
-                    {!isNative && (
+                    {!isMobileView && (
                         <div className="filter-item">
                             <FormSelect
                                 name="club"
@@ -500,7 +484,7 @@ const EntrenadoresList = () => {
             </Card>
 
             <Card>
-                {isNative ? (
+                {isMobileView ? (
                     <div className="mobile-list-container">
                         {loading ? (
                             <p className="text-center">Cargando...</p>

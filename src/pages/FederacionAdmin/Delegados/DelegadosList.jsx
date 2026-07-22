@@ -8,6 +8,7 @@ import { Plus, Edit, Trash2, Search, Briefcase } from 'lucide-react';
 import { withFederationScope } from '../../../utils/apiHelpers';
 import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
+import PageHeader from '../../../components/common/PageHeader';
 import {
     getUsuarioFederacionId,
     getUsuarioNombre,
@@ -17,9 +18,11 @@ import {
 } from '../../../utils/delegadoHelpers';
 
 const DelegadosList = () => {
-    const { isNative } = useDevice();
+    const { isNative, isMobile } = useDevice();
+    const isMobileView = isMobile || isNative;
     const { fedId } = useParams();
     const isSuperAdminView = Boolean(fedId);
+    const backTo = isSuperAdminView ? `/superadmin/federacion/${fedId}` : '/dashboard';
     const [delegados, setDelegados] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -78,22 +81,24 @@ const DelegadosList = () => {
     });
 
     return (
-        <div className={`page-container ${isNative ? 'mobile-view' : ''}`}>
-            <div className="page-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <Briefcase size={28} />
-                    <h2 className="page-title">{isNative ? 'Delegados' : 'Gestión de Delegados Club'}</h2>
-                </div>
-                <Button
-                    onClick={() => {
-                        const base = isSuperAdminView ? `/superadmin/federacion/${fedId}/delegados` : '/dashboard/delegados';
-                        navigate(`${base}/nuevo`, { state: { returnPath: base } });
-                    }}
-                    variant="primary" icon={Plus}
-                >
-                    {isNative ? 'Nuevo' : 'Nuevo Delegado'}
-                </Button>
-            </div>
+        <div className={`page-container ${isMobileView ? 'mobile-view' : ''}`}>
+            <PageHeader
+                title={isMobileView ? 'Delegados' : 'Gestión de Delegados Club'}
+                icon={Briefcase}
+                backTo={backTo}
+                backLabel={isSuperAdminView ? 'Dashboard federación' : 'Dashboard'}
+                actions={(
+                    <Button
+                        onClick={() => {
+                            const base = isSuperAdminView ? `/superadmin/federacion/${fedId}/delegados` : '/dashboard/delegados';
+                            navigate(`${base}/nuevo`, { state: { returnPath: base } });
+                        }}
+                        variant="primary" icon={Plus}
+                    >
+                        {isMobileView ? 'Nuevo' : 'Nuevo Delegado'}
+                    </Button>
+                )}
+            />
 
             <Card>
                 <div className="filters-bar">
@@ -106,7 +111,7 @@ const DelegadosList = () => {
                     />
                 </div>
 
-                {isNative ? (
+                {isMobileView ? (
                     <div className="mobile-list-container">
                         {loading ? (
                             <p className="text-center">Cargando...</p>

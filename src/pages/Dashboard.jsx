@@ -26,6 +26,18 @@ const formatFechaHora = (fecha) => {
     });
 };
 
+const formatFechaHoraCompact = (fecha) => {
+    if (!fecha) return '—';
+    const d = new Date(fecha);
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleString('es-AR', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+};
+
 const labelAccion = (accion = '') => {
     const map = {
         LOGIN_SUCCESS: 'Inicio de sesión',
@@ -246,7 +258,7 @@ const Dashboard = () => {
                             onClick={() => handleCardClick(card.path)}
                         >
                             <span className="dash-module-icon" style={{ backgroundColor: `${card.color}18`, color: card.color }}>
-                                <card.icon size={22} />
+                                <card.icon size={18} />
                             </span>
                             <span className="dash-module-meta">
                                 <strong>{card.label}</strong>
@@ -275,7 +287,7 @@ const Dashboard = () => {
                         <p className="activity-empty">Sin actividad registrada para esta federación.</p>
                     ) : (
                         <>
-                            <div className="table-responsive">
+                            <div className="table-responsive activity-desktop">
                                 <table className="data-table activity-table">
                                     <thead>
                                         <tr>
@@ -311,6 +323,35 @@ const Dashboard = () => {
                                     </tbody>
                                 </table>
                             </div>
+
+                            <ul className="activity-mobile-list">
+                                {actividadPagina.map((row) => {
+                                    const Icon = getRowIcon(row.accion);
+                                    const danger = isSecurityEvent(row.accion);
+                                    const tone = danger ? 'warning' : isAuthEvent(row.accion) ? 'success' : 'neutral';
+                                    return (
+                                        <li key={row.id} className={`activity-mobile-item tone-${tone}`}>
+                                            <div className="activity-mobile-top">
+                                                <span className={`activity-event ${danger ? 'danger' : ''}`}>
+                                                    <Icon size={13} />
+                                                    {labelAccion(row.accion)}
+                                                </span>
+                                                <time className="activity-datetime" dateTime={row.fecha}>
+                                                    {formatFechaHoraCompact(row.fecha)}
+                                                </time>
+                                            </div>
+                                            {row.detalle ? (
+                                                <p className="activity-mobile-detail" title={row.detalle}>{row.detalle}</p>
+                                            ) : null}
+                                            <div className="activity-mobile-meta">
+                                                <span>{row.usuario || 'Sistema'}</span>
+                                                <span aria-hidden="true">·</span>
+                                                <span>{row.modulo || 'General'}</span>
+                                            </div>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
 
                             {activityTotalPages > 1 && (
                                 <div className="activity-pagination">

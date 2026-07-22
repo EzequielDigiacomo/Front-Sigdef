@@ -21,6 +21,7 @@ import {
 } from '../../../utils/traspasoUtils';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
+import PageHeader from '../../../components/common/PageHeader';
 import '../../Shared/Traspasos/Traspasos.css';
 
 const FILTROS = [
@@ -35,6 +36,7 @@ const FILTROS = [
 const TraspasosBandeja = () => {
     const { fedId } = useParams();
     const basePath = fedId ? `/superadmin/federacion/${fedId}/traspasos` : '/dashboard/traspasos';
+    const backTo = fedId ? `/superadmin/federacion/${fedId}` : '/dashboard';
     const navigate = useNavigate();
 
     const [filtro, setFiltro] = useState('PendienteFederacion');
@@ -142,13 +144,13 @@ const TraspasosBandeja = () => {
 
     return (
         <div className="page-content container traspasos-page">
-            <div className="traspasos-header">
-                <div>
-                    <h1><ArrowRightLeft size={24} style={{ verticalAlign: 'middle', marginRight: 8 }} />Traspasos</h1>
-                    <p style={{ margin: '0.35rem 0 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                        Bandeja de solicitudes de traspaso entre clubes
-                    </p>
-                </div>
+            <PageHeader
+                title="Traspasos"
+                subtitle="Bandeja de solicitudes de traspaso entre clubes"
+                icon={ArrowRightLeft}
+                backTo={backTo}
+                backLabel={fedId ? 'Dashboard federación' : 'Dashboard'}
+                actions={(
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
                     <select
                         value={exportPeriodoId}
@@ -178,7 +180,8 @@ const TraspasosBandeja = () => {
                         <Button variant="primary" icon={Calendar}>Periodos</Button>
                     </Link>
                 </div>
-            </div>
+                )}
+            />
 
             {alert && (
                 <div className={`traspasos-alert traspasos-alert-${alert.type === 'error' ? 'error' : 'success'}`}>

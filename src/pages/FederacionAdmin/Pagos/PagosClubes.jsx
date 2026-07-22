@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
     Search,
     CheckCircle2,
     AlertCircle,
     Plus,
     RefreshCw,
-    ArrowLeft,
     Building2,
     Users,
     Receipt,
@@ -20,6 +19,7 @@ import { matchesSearch } from '../../../utils/searchUtils';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
+import PageHeader from '../../../components/common/PageHeader';
 import RegistrarPagoModal from './RegistrarPagoModal';
 import './PagosClubes.css';
 
@@ -155,8 +155,7 @@ const getDebeLabel = (estadoPago) => {
 const PagosClubes = () => {
     const { fedId } = useParams();
     const isSuperAdminView = Boolean(fedId);
-    const navigate = useNavigate();
-
+    const backTo = isSuperAdminView ? `/superadmin/federacion/${fedId}` : '/dashboard';
     const [activeTab, setActiveTab] = useState('clubes');
     const [clubes, setClubes] = useState([]);
     const [atletas, setAtletas] = useState([]);
@@ -527,66 +526,36 @@ const PagosClubes = () => {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.75rem',
+                        marginBottom: '0.75rem',
                     }}
                 >
-                    <button
-                        type="button"
-                        onClick={() => navigate(`/superadmin/federacion/${fedId}`)}
-                        style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            color: '#60a5fa',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.3rem',
-                            fontWeight: 600,
-                            fontSize: '0.85rem',
-                            padding: 0,
-                        }}
-                    >
-                        <ArrowLeft size={15} /> Volver al dashboard de la federación
-                    </button>
-                    <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
                     <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                         Modo Supervisión SuperAdmin
                     </span>
                 </div>
             )}
 
-            <div className="pagos-header">
-                <div>
-                    <h2>
-                        {isClubesTab && (
-                            <>
-                                <Building2 size={22} style={{ marginRight: 8, verticalAlign: -4 }} />
-                                Clubes Afiliados
-                            </>
-                        )}
-                        {isAtletasTab && (
-                            <>
-                                <Users size={22} style={{ marginRight: 8, verticalAlign: -4 }} />
-                                Atletas Federados
-                            </>
-                        )}
-                        {isRecibosTab && (
-                            <>
-                                <Receipt size={22} style={{ marginRight: 8, verticalAlign: -4 }} />
-                                Recibos
-                            </>
-                        )}
-                    </h2>
-                    <p>
-                        {isClubesTab &&
-                            'Estado de pago de la suscripción anual a la federación (sincronizado con SportTrack).'}
-                        {isAtletasTab &&
-                            'Marcá quién debe la cuota de afiliación y registrá el cobro de cada atleta.'}
-                        {isRecibosTab &&
-                            (reciboAtletaNombre
-                                ? `Historial de recibos de ${reciboAtletaNombre}.`
-                                : 'Historial de todos los recibos registrados (clubes y atletas).')}
-                    </p>
-                </div>
+            <PageHeader
+                title={
+                    isClubesTab
+                        ? 'Clubes Afiliados'
+                        : isAtletasTab
+                          ? 'Atletas Federados'
+                          : 'Recibos'
+                }
+                subtitle={
+                    isClubesTab
+                        ? 'Estado de pago de la suscripción anual a la federación (sincronizado con SportTrack).'
+                        : isAtletasTab
+                          ? 'Marcá quién debe la cuota de afiliación y registrá el cobro de cada atleta.'
+                          : reciboAtletaNombre
+                            ? `Historial de recibos de ${reciboAtletaNombre}.`
+                            : 'Historial de todos los recibos registrados (clubes y atletas).'
+                }
+                icon={isClubesTab ? Building2 : isAtletasTab ? Users : Receipt}
+                backTo={backTo}
+                backLabel={isSuperAdminView ? 'Dashboard federación' : 'Dashboard'}
+                actions={(
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
                     <div className="pagos-stats">
                         {isClubesTab && (
@@ -627,7 +596,8 @@ const PagosClubes = () => {
                         Actualizar
                     </Button>
                 </div>
-            </div>
+                )}
+            />
 
             {isRecibosTab && !loading && (
                 <div className="pagos-totales">

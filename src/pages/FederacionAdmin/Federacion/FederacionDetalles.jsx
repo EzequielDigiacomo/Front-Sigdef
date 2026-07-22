@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
+import PageHeader from '../../../components/common/PageHeader';
 import { Shield, MapPin, Phone, Mail, CreditCard, Edit, Check, X, Building, User } from 'lucide-react';
 import './FederacionDetalles.css';
 
@@ -131,11 +132,7 @@ const FederacionDetalles = () => {
     if (!federacion) {
         return (
             <div className="page-container fed-page">
-                <div className="page-header">
-                    <h1 className="page-title">
-                        <Shield size={28} className="text-primary" /> Federación
-                    </h1>
-                </div>
+                <PageHeader title="Federación" icon={Shield} backTo="/dashboard" />
                 <Card className="fed-card">
                     <p className="fed-empty">No se encontró información de la federación.</p>
                 </Card>
@@ -145,27 +142,27 @@ const FederacionDetalles = () => {
 
     return (
         <div className="page-container fed-page">
-            <div className="page-header">
-                <div>
-                    <h1 className="page-title">
-                        <Shield size={22} className="text-primary" /> Federación
-                    </h1>
-                </div>
-                {!isEditing ? (
-                    <Button onClick={() => setIsEditing(true)} size="sm">
-                        <Edit size={16} /> Editar
-                    </Button>
-                ) : (
-                    <div className="fed-header-actions">
-                        <Button variant="ghost" size="sm" onClick={handleCancel} disabled={saving}>
-                            <X size={16} /> Cancelar
+            <PageHeader
+                title="Federación"
+                icon={Shield}
+                backTo="/dashboard"
+                actions={
+                    !isEditing ? (
+                        <Button onClick={() => setIsEditing(true)} size="sm">
+                            <Edit size={16} /> Editar
                         </Button>
-                        <Button size="sm" onClick={handleSave} isLoading={saving} disabled={saving}>
-                            <Check size={16} /> Guardar
-                        </Button>
-                    </div>
-                )}
-            </div>
+                    ) : (
+                        <div className="fed-header-actions">
+                            <Button variant="ghost" size="sm" onClick={handleCancel} disabled={saving}>
+                                <X size={16} /> Cancelar
+                            </Button>
+                            <Button size="sm" onClick={handleSave} isLoading={saving} disabled={saving}>
+                                <Check size={16} /> Guardar
+                            </Button>
+                        </div>
+                    )
+                }
+            />
 
             <Card className={`fed-card${isEditing ? ' fed-card--edit' : ''}`}>
                 {isEditing ? (

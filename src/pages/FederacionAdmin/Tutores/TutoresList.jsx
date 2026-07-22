@@ -13,13 +13,16 @@ import * as XLSX from 'xlsx';
 import { withFederationScope } from '../../../utils/apiHelpers';
 import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
+import PageHeader from '../../../components/common/PageHeader';
 import '../Atletas/Atletas.css';
 import { PARENTESCO_MAP } from '../../../utils/enums';
 
 const TutoresList = () => {
-    const { isNative } = useDevice();
+    const { isNative, isMobile } = useDevice();
+    const isMobileView = isMobile || isNative;
     const { fedId } = useParams();
     const isSuperAdminView = Boolean(fedId);
+    const backTo = isSuperAdminView ? `/superadmin/federacion/${fedId}` : '/dashboard';
     const [tutores, setTutores] = useState([]);
     const [atletas, setAtletas] = useState([]);
     const [atletaTutorRelaciones, setAtletaTutorRelaciones] = useState([]);
@@ -365,26 +368,28 @@ const TutoresList = () => {
     };
 
     return (
-        <div className={`page-container ${isNative ? 'mobile-view' : ''}`}>
-            <div className="page-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <UserCheck size={isNative ? 24 : 28} />
-                    <h2 className="page-title">{isNative ? 'Tutores' : 'Gestión de Tutores'}</h2>
-                </div>
-                <div className="flex gap-2">
-                    {!isNative && (
-                        <Button variant="secondary" onClick={() => setShowAddExistingModal(true)}>
-                            <UserPlus size={20} /> Vincular
+        <div className={`page-container ${isMobileView ? 'mobile-view' : ''}`}>
+            <PageHeader
+                title={isMobileView ? 'Tutores' : 'Gestión de Tutores'}
+                icon={UserCheck}
+                backTo={backTo}
+                backLabel={isSuperAdminView ? 'Dashboard federación' : 'Dashboard'}
+                actions={(
+                    <div className="flex gap-2">
+                        {!isMobileView && (
+                            <Button variant="secondary" onClick={() => setShowAddExistingModal(true)}>
+                                <UserPlus size={20} /> Vincular
+                            </Button>
+                        )}
+                        <Button onClick={() => {
+                            const base = isSuperAdminView ? `/superadmin/federacion/${fedId}/tutores` : '/dashboard/tutores';
+                            navigate(`${base}/nuevo`, { state: { returnPath: base } });
+                        }} icon={Plus}>
+                            {isMobileView ? 'Nuevo' : 'Nuevo Tutor'}
                         </Button>
-                    )}
-                    <Button onClick={() => {
-                        const base = isSuperAdminView ? `/superadmin/federacion/${fedId}/tutores` : '/dashboard/tutores';
-                        navigate(`${base}/nuevo`, { state: { returnPath: base } });
-                    }} icon={Plus}>
-                        {isNative ? 'Nuevo' : 'Nuevo Tutor'}
-                    </Button>
-                </div>
-            </div>
+                    </div>
+                )}
+            />
 
             <Card className="mb-4">
                 <div className="filters-bar">
@@ -394,7 +399,7 @@ const TutoresList = () => {
 
             {loading ? (
                 <div className="text-center p-8"><div className="spinner"></div></div>
-            ) : isNative ? (
+            ) : isMobileView ? (
                 <div className="mobile-list-container">
                     {tutoresFiltrados.length === 0 ? (
                         <p className="text-center">No hay tutores registrados</p>

@@ -7,7 +7,7 @@ import FormField from '../../../components/forms/FormField';
 import Pagination from '../../../components/common/Pagination';
 import DocumentUploadModal from '../../../components/common/DocumentUploadModal';
 import DocumentViewerModal from '../../../components/common/DocumentViewerModal';
-import { Plus, Edit, Trash2, Search, FileText, Eye, ChevronUp, ChevronDown, ChevronsUpDown, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, FileText, Eye, ChevronUp, ChevronDown, ChevronsUpDown, AlertCircle } from 'lucide-react';
 import { useSort } from '../../../hooks/useSort';
 import { withFederationScope } from '../../../utils/apiHelpers';
 import { getCategoriaLabel, getEstadoPagoLabel, getEstadoPagoColor, TIPO_DOCUMENTO_MAP } from '../../../utils/enums';
@@ -20,6 +20,7 @@ import { buildAtletaUpdatePayload, getParticipanteId } from '../../../utils/atle
 import * as XLSX from 'xlsx';
 import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
+import PageHeader from '../../../components/common/PageHeader';
 
 /** Misma fuente que SportTrack: nombre de catálogo; fallback al enum SIGDEF. */
 const formatCategoria = (atleta) => {
@@ -90,9 +91,11 @@ const normalizeAtleta = (a) => {
     };
 };
 const AtletasList = () => {
-    const { isNative } = useDevice();
+    const { isNative, isMobile } = useDevice();
+    const isMobileView = isMobile || isNative;
     const { fedId } = useParams();                          // Presente cuando el SuperAdmin entra a /superadmin/federacion/:fedId/atletas
     const isSuperAdminView = Boolean(fedId);
+    const backTo = isSuperAdminView ? `/superadmin/federacion/${fedId}` : '/dashboard';
     const [atletas, setAtletas] = useState([]);
     // ... rest of state
     const [loading, setLoading] = useState(true);
@@ -387,9 +390,7 @@ const AtletasList = () => {
     };
 
     return (
-        <div className={`page-container ${isNative ? 'mobile-view' : ''}`}>
-
-            {/* Banner contextual cuando el SuperAdmin ve una federación específica */}
+        <div className={`page-container ${isMobileView ? 'mobile-view' : ''}`}>
             {isSuperAdminView && (
                 <div style={{
                     background: 'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(139,92,246,0.08) 100%)',
@@ -401,37 +402,34 @@ const AtletasList = () => {
                     gap: '0.75rem',
                     marginBottom: '1rem'
                 }}>
-                    <button
-                        onClick={() => navigate(`/superadmin/federacion/${fedId}`)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#60a5fa', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: '600', fontSize: '0.85rem', padding: 0 }}
-                    >
-                        <ArrowLeft size={15} /> Volver al dashboard de la federación
-                    </button>
-                    <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
                     <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Modo Supervisión SuperAdmin</span>
                 </div>
             )}
 
-            <div className="page-header">
-                <h2 className="page-title">{isSuperAdminView ? 'Atletas de la Federación' : 'Gestión de Atletas'}</h2>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    {!isNative && (
-                        <Button variant="secondary" onClick={exportToExcel}>
-                            <FileText size={20} /> Exportar Excel
-                        </Button>
-                    )}
-                    <Button onClick={() => {
+            <PageHeader
+                title={isSuperAdminView ? 'Atletas de la Federación' : (isMobileView ? 'Atletas' : 'Gestión de Atletas')}
+                backTo={backTo}
+                backLabel={isSuperAdminView ? 'Dashboard federación' : 'Dashboard'}
+                actions={(
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        {!isMobileView && (
+                            <Button variant="secondary" onClick={exportToExcel}>
+                                <FileText size={20} /> Exportar Excel
+                            </Button>
+                        )}
+                        <Button onClick={() => {
                             const nuevoPath = isSuperAdminView
                                 ? `/superadmin/federacion/${fedId}/atletas/nuevo`
                                 : '/dashboard/atletas/nuevo';
                             navigate(nuevoPath, { state: { returnPath: isSuperAdminView ? `/superadmin/federacion/${fedId}/atletas` : '/dashboard/atletas' } });
                         }}>
-                        <Plus size={20} /> Nuevo
-                    </Button>
-                </div>
-            </div>
+                            <Plus size={20} /> Nuevo
+                        </Button>
+                    </div>
+                )}
+            />
 
-            {isNative ? (
+            {isMobileView ? (
                 <div className="mobile-list-container">
                     <div className="mobile-search">
                         <FormField icon={Search} placeholder="Buscar atleta..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
