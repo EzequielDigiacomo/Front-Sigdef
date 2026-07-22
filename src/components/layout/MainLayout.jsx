@@ -53,7 +53,7 @@ const MainLayout = () => {
                 )}
 
                 <footer className="footer">
-                    <p>&copy; {new Date().getFullYear()} SIGDEF - Sistema de Gestión Deportiva</p>
+                    <p>&copy; {new Date().getFullYear()} SIGDEF — Gestión Adm. de Federaciones</p>
                 </footer>
             </div>
         </div>
