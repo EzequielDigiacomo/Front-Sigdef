@@ -504,6 +504,7 @@ const MensajesPage = ({ modo: modoProp = 'auto' }) => {
                         size="sm"
                         onClick={() => {
                             loadHilos();
+                            loadCatalogos();
                             if (puedeMasivo) loadCampanas();
                         }}
                         title="Actualizar"
@@ -514,6 +515,7 @@ const MensajesPage = ({ modo: modoProp = 'auto' }) => {
                         variant="primary"
                         size="sm"
                         onClick={() => {
+                            loadCatalogos();
                             setVista('redactar');
                             setSelectedHiloId(null);
                             setHiloDetalle(null);

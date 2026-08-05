@@ -3,7 +3,8 @@ import { PARENTESCO_MAP } from '../utils/enums';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5029/api';
 const CLIENT_APP = 'sigdef';
 
-const DEFAULT_TIMEOUT = 30000;
+const DEFAULT_TIMEOUT = 45000;
+const LOGIN_TIMEOUT = 90000;
 const MAX_RETRIES = 2;
 
 const defaultHeaders = {
@@ -133,7 +134,7 @@ const normalizeEndpoint = (endpoint) => {
 };
 
 const request = async (endpoint, options = {}, retries = MAX_RETRIES) => {
-    const { silentErrors = false, ...fetchOptions } = options;
+    const { silentErrors = false, timeout, ...fetchOptions } = options;
     const finalEndpoint = normalizeEndpoint(endpoint);
     const url = `${API_URL}${finalEndpoint}`;
 
@@ -151,6 +152,7 @@ const request = async (endpoint, options = {}, retries = MAX_RETRIES) => {
             ...fetchOptions,
             headers,
             credentials: 'include',
+            timeout: timeout ?? DEFAULT_TIMEOUT,
         });
 
         if (response.status >= 500 && retries > 0) {
@@ -180,6 +182,15 @@ const request = async (endpoint, options = {}, retries = MAX_RETRIES) => {
             return request(endpoint, options, retries - 1);
         }
         if (!silentErrors) console.error(`Error en ${url}:`, error);
+
+        // TypeError "Failed to fetch" = red, CORS, API dormida o URL incorrecta
+        if (error?.message === 'Failed to fetch' || error?.name === 'TypeError') {
+            throw new Error(
+                'No se pudo conectar con el servidor (Failed to fetch). ' +
+                'Si el API en Render estaba dormido, esperá ~1 min y reintentá. ' +
+                'Si usás un dominio distinto a https://sigdef.pro, hay que agregarlo a CORS (AllowedOrigins).'
+            );
+        }
         throw error;
     }
 };
@@ -187,12 +198,16 @@ const request = async (endpoint, options = {}, retries = MAX_RETRIES) => {
 export const api = {
     get: (endpoint, options = {}) => request(endpoint, { method: 'GET', ...options }),
 
-    post: (endpoint, data, options = {}) => request(endpoint, {
-        method: 'POST',
-        headers: defaultHeaders,
-        body: JSON.stringify(data),
-        ...options,
-    }),
+    post: (endpoint, data, options = {}) => {
+        const isLogin = typeof endpoint === 'string' && endpoint.toLowerCase().includes('/auth/login');
+        return request(endpoint, {
+            method: 'POST',
+            headers: defaultHeaders,
+            body: JSON.stringify(data),
+            ...(isLogin ? { timeout: LOGIN_TIMEOUT } : {}),
+            ...options,
+        });
+    },
 
     put: (endpoint, data, options = {}) => request(endpoint, {
         method: 'PUT',

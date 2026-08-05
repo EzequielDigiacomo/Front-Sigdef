@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
     LayoutDashboard, Globe, DollarSign, Activity, LogOut, User, Menu, ShieldAlert,
-    Building2, Users, Award, Shield, Cloud, Mail,
+    Building2, Users, Award, Shield, Cloud, Mail, Database,
 } from 'lucide-react';
 import Button from '../common/Button';
 import ThemeToggle from '../common/ThemeToggle';
@@ -19,6 +19,7 @@ const NAV_SECTIONS = [
             { icon: Cloud, label: 'Planes SaaS', path: '/superadmin/planes' },
             { icon: DollarSign, label: 'Suscripciones', path: '/superadmin/suscripciones' },
             { icon: Activity, label: 'Auditoría', path: '/superadmin/auditoria' },
+            { icon: Database, label: 'Backups DB', path: '/superadmin/backups' },
             { icon: Mail, label: 'Mensajes', path: '/superadmin/mensajes', showBadge: true },
         ],
     },

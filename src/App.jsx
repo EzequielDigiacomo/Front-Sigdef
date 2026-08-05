@@ -14,6 +14,7 @@ import FederacionesForm from './pages/SuperAdmin/FederacionesForm';
 import FederacionView from './pages/SuperAdmin/FederacionView';
 import Suscripciones from './pages/SuperAdmin/Suscripciones';
 import Auditoria from './pages/SuperAdmin/Auditoria';
+import BackupsManagement from './pages/SuperAdmin/BackupsManagement';
 import SuperAdminPlanes from './pages/SuperAdmin/SuperAdminPlanes';
 import SuperAdminModulePicker from './pages/SuperAdmin/SuperAdminModulePicker';
 import PlanGuard from './components/common/PlanGuard';
@@ -292,6 +293,7 @@ function App() {
               <Route path="federaciones/editar/:id" element={<FederacionesForm />} />
               <Route path="suscripciones" element={<Suscripciones />} />
               <Route path="auditoria" element={<Auditoria />} />
+              <Route path="backups" element={<BackupsManagement />} />
               <Route path="planes" element={<SuperAdminPlanes />} />
               <Route path="modulos/:moduleKey" element={<SuperAdminModulePicker />} />
               <Route path="mensajes" element={<MensajesPage modo="super" />} />
