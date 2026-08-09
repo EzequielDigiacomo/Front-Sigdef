@@ -4,19 +4,19 @@ import { fetchPlanes } from '../../services/saasService';
 
 /**
  * Referencia Render (USD/mes) — https://render.com/pricing
- * Solo muestra costo real de infra. El precio de venta lo definís en el catálogo;
- * abajo, en letra chica, hay una sugerencia según ese costo.
+ *
+ * Prioridad producto:
+ * - Staff + Live = ambas Standard ($25): staff no tumba; live con margen de audiencia.
+ * - DB = Basic-1gb alcanza; Basic-4gb ($75) era sobredimensionado.
  */
 const RENDER_REF = {
     api: {
         starter: { label: 'Web Service Starter', ram: '512 MB', cpu: '0.5', usd: 7 },
         standard: { label: 'Web Service Standard', ram: '2 GB', cpu: '1', usd: 25 },
-        pro: { label: 'Web Service Pro', ram: '4 GB', cpu: '2', usd: 85 },
     },
     db: {
         basic256: { label: 'Postgres Basic-256mb', ram: '256 MB', cpu: '0.1', usd: 6 },
         basic1gb: { label: 'Postgres Basic-1gb', ram: '1 GB', cpu: '0.5', usd: 19 },
-        basic4gb: { label: 'Postgres Basic-4gb', ram: '4 GB', cpu: '2', usd: 75 },
     },
     storageGbUsd: 0.3,
 };
@@ -35,18 +35,19 @@ const TIERS = [
         titulo: 'Plan S — hasta 200 atletas',
         maxAtletas: 200,
         atletasLabel: '200',
-        nota: 'Con 200 atletas / evento chico, API Starter alcanza. No hace falta Standard ($25) para iniciar.',
+        nota: 'SportTrack: Staff + Live en Standard ($25 c/u). SIGDEF admin en Starter.',
         sigdef: {
             api: RENDER_REF.api.starter,
             db: RENDER_REF.db.basic256,
             storageGb: 2,
-            perfil: 'Admin: alta + lecturas. Starter + DB 256 MB alcanza.',
+            perfil: 'Admin: una sola API Starter + DB 256 MB.',
         },
         sporttrack: {
-            api: RENDER_REF.api.starter,
+            apiStaff: RENDER_REF.api.standard,
+            apiLive: RENDER_REF.api.standard,
             db: RENDER_REF.db.basic1gb,
             storageGb: 5,
-            perfil: 'Evento chico: Starter alcanza para iniciar. DB 1 GB por picos del día del evento.',
+            perfil: 'Staff + Live en Standard ($25 c/u). Prioridad: staff no tumba; live con más margen.',
         },
     },
     {
@@ -54,18 +55,19 @@ const TIERS = [
         titulo: 'Plan M — hasta 400 atletas',
         maxAtletas: 400,
         atletasLabel: '400',
-        nota: 'SIGDEF sigue admin. SportTrack sube a Standard cuando Starter se quede corto en el evento.',
+        nota: 'Ambas APIs en Standard. SIGDEF sigue en Starter admin.',
         sigdef: {
             api: RENDER_REF.api.starter,
             db: RENDER_REF.db.basic1gb,
             storageGb: 5,
-            perfil: 'Más padrón/export, poca concurrencia. Starter + DB 1 GB.',
+            perfil: 'Admin: Starter + DB 1 GB (más padrón, misma baja concurrencia).',
         },
         sporttrack: {
-            api: RENDER_REF.api.standard,
+            apiStaff: RENDER_REF.api.standard,
+            apiLive: RENDER_REF.api.standard,
             db: RENDER_REF.db.basic1gb,
-            storageGb: 12,
-            perfil: 'Más series/público: upgrade a Standard ($25) si hace falta.',
+            storageGb: 8,
+            perfil: 'Staff Standard + Live Standard. Misma DB 1 GB.',
         },
     },
     {
@@ -74,19 +76,19 @@ const TIERS = [
         maxAtletas: -1,
         referenciaAtletas: 2000,
         atletasLabel: '2000 (ref.)',
-        nota: 'SIGDEF admin. SportTrack: picos altos + posible 2ª API staff/live.',
+        nota: 'Staff y Live en Standard. DB 1 GB (sin Basic-4gb $75). Storage chico.',
         sigdef: {
             api: RENDER_REF.api.starter,
             db: RENDER_REF.db.basic1gb,
-            storageGb: 10,
-            perfil: 'Sigue siendo administrativo. El padrón grande no exige API grande.',
+            storageGb: 8,
+            perfil: 'Admin a escala: sigue Starter; el padrón no exige API/DB caras.',
         },
         sporttrack: {
-            api: RENDER_REF.api.pro,
-            db: RENDER_REF.db.basic4gb,
-            storageGb: 32,
-            extraApi: RENDER_REF.api.standard,
-            perfil: 'Evento grande: API Pro + 2ª API Standard (live) + DB 4 GB.',
+            apiStaff: RENDER_REF.api.standard,
+            apiLive: RENDER_REF.api.standard,
+            db: RENDER_REF.db.basic1gb,
+            storageGb: 10,
+            perfil: 'Staff Standard + Live Standard. DB 1 GB compartida multi-tenant.',
         },
     },
 ];
@@ -102,12 +104,16 @@ const divisorAtletas = (tier) =>
 
 const stackCost = (stack) => {
     const storageUsd = stack.storageGb * RENDER_REF.storageGbUsd;
-    const apiUsd = stack.api.usd + (stack.extraApi?.usd || 0);
+    const staff = stack.apiStaff || stack.api;
+    const live = stack.apiLive;
+    const apiUsd = (staff?.usd || 0) + (live?.usd || 0);
     const dbUsd = stack.db.usd;
     return {
         storageUsd,
         apiUsd,
         dbUsd,
+        staffUsd: staff?.usd || 0,
+        liveUsd: live?.usd || 0,
         total: apiUsd + dbUsd + storageUsd,
     };
 };
@@ -124,9 +130,7 @@ const buildSuggestion = (tier) => {
         sig,
         st,
         duoInfra,
-        perAthlete: {
-            duo: duoInfra / n,
-        },
+        perAthlete: { duo: duoInfra / n },
         sugerido: {
             sigdef: roundPrice(sig.total * MARGINS.sigdef),
             sporttrack: roundPrice(st.total * MARGINS.sporttrack),
@@ -137,15 +141,14 @@ const buildSuggestion = (tier) => {
 
 const matchCatalogPrice = (planes, product, tierKey) => {
     const needle = `${product} (${tierKey})`.toLowerCase();
-    const duoNeedle = `pack dúo (${tierKey})`.toLowerCase();
-    const duoNeedle2 = `pack duo (${tierKey})`.toLowerCase();
-
     const found = (planes || []).find((p) => {
         const nombre = String(p.nombre ?? p.Nombre ?? '').toLowerCase();
         if (product === 'Pack Dúo') {
-            return nombre === duoNeedle || nombre === duoNeedle2 || nombre.includes(`dúo (${tierKey.toLowerCase()})`) || nombre.includes(`duo (${tierKey.toLowerCase()})`);
+            return (
+                nombre.includes('dúo') || nombre.includes('duo')
+            ) && nombre.includes(`(${tierKey.toLowerCase()})`);
         }
-        return nombre === needle || nombre.startsWith(needle.replace(')', ''));
+        return nombre === needle || (nombre.includes(product.toLowerCase()) && nombre.includes(`(${tierKey.toLowerCase()})`));
     });
     if (!found) return null;
     const precio = Number(found.precio ?? found.Precio);
@@ -168,99 +171,120 @@ const letraChica = {
     lineHeight: 1.45,
 };
 
-const StackTable = ({ title, color, accent, stack, cost, n, atletasLabel, margen, sugerido, catalogo }) => (
-    <div style={{
-        flex: 1,
-        minWidth: '280px',
-        border: `1px solid ${accent}`,
-        borderRadius: '12px',
-        padding: '0.85rem',
-        background: color,
-    }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.65rem' }}>
-            <div>
-                <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)' }}>{title}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>{stack.perfil}</div>
+const ApiRow = ({ label, hint, instance, n }) => (
+    <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+        <td style={cell}><strong>{label}</strong></td>
+        <td style={cell}>
+            {instance.label}
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                {instance.ram} · {instance.cpu} CPU
             </div>
-            <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Costo real</div>
-                <div style={{ fontWeight: 800, fontSize: '1.15rem' }}>{money(cost.total)}</div>
-            </div>
-        </div>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-                <tr>
-                    <th style={th}>COMP.</th>
-                    <th style={th}>INSTANCIA</th>
-                    <th style={th}>COSTO</th>
-                    <th style={th}>× {atletasLabel}</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <td style={cell}><strong>API</strong></td>
-                    <td style={cell}>
-                        {stack.api.label}
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{stack.api.ram} · {stack.api.cpu} CPU</div>
-                    </td>
-                    <td style={cell}>{money(stack.api.usd)}</td>
-                    <td style={cell}>{moneyFine(stack.api.usd / n)} / atleta</td>
-                </tr>
-                {stack.extraApi && (
-                    <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                        <td style={cell}><strong>2ª API</strong></td>
-                        <td style={cell}>
-                            {stack.extraApi.label} (live)
-                            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{stack.extraApi.ram} · {stack.extraApi.cpu} CPU</div>
-                        </td>
-                        <td style={cell}>{money(stack.extraApi.usd)}</td>
-                        <td style={cell}>{moneyFine(stack.extraApi.usd / n)} / atleta</td>
-                    </tr>
-                )}
-                <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <td style={cell}><strong>DB</strong></td>
-                    <td style={cell}>
-                        {stack.db.label}
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{stack.db.ram} · {stack.db.cpu} CPU</div>
-                    </td>
-                    <td style={cell}>{money(stack.db.usd)}</td>
-                    <td style={cell}>{moneyFine(stack.db.usd / n)} / atleta</td>
-                </tr>
-                <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <td style={cell}><strong>Storage</strong></td>
-                    <td style={cell}>{stack.storageGb} GB × {money(RENDER_REF.storageGbUsd)}/GB</td>
-                    <td style={cell}>{money(cost.storageUsd)}</td>
-                    <td style={cell}>{moneyFine(cost.storageUsd / n)} / atleta</td>
-                </tr>
-                <tr style={{ background: 'rgba(0,0,0,0.12)' }}>
-                    <td style={cell} colSpan={2}><strong>Total (costo real)</strong></td>
-                    <td style={{ ...cell, fontWeight: 800 }}>{money(cost.total)}</td>
-                    <td style={{ ...cell, fontWeight: 700 }}>{moneyFine(cost.total / n)} / atleta</td>
-                </tr>
-            </tbody>
-        </table>
-        <p style={letraChica}>
-            Costo real para vos: <strong>{money(cost.total)}/mes</strong>
-            {' · '}
-            Sugerido vender a <strong style={{ color: 'var(--text-primary)' }}>{money(sugerido)}/mes</strong>
-            {' '}(×{margen} sobre infra)
-            {catalogo != null && (
-                <>
-                    {' · '}
-                    En catálogo: <strong style={{ color: 'var(--text-primary)' }}>{money(catalogo)}</strong>
-                    {catalogo !== sugerido && (
-                        <span>
-                            {' '}
-                            ({catalogo < sugerido ? 'por debajo' : 'por encima'} de la sugerencia)
-                        </span>
-                    )}
-                </>
+            {hint && (
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>{hint}</div>
             )}
-        </p>
-    </div>
+        </td>
+        <td style={cell}>{money(instance.usd)}</td>
+        <td style={cell}>{moneyFine(instance.usd / n)} / atleta</td>
+    </tr>
 );
 
-/** Costo real Render; sugerencia de venta solo en letra chica. Catálogo = lo que vos escribís. */
+const StackTable = ({ title, color, accent, stack, cost, n, atletasLabel, margen, sugerido, catalogo }) => {
+    const hasSplit = Boolean(stack.apiStaff && stack.apiLive);
+    const singleApi = stack.api;
+
+    return (
+        <div style={{
+            flex: 1,
+            minWidth: '280px',
+            border: `1px solid ${accent}`,
+            borderRadius: '12px',
+            padding: '0.85rem',
+            background: color,
+        }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.65rem' }}>
+                <div>
+                    <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)' }}>{title}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>{stack.perfil}</div>
+                </div>
+                <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Costo real</div>
+                    <div style={{ fontWeight: 800, fontSize: '1.15rem' }}>{money(cost.total)}</div>
+                </div>
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                    <tr>
+                        <th style={th}>COMP.</th>
+                        <th style={th}>INSTANCIA</th>
+                        <th style={th}>COSTO</th>
+                        <th style={th}>× {atletasLabel}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {hasSplit ? (
+                        <>
+                            <ApiRow
+                                label="API Staff"
+                                hint="Prioridad: jueces/largada (Standard)"
+                                instance={stack.apiStaff}
+                                n={n}
+                            />
+                            <ApiRow
+                                label="API Live"
+                                hint="Público: Standard (más margen), aislada del staff"
+                                instance={stack.apiLive}
+                                n={n}
+                            />
+                        </>
+                    ) : (
+                        <ApiRow label="API" instance={singleApi} n={n} />
+                    )}
+                    <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                        <td style={cell}><strong>DB</strong></td>
+                        <td style={cell}>
+                            {stack.db.label}
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                                {stack.db.ram} · {stack.db.cpu} CPU · compartida multi-tenant
+                            </div>
+                        </td>
+                        <td style={cell}>{money(stack.db.usd)}</td>
+                        <td style={cell}>{moneyFine(stack.db.usd / n)} / atleta</td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                        <td style={cell}><strong>Storage</strong></td>
+                        <td style={cell}>{stack.storageGb} GB × {money(RENDER_REF.storageGbUsd)}/GB</td>
+                        <td style={cell}>{money(cost.storageUsd)}</td>
+                        <td style={cell}>{moneyFine(cost.storageUsd / n)} / atleta</td>
+                    </tr>
+                    <tr style={{ background: 'rgba(0,0,0,0.12)' }}>
+                        <td style={cell} colSpan={2}><strong>Total (costo real)</strong></td>
+                        <td style={{ ...cell, fontWeight: 800 }}>{money(cost.total)}</td>
+                        <td style={{ ...cell, fontWeight: 700 }}>{moneyFine(cost.total / n)} / atleta</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style={letraChica}>
+                Costo real para vos: <strong>{money(cost.total)}/mes</strong>
+                {' · '}
+                Sugerido vender a <strong style={{ color: 'var(--text-primary)' }}>{money(sugerido)}/mes</strong>
+                {' '}(×{margen} sobre infra)
+                {catalogo != null && (
+                    <>
+                        {' · '}
+                        En catálogo: <strong style={{ color: 'var(--text-primary)' }}>{money(catalogo)}</strong>
+                        {catalogo !== sugerido && (
+                            <span>
+                                {' '}
+                                ({catalogo < sugerido ? 'por debajo' : 'por encima'} de la sugerencia)
+                            </span>
+                        )}
+                    </>
+                )}
+            </p>
+        </div>
+    );
+};
+
 const RenderPricingSuggestion = ({ catalogVersion = 0 }) => {
     const [catalog, setCatalog] = useState([]);
     const rows = TIERS.map((tier) => ({ tier, calc: buildSuggestion(tier) }));
@@ -280,19 +304,20 @@ const RenderPricingSuggestion = ({ catalogVersion = 0 }) => {
     return (
         <Card>
             <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                Costo real Render (API + DB)
+                Costo real Render (API Staff / API Live + DB)
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
-                Acá solo ves lo que te cuesta la infra (
+                Referencia{' '}
                 <a href="https://render.com/pricing" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)' }}>
                     render.com/pricing
                 </a>
-                ). El precio de venta lo cargás vos en el <strong>catálogo</strong>; abajo en letra chica hay una sugerencia según ese costo.
+                . El precio de venta lo definís en el catálogo; acá solo el costo real y una sugerencia en letra chica.
             </p>
             <ul style={{ margin: '0 0 1.25rem 1.1rem', padding: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.55 }}>
-                <li><strong>SIGDEF</strong> — admin, baja concurrencia → API Starter.</li>
-                <li><strong>SportTrack</strong> — en S arrancás con Starter; Standard/Pro cuando el evento lo pida.</li>
-                <li><strong>Pack Dúo</strong> — infra ST + API SIGDEF (misma DB del pico de evento).</li>
+                <li><strong>Prioridad Staff</strong> — jueces/largada: no tumbar operación (Standard always-on).</li>
+                <li><strong>API Live</strong> — también Standard, con más margen de audiencia; sigue aislada del staff.</li>
+                <li><strong>DB Basic-1gb ($19)</strong> — alcanza para muchas federaciones. Basic-4gb ($75) no hace falta.</li>
+                <li><strong>Storage</strong> — pocos GB (fotos/docs afuera).</li>
             </ul>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -332,7 +357,7 @@ const RenderPricingSuggestion = ({ catalogVersion = 0 }) => {
                                     catalogo={catSig}
                                 />
                                 <StackTable
-                                    title={`SportTrack (${tier.key}) — eventos`}
+                                    title={`SportTrack (${tier.key}) — staff + live`}
                                     accent="rgba(59, 130, 246, 0.55)"
                                     color="rgba(59, 130, 246, 0.08)"
                                     stack={tier.sporttrack}
@@ -354,11 +379,13 @@ const RenderPricingSuggestion = ({ catalogVersion = 0 }) => {
                             }}>
                                 <div>
                                     <strong>Pack Dúo ({tier.key}) — costo real:</strong>{' '}
-                                    APIs ST {money(calc.st.apiUsd)}
+                                    Staff {money(calc.st.staffUsd)}
                                     {' + '}
-                                    API SIGDEF {money(tier.sigdef.api.usd)}
+                                    Live {money(calc.st.liveUsd)}
                                     {' + '}
-                                    DB ST {money(calc.st.dbUsd)}
+                                    SIGDEF {money(tier.sigdef.api.usd)}
+                                    {' + '}
+                                    DB {money(calc.st.dbUsd)}
                                     {' + '}
                                     storage {money(calc.st.storageUsd)}
                                     {' = '}
@@ -391,8 +418,8 @@ const RenderPricingSuggestion = ({ catalogVersion = 0 }) => {
             </div>
 
             <p style={{ marginTop: '1.25rem', fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                El catálogo de arriba es la fuente de verdad de lo que cobrás. Esta sección solo muestra costo Render y una sugerencia orientativa.
-                Front en Vercel no está incluido. Con varias federaciones el costo se reparte y el margen real sube.
+                El $75 de DB Basic-4gb era un techo teórico de picos extremos; con muchas federaciones almacenadas el cuello no es el disco sino la concurrencia del evento,
+                y eso se cubre mejor aislando Staff (sólido) de Live (barato). Front Vercel no incluido.
             </p>
         </Card>
     );
