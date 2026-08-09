@@ -5,7 +5,7 @@ import MainLayout from './components/layout/MainLayout';
 import MainLayoutClub from './components/layout/MainLayoutClub';
 import MainLayoutSuper from './components/layout/MainLayoutSuper';
 import Login from './pages/Login';
-import Home from './pages/Home';
+import Home from './pages/HomePage';
 
 // Importaciones del Portal de Superadmin
 import SuperDashboard from './pages/SuperAdmin/SuperDashboard';
