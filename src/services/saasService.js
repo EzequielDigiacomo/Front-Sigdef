@@ -1,14 +1,34 @@
 import { api } from './api';
 import { mapFederacionFromApi, mapFederacionFromStatus, mapGlobalMetrics } from '../utils/apiHelpers';
 
-export async function fetchPlanes() {
-    const data = await api.get('/saas/planes');
-    return data || [];
+/** SIGDEF S→L, SportTrack S→L, Pack Dúo S→L */
+export function sortPlanesCatalog(planes = []) {
+    const key = (p) => {
+        const id = Number(p.id ?? p.Id ?? 0);
+        if (id >= 1 && id <= 9) return id;
+        const n = String(p.nombre ?? p.Nombre ?? '').toLowerCase();
+        const family =
+            n.includes('pack') && (n.includes('duo') || n.includes('dúo')) ? 3 :
+            n.includes('sporttrack') ? 2 :
+            n.includes('sigdef') ? 1 : 9;
+        const size =
+            n.includes('(s)') ? 1 :
+            n.includes('(m)') ? 2 :
+            n.includes('(l)') ? 3 : 9;
+        return family * 10 + size;
+    };
+    return [...planes].sort((a, b) => key(a) - key(b) || (a.id ?? a.Id ?? 0) - (b.id ?? b.Id ?? 0));
 }
 
-export async function updatePlan(id, { precio, maxAtletas }) {
+export async function fetchPlanes() {
+    const data = await api.get('/saas/planes');
+    return sortPlanesCatalog(data || []);
+}
+
+export async function updatePlan(id, { precio, descuentoAnualPorcentaje, maxAtletas }) {
     return api.put(`/saas/planes/${id}`, {
         precio: Number(precio),
+        descuentoAnualPorcentaje: Number(descuentoAnualPorcentaje),
         maxAtletas: Number(maxAtletas),
     });
 }

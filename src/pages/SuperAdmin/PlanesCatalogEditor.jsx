@@ -4,13 +4,27 @@ import Button from '../../components/common/Button';
 import { fetchPlanes, updatePlan } from '../../services/saasService';
 import { Save, RotateCcw } from 'lucide-react';
 
+/** Precio anual = mensual × 12 × (1 − descuento/100) */
+export const calcPrecioAnual = (precioMensual, descuentoPct) => {
+    const m = Number(precioMensual);
+    let d = Number(descuentoPct);
+    if (Number.isNaN(m) || m < 0) return 0;
+    if (Number.isNaN(d)) d = 0;
+    if (d < 0) d = 0;
+    if (d > 100) d = 100;
+    return Math.round(m * 12 * (1 - d / 100) * 100) / 100;
+};
+
 const toRow = (p) => {
     const id = p.id ?? p.Id;
     const maxAtletas = p.maxAtletas ?? p.MaxAtletas ?? 0;
+    const precio = p.precio ?? p.Precio ?? 0;
+    const descuento = p.descuentoAnualPorcentaje ?? p.DescuentoAnualPorcentaje ?? 0;
     return {
         id,
         nombre: p.nombre ?? p.Nombre ?? '',
-        precio: String(p.precio ?? p.Precio ?? 0),
+        precio: String(precio),
+        descuentoAnual: String(descuento),
         maxAtletas: String(maxAtletas),
         ilimitado: Number(maxAtletas) === -1,
         saving: false,
@@ -20,7 +34,7 @@ const toRow = (p) => {
 };
 
 const inputStyle = {
-    width: '110px',
+    width: '100px',
     padding: '0.45rem 0.6rem',
     borderRadius: '8px',
     border: '1px solid var(--border-color)',
@@ -28,7 +42,10 @@ const inputStyle = {
     color: 'var(--text-primary)',
 };
 
-/** Tabla editable: precio mensual + máx. atletas */
+const money = (n) =>
+    `$${Number(n).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+
+/** Tabla editable: mensual + % descuento anual; anual solo lectura calculado */
 const PlanesCatalogEditor = ({ onPlanUpdated }) => {
     const [rows, setRows] = useState([]);
     const [original, setOriginal] = useState([]);
@@ -91,10 +108,15 @@ const PlanesCatalogEditor = ({ onPlanUpdated }) => {
         if (!row) return;
 
         const precio = Number(row.precio);
+        const descuentoAnualPorcentaje = Number(row.descuentoAnual);
         const maxAtletas = row.ilimitado ? -1 : Number(row.maxAtletas);
 
         if (Number.isNaN(precio) || precio < 0) {
-            updateRow(id, { error: 'Precio inválido' });
+            updateRow(id, { error: 'Precio mensual inválido' });
+            return;
+        }
+        if (Number.isNaN(descuentoAnualPorcentaje) || descuentoAnualPorcentaje < 0 || descuentoAnualPorcentaje > 100) {
+            updateRow(id, { error: 'Descuento debe ser entre 0 y 100' });
             return;
         }
         if (!row.ilimitado && (Number.isNaN(maxAtletas) || maxAtletas < 1)) {
@@ -104,7 +126,7 @@ const PlanesCatalogEditor = ({ onPlanUpdated }) => {
 
         setRows((prev) => prev.map((r) => (r.id === id ? { ...r, saving: true, error: '' } : r)));
         try {
-            const updated = await updatePlan(id, { precio, maxAtletas });
+            const updated = await updatePlan(id, { precio, descuentoAnualPorcentaje, maxAtletas });
             const mapped = toRow(updated);
             setRows((prev) => prev.map((r) => (r.id === id ? mapped : r)));
             setOriginal((prev) => prev.map((r) => (r.id === id ? { ...mapped } : r)));
@@ -128,7 +150,7 @@ const PlanesCatalogEditor = ({ onPlanUpdated }) => {
                 Catálogo de planes
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-                Editá precio mensual y tope de atletas. Los torneos no tienen límite.
+                El precio anual se calcula solo: mensual × 12 con el % de descuento que indiques.
             </p>
 
             {message && (
@@ -158,95 +180,122 @@ const PlanesCatalogEditor = ({ onPlanUpdated }) => {
                 <p style={{ color: 'var(--text-secondary)' }}>No hay planes en la base de datos.</p>
             ) : (
                 <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '720px' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '900px' }}>
                         <thead>
                             <tr style={{ borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                                 <th style={{ padding: '0.75rem' }}>PLAN</th>
                                 <th style={{ padding: '0.75rem' }}>PRECIO MENSUAL</th>
+                                <th style={{ padding: '0.75rem' }}>% DESCUENTO</th>
+                                <th style={{ padding: '0.75rem' }}>PRECIO ANUAL</th>
                                 <th style={{ padding: '0.75rem' }}>MÁX. ATLETAS</th>
                                 <th style={{ padding: '0.75rem' }}>ILIMITADO</th>
                                 <th style={{ padding: '0.75rem' }} />
                             </tr>
                         </thead>
                         <tbody>
-                            {rows.map((row) => (
-                                <tr key={row.id} style={{ borderBottom: '1px solid var(--border-color)', fontSize: '0.9rem' }}>
-                                    <td style={{ padding: '0.75rem', fontWeight: '700', color: 'var(--text-primary)' }}>
-                                        {row.nombre}
-                                    </td>
-                                    <td style={{ padding: '0.75rem' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                            <span style={{ color: 'var(--text-secondary)' }}>$</span>
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                step="1"
-                                                value={row.precio}
-                                                onChange={(e) => updateRow(row.id, { precio: e.target.value })}
-                                                style={inputStyle}
-                                            />
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '0.75rem' }}>
-                                        {row.ilimitado ? (
-                                            <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>
-                                                ∞ Ilimitado
-                                            </span>
-                                        ) : (
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                step="1"
-                                                value={row.maxAtletas}
-                                                onChange={(e) => updateRow(row.id, { maxAtletas: e.target.value })}
-                                                style={inputStyle}
-                                            />
-                                        )}
-                                        {row.error && (
-                                            <div style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '0.35rem' }}>
-                                                {row.error}
+                            {rows.map((row) => {
+                                const anual = calcPrecioAnual(row.precio, row.descuentoAnual);
+                                return (
+                                    <tr key={row.id} style={{ borderBottom: '1px solid var(--border-color)', fontSize: '0.9rem' }}>
+                                        <td style={{ padding: '0.75rem', fontWeight: '700', color: 'var(--text-primary)' }}>
+                                            {row.nombre}
+                                        </td>
+                                        <td style={{ padding: '0.75rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                                <span style={{ color: 'var(--text-secondary)' }}>$</span>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    step="1"
+                                                    value={row.precio}
+                                                    onChange={(e) => updateRow(row.id, { precio: e.target.value })}
+                                                    style={inputStyle}
+                                                />
                                             </div>
-                                        )}
-                                    </td>
-                                    <td style={{ padding: '0.75rem' }}>
-                                        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                                            <input
-                                                type="checkbox"
-                                                checked={row.ilimitado}
-                                                onChange={(e) => handleToggleIlimitado(row.id, e.target.checked)}
-                                            />
-                                            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Sin tope</span>
-                                        </label>
-                                    </td>
-                                    <td style={{ padding: '0.75rem' }}>
-                                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                                            <Button
-                                                variant="ghost"
-                                                disabled={!row.dirty || row.saving}
-                                                onClick={() => handleReset(row.id)}
-                                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.4rem 0.7rem' }}
-                                            >
-                                                <RotateCcw size={14} />
-                                            </Button>
-                                            <Button
-                                                variant="primary"
-                                                disabled={!row.dirty || row.saving}
-                                                onClick={() => handleSave(row.id)}
-                                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.4rem 0.85rem' }}
-                                            >
-                                                <Save size={14} />
-                                                {row.saving ? 'Guardando…' : 'Guardar'}
-                                            </Button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                        </td>
+                                        <td style={{ padding: '0.75rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max="100"
+                                                    step="0.01"
+                                                    value={row.descuentoAnual}
+                                                    onChange={(e) => updateRow(row.id, { descuentoAnual: e.target.value })}
+                                                    style={{ ...inputStyle, width: '80px' }}
+                                                />
+                                                <span style={{ color: 'var(--text-secondary)' }}>%</span>
+                                            </div>
+                                        </td>
+                                        <td style={{ padding: '0.75rem' }}>
+                                            <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                                                {money(anual)}
+                                            </span>
+                                            <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+                                                12×{money(Number(row.precio) || 0)} − {row.descuentoAnual || 0}%
+                                            </div>
+                                        </td>
+                                        <td style={{ padding: '0.75rem' }}>
+                                            {row.ilimitado ? (
+                                                <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>
+                                                    ∞ Ilimitado
+                                                </span>
+                                            ) : (
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    step="1"
+                                                    value={row.maxAtletas}
+                                                    onChange={(e) => updateRow(row.id, { maxAtletas: e.target.value })}
+                                                    style={inputStyle}
+                                                />
+                                            )}
+                                            {row.error && (
+                                                <div style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '0.35rem' }}>
+                                                    {row.error}
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td style={{ padding: '0.75rem' }}>
+                                            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={row.ilimitado}
+                                                    onChange={(e) => handleToggleIlimitado(row.id, e.target.checked)}
+                                                />
+                                                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Sin tope</span>
+                                            </label>
+                                        </td>
+                                        <td style={{ padding: '0.75rem' }}>
+                                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                                <Button
+                                                    variant="ghost"
+                                                    disabled={!row.dirty || row.saving}
+                                                    onClick={() => handleReset(row.id)}
+                                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.4rem 0.7rem' }}
+                                                >
+                                                    <RotateCcw size={14} />
+                                                </Button>
+                                                <Button
+                                                    variant="primary"
+                                                    disabled={!row.dirty || row.saving}
+                                                    onClick={() => handleSave(row.id)}
+                                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.4rem 0.85rem' }}
+                                                >
+                                                    <Save size={14} />
+                                                    {row.saving ? 'Guardando…' : 'Guardar'}
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
             )}
             <p style={{ marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                Usá «Sin tope» para planes ilimitados. Los cambios impactan facturación y cupos de atletas.
+                Ejemplo: $100/mes con 16,67% de descuento → anual {money(calcPrecioAnual(100, 16.67))} (equivale a ~10 meses).
             </p>
         </Card>
     );
