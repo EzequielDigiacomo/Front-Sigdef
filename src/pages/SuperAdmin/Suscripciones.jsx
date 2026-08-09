@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Card from '../../components/common/Card';
-import { DollarSign, CheckCircle2, TrendingUp, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, TrendingUp, AlertTriangle } from 'lucide-react';
 import { fetchSuscripcionesData } from '../../services/saasService';
 import { getApiBaseUrl } from '../../services/api';
+import PlanesCatalogEditor from './PlanesCatalogEditor';
+import RenderPricingSuggestion from './RenderPricingSuggestion';
 
 const Suscripciones = () => {
     const [facturas, setFacturas] = useState([]);
@@ -11,31 +13,32 @@ const Suscripciones = () => {
         montoPendiente: 0,
         porcentajeCobro: 0,
     });
-    const [planes, setPlanes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    useEffect(() => {
-        const load = async () => {
-            try {
-                setLoading(true);
-                setError('');
-                const data = await fetchSuscripcionesData();
-                setFacturas(data.facturas);
-                setStats(data.stats);
-                setPlanes(data.planes);
-            } catch (err) {
-                console.error('Error cargando suscripciones:', err);
-                setError(
-                    `${err.message || 'Error al cargar datos'}. API: ${getApiBaseUrl()}`
-                );
-                setFacturas([]);
-            } finally {
-                setLoading(false);
-            }
-        };
-        load();
+    const [catalogVersion, setCatalogVersion] = useState(0);
+
+    const load = useCallback(async ({ silent = false } = {}) => {
+        try {
+            if (!silent) setLoading(true);
+            setError('');
+            const data = await fetchSuscripcionesData();
+            setFacturas(data.facturas);
+            setStats(data.stats);
+        } catch (err) {
+            console.error('Error cargando suscripciones:', err);
+            setError(
+                `${err.message || 'Error al cargar datos'}. API: ${getApiBaseUrl()}`
+            );
+            if (!silent) setFacturas([]);
+        } finally {
+            if (!silent) setLoading(false);
+        }
     }, []);
+
+    useEffect(() => {
+        load();
+    }, [load]);
 
     if (loading) {
         return (
@@ -48,8 +51,12 @@ const Suscripciones = () => {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             <div>
-                <h2 className="text-gradient" style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '0.25rem' }}>Facturación y Suscripciones</h2>
-                <p style={{ color: 'var(--text-secondary)' }}>Estado de suscripciones SaaS según federaciones registradas en la base de datos.</p>
+                <h2 className="text-gradient" style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '0.25rem' }}>
+                    Facturación y Suscripciones
+                </h2>
+                <p style={{ color: 'var(--text-secondary)' }}>
+                    Cobros por federación y catálogo de precios / cupos de atletas.
+                </p>
             </div>
 
             {error && (
@@ -107,7 +114,9 @@ const Suscripciones = () => {
             </div>
 
             <Card>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '1.25rem' }}>Estado de Suscripciones por Federación</h3>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '1.25rem' }}>
+                    Estado de Suscripciones por Federación
+                </h3>
                 {facturas.length === 0 ? (
                     <p style={{ color: 'var(--text-secondary)' }}>No hay federaciones registradas.</p>
                 ) : (
@@ -153,33 +162,13 @@ const Suscripciones = () => {
                 )}
             </Card>
 
-            {planes.length > 0 && (
-                <Card>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '1.25rem' }}>Planes SaaS en Base de Datos</h3>
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                                    <th style={{ padding: '0.75rem' }}>PLAN</th>
-                                    <th style={{ padding: '0.75rem' }}>PRECIO MENSUAL</th>
-                                    <th style={{ padding: '0.75rem' }}>MÁX. ATLETAS</th>
-                                    <th style={{ padding: '0.75rem' }}>MÁX. TORNEOS</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {planes.map((p) => (
-                                    <tr key={p.id ?? p.Id} style={{ borderBottom: '1px solid var(--border-color)', fontSize: '0.9rem' }}>
-                                        <td style={{ padding: '0.75rem', fontWeight: 'bold' }}>{p.nombre ?? p.Nombre}</td>
-                                        <td style={{ padding: '0.75rem' }}>${Number(p.precio ?? p.Precio ?? 0).toLocaleString('es-AR')}</td>
-                                        <td style={{ padding: '0.75rem' }}>{p.maxAtletas ?? p.MaxAtletas ?? '—'}</td>
-                                        <td style={{ padding: '0.75rem' }}>{p.maxTorneosActivos ?? p.MaxTorneosActivos ?? '—'}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </Card>
-            )}
+            <PlanesCatalogEditor
+                onPlanUpdated={() => {
+                    load({ silent: true });
+                    setCatalogVersion((v) => v + 1);
+                }}
+            />
+            <RenderPricingSuggestion catalogVersion={catalogVersion} />
         </div>
     );
 };

@@ -197,7 +197,7 @@ const FederacionesManagement = ({ planesOnly = false }) => {
                     </h2>
                     <p style={{ color: 'var(--text-secondary)' }}>
                         {planesOnly
-                            ? 'Asigná y configurá el plan de cada federación inquilina.'
+                            ? 'Asigná el plan SaaS y la vigencia de cada federación inquilina.'
                             : 'Da de alta, edita, audita o suspende las federaciones inquilinas del ecosistema.'}
                     </p>
                 </div>

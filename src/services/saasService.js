@@ -6,6 +6,13 @@ export async function fetchPlanes() {
     return data || [];
 }
 
+export async function updatePlan(id, { precio, maxAtletas }) {
+    return api.put(`/saas/planes/${id}`, {
+        precio: Number(precio),
+        maxAtletas: Number(maxAtletas),
+    });
+}
+
 export async function fetchFederacionesList() {
     const [feds, planes] = await Promise.all([
         api.get('/Federaciones'),
