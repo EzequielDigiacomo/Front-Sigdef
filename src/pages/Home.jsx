@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/common/Button';
-import { fetchGlobalMetrics } from '../services/saasService';
+import { fetchGlobalMetrics, fetchPlanes } from '../services/saasService';
+import { applyCatalogPrices } from '../utils/plansCatalogDisplay';
 import { 
   Shield, Users, CreditCard, Building, Check, X, Award, LogIn, ArrowRight,
   Smartphone, Wifi, LayoutGrid, Search, Home as HomeIcon, User, Star, Send, Mail, MessageSquare,
@@ -10,8 +11,8 @@ import {
 } from 'lucide-react';
 import './Home.css';
 
-// Estructura completa de planes unificados
-const plansData = {
+// Estructura completa de planes unificados (precios/límites se sobrescriben desde el catálogo SaaS)
+const plansDataBase = {
   sigdef: {
     title: "Solo SIGDEF (Gestión)",
     subtitle: "Módulo Administrativo y Padrón Federativo",
@@ -241,6 +242,7 @@ const Home = () => {
   // Estados de control de planes y contacto
   const [selectedTab, setSelectedTab] = useState('sigdef'); // SIGDEF predeterminado para este portal
   const [nivelInteres, setNivelInteres] = useState('');
+  const [plansData, setPlansData] = useState(plansDataBase);
 
   useEffect(() => {
     setLoadingMetrics(true);
@@ -256,6 +258,18 @@ const Home = () => {
       })
       .catch(err => console.warn('Usando métricas locales de fallback:', err))
       .finally(() => setLoadingMetrics(false));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchPlanes()
+      .then((planes) => {
+        if (!cancelled) setPlansData(applyCatalogPrices(plansDataBase, planes));
+      })
+      .catch((err) => {
+        console.warn('No se pudieron cargar precios del catálogo; se usan valores locales.', err);
+      });
+    return () => { cancelled = true; };
   }, []);
 
   const selectNivel = (nivel) => {
