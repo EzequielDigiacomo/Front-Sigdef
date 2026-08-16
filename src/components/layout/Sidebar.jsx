@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
     LayoutDashboard, Users, Trophy, Shield, UserCheck, Award,
-    ChevronLeft, ChevronRight, Lock, Briefcase, Mail, ClipboardList,
+    ChevronLeft, ChevronRight, KeyRound, Briefcase, Mail, ClipboardList,
     ArrowRightLeft,
 } from 'lucide-react';
 import useUnreadMessages from '../../hooks/useUnreadMessages';
@@ -29,7 +29,7 @@ const Sidebar = ({ isOpen, closeMobile, isCollapsed, toggleSidebar }) => {
     ];
 
     if (user?.role === 'FEDERACION') {
-        navItems.push({ icon: Lock, label: 'Gestión de Accesos', path: '/dashboard/usuarios' });
+        navItems.push({ icon: KeyRound, label: 'Logins & Usuarios', path: '/dashboard/usuarios' });
     }
 
     const handleNavigation = (e, path) => {

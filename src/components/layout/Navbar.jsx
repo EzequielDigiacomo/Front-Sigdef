@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { NavLink } from 'react-router-dom';
-import { LogOut, User, Menu, LayoutDashboard, Shield, Users, Award, UserCheck, DollarSign, Trophy, Lock, Briefcase, Mail, ArrowRightLeft } from 'lucide-react';
+import { LogOut, User, Menu, LayoutDashboard, Shield, Users, Award, UserCheck, DollarSign, Trophy, KeyRound, Briefcase, Mail, ArrowRightLeft } from 'lucide-react';
 import Button from '../common/Button';
 import ThemeToggle from '../common/ThemeToggle';
 import useUnreadMessages from '../../hooks/useUnreadMessages';
@@ -28,7 +28,7 @@ const Navbar = ({ toggleSidebar, hideSidebarToggle }) => {
     ];
 
     if (user?.role === 'FEDERACION') {
-        navItems.push({ icon: Lock, label: 'Gestión de Accesos', path: '/dashboard/usuarios' });
+        navItems.push({ icon: KeyRound, label: 'Logins & Usuarios', path: '/dashboard/usuarios' });
     }
 
     return (

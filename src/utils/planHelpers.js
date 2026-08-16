@@ -114,6 +114,10 @@ export function canAccessDashboardClub(plan) {
     return !!normalizePlan(plan)?.accesoDashboardClub;
 }
 
+export function canAccessControlesLive(plan) {
+    return !!normalizePlan(plan)?.accesoControlesLive;
+}
+
 export function canCreateClubLogin(plan) {
     return canAccessDashboardClub(plan);
 }

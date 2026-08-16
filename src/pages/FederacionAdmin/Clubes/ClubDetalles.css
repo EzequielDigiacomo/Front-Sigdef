@@ -1,0 +1,296 @@
+.club-detalles {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.club-detalles-hero {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.club-detalles-hero-left {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    min-width: 0;
+}
+
+.club-detalles-title-block h1 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.club-detalles-title-block p {
+    margin: 0.15rem 0 0;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.club-detalles-sigla {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.5rem;
+    height: 2.5rem;
+    padding: 0 0.45rem;
+    border-radius: var(--radius-md);
+    background: rgba(59, 130, 246, 0.12);
+    color: var(--primary);
+    font-weight: 800;
+    font-size: 0.78rem;
+    flex-shrink: 0;
+}
+
+.club-detalles-meta {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.55rem;
+}
+
+.club-meta-item label {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 0.15rem;
+}
+
+.club-meta-item .value {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    word-break: break-word;
+}
+
+.club-panel-tight {
+    padding: 0.7rem 0.85rem !important;
+    gap: 0.55rem !important;
+}
+
+.club-detalles-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+}
+
+.club-kpi {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    gap: 0.65rem !important;
+}
+
+.club-kpi-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.club-kpi strong {
+    display: block;
+    font-size: 1.15rem;
+    line-height: 1;
+    color: var(--text-primary);
+}
+
+.club-kpi span {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+}
+
+.club-section {
+    padding: 0.7rem 0.85rem 0.85rem;
+}
+
+.club-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
+    margin-bottom: 0.55rem;
+    flex-wrap: wrap;
+}
+
+.club-section-head h2 {
+    margin: 0;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.club-section-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.club-section-tools {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex: 1;
+    justify-content: flex-end;
+    min-width: 180px;
+}
+
+.club-search {
+    max-width: 220px;
+    width: 100%;
+    font-size: 0.8rem !important;
+    padding: 0.4rem 0.65rem !important;
+}
+
+.club-empty {
+    text-align: center;
+    padding: 1rem 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+}
+
+.club-dense-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+}
+
+.club-dense-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+
+.club-dense-table th,
+.club-dense-table td {
+    padding: 0.4rem 0.65rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.club-dense-table th {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+    font-weight: 700;
+    background: rgba(148, 163, 184, 0.06);
+}
+
+.club-dense-table tbody tr {
+    cursor: pointer;
+    transition: background 0.12s ease;
+}
+
+.club-dense-table tbody tr:hover {
+    background: rgba(59, 130, 246, 0.06);
+}
+
+.club-dense-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.club-name-cell {
+    font-weight: 650;
+    color: var(--text-primary);
+    white-space: normal;
+    min-width: 140px;
+}
+
+.club-doc-cell {
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+}
+
+.club-pill {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+}
+
+.club-pill-muted {
+    background: rgba(148, 163, 184, 0.12);
+    color: var(--text-secondary);
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+.club-pill-ok {
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--success);
+    border-color: rgba(16, 185, 129, 0.28);
+}
+
+.club-delegado-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.55rem;
+}
+
+.club-matricula-select {
+    font-size: 0.75rem;
+    padding: 0.2rem 1.6rem 0.2rem 0.5rem;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    background-size: 12px;
+}
+
+.club-pagination {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 900px) {
+    .club-detalles-meta,
+    .club-delegado-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .club-detalles-kpis {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .club-detalles-meta,
+    .club-delegado-row {
+        grid-template-columns: 1fr;
+    }
+
+    .club-section-tools {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .club-search {
+        max-width: none;
+    }
+}

@@ -77,19 +77,19 @@ const MainLayoutSuper = () => {
                 style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.75rem',
-                    padding: '0.65rem 0.9rem',
+                    gap: '0.55rem',
+                    padding: '0.4rem 0.65rem',
                     borderRadius: 'var(--radius-md)',
                     color: active ? 'var(--primary)' : 'var(--text-secondary)',
                     backgroundColor: active ? 'rgba(59, 130, 246, 0.08)' : 'transparent',
                     fontWeight: active ? '600' : 'normal',
                     transition: 'var(--transition)',
-                    fontSize: '0.9rem',
+                    fontSize: '0.8rem',
                     position: 'relative',
                 }}
             >
                 <span style={{ position: 'relative', display: 'inline-flex' }}>
-                    <item.icon size={18} />
+                    <item.icon size={16} />
                     {item.showBadge && hasUnread && (
                         <span
                             className="nav-unread-dot"
@@ -115,13 +115,13 @@ const MainLayoutSuper = () => {
                     top: 0,
                     left: 0,
                     height: '100vh',
-                    width: '280px',
+                    width: '220px',
                     zIndex: 101,
                     display: 'flex',
                     flexDirection: 'column',
                     transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                     transform: sidebarVisible ? 'translateX(0)' : 'translateX(-100%)',
-                    padding: '1.25rem',
+                    padding: '0.85rem',
                     backgroundColor: 'var(--bg-secondary)',
                     borderRight: 'var(--glass-border)',
                 }}
@@ -129,23 +129,23 @@ const MainLayoutSuper = () => {
                 <div className="sidebar-header" style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.75rem',
-                    marginBottom: '1.5rem',
-                    paddingBottom: '1rem',
+                    gap: '0.5rem',
+                    marginBottom: '0.85rem',
+                    paddingBottom: '0.65rem',
                     borderBottom: 'var(--glass-border)',
                 }}>
-                    <ShieldAlert size={28} color="var(--primary)" />
-                    <span className="sidebar-title text-gradient" style={{ fontSize: '1.15rem', fontWeight: 'bold' }}>
+                    <ShieldAlert size={20} color="var(--primary)" />
+                    <span className="sidebar-title text-gradient" style={{ fontSize: '0.95rem', fontWeight: 'bold' }}>
                         SIGDEF SaaS
                     </span>
                 </div>
 
-                <nav className="sidebar-nav" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1, overflowY: 'auto' }}>
+                <nav className="sidebar-nav" style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', flex: 1, overflowY: 'auto' }}>
                     {NAV_SECTIONS.map((section) => (
                         <div key={section.label}>
                             <p style={{
-                                margin: '0 0 0.4rem 0.5rem',
-                                fontSize: '0.68rem',
+                                margin: '0 0 0.25rem 0.4rem',
+                                fontSize: '0.62rem',
                                 fontWeight: 700,
                                 letterSpacing: '0.06em',
                                 textTransform: 'uppercase',
@@ -154,30 +154,31 @@ const MainLayoutSuper = () => {
                             }}>
                                 {section.label}
                             </p>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
                                 {section.items.map(renderNavItem)}
                             </div>
                         </div>
                     ))}
                 </nav>
 
-                <div className="sidebar-footer" style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: 'var(--glass-border)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                <div className="sidebar-footer" style={{ marginTop: 'auto', paddingTop: '0.65rem', borderTop: 'var(--glass-border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.55rem' }}>
                         <div className="avatar" style={{
                             backgroundColor: 'rgba(59, 130, 246, 0.1)',
                             color: 'var(--primary)',
-                            padding: '0.5rem',
+                            padding: '0.35rem',
                             borderRadius: '50%',
                         }}>
-                            <User size={20} />
+                            <User size={16} />
                         </div>
-                        <div>
-                            <p style={{ fontWeight: 'bold', fontSize: '0.9rem', color: 'var(--text-primary)', margin: 0 }}>Superadmin</p>
-                            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>Administrador Global</p>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontWeight: 'bold', fontSize: '0.8rem', color: 'var(--text-primary)', margin: 0 }}>Superadmin</p>
+                            <p style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', margin: 0 }}>Administrador Global</p>
                         </div>
+                        <ThemeToggle />
                     </div>
-                    <Button variant="danger" size="sm" onClick={logout} style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
-                        <LogOut size={16} />
+                    <Button variant="danger" size="sm" onClick={logout} style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', padding: '0.4rem 0.5rem' }}>
+                        <LogOut size={14} />
                         Cerrar Sesión
                     </Button>
                 </div>
@@ -195,58 +196,51 @@ const MainLayoutSuper = () => {
                 />
             )}
 
+            {!isDesktop && !sidebarOpen && (
+                <button
+                    type="button"
+                    className="menu-toggle"
+                    onClick={() => setSidebarOpen(true)}
+                    aria-label="Abrir menú"
+                    style={{
+                        position: 'fixed',
+                        top: '0.75rem',
+                        left: '0.75rem',
+                        zIndex: 99,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: 'var(--radius-md)',
+                        backgroundColor: 'var(--bg-secondary)',
+                        border: 'var(--glass-border)',
+                        cursor: 'pointer',
+                        boxShadow: 'var(--shadow-md)',
+                    }}
+                >
+                    <Menu size={18} color="var(--text-secondary)" />
+                </button>
+            )}
+
             <div
                 className="main-content"
                 style={{
-                    paddingLeft: isDesktop ? '280px' : '0',
+                    paddingLeft: isDesktop ? '220px' : '0',
                     transition: 'padding 0.3s ease',
                     minHeight: '100vh',
                 }}
             >
-                <nav className="navbar glass-panel" style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '1rem 1.5rem',
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 99,
-                    borderBottom: 'var(--glass-border)',
-                    margin: '0 0 1.5rem 0',
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <button
-                            type="button"
-                            className="menu-toggle"
-                            onClick={() => setSidebarOpen(!sidebarOpen)}
-                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'none', border: 'none' }}
-                        >
-                            <Menu size={24} color="var(--text-secondary)" />
-                        </button>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <ShieldAlert size={22} color="var(--primary)" />
-                            <span style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--text-primary)' }}>SIGDEF Superadmin</span>
-                        </div>
-                    </div>
-
-                    <div className="navbar-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <ThemeToggle />
-                        <Button variant="ghost" size="sm" onClick={logout} title="Cerrar Sesión">
-                            <LogOut size={18} />
-                        </Button>
-                    </div>
-                </nav>
-
                 <main className="page-content container" style={{
-                    padding: '0 1.5rem 3rem',
-                    maxWidth: '1400px',
+                    padding: isDesktop ? '0.85rem 1rem 1.5rem' : '3rem 1rem 1.5rem',
+                    maxWidth: '1600px',
                     margin: '0 auto',
                     width: '100%',
                 }}>
                     <Outlet />
                 </main>
 
-                <footer className="footer">
+                <footer className="footer" style={{ padding: '0.75rem', fontSize: '0.75rem' }}>
                     <p>&copy; {new Date().getFullYear()} SIGDEF Multi-Tenant SaaS Portal</p>
                 </footer>
             </div>

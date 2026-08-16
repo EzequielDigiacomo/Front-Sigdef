@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import Card from '../components/common/Card';
 import {
-    Users, Shield, DollarSign, Award, Trophy, Briefcase, UserCheck, Lock,
+    Users, Shield, DollarSign, Award, Trophy, Briefcase, UserCheck,
     ChevronLeft, ChevronRight, Activity, AlertTriangle, KeyRound, UserPlus, ClipboardList,
     ArrowRightLeft,
 } from 'lucide-react';
@@ -198,7 +198,13 @@ const Dashboard = () => {
     ];
 
     if (user?.role === 'FEDERACION') {
-        navCards.push({ label: 'Accesos', icon: Lock, path: '/dashboard/usuarios', color: '#475569', description: 'Gestión de usuarios y permisos' });
+        navCards.push({
+            label: 'Logins & Usuarios',
+            icon: KeyRound,
+            path: '/dashboard/usuarios',
+            color: '#10b981',
+            description: 'Credenciales, contraseñas y datos de acceso',
+        });
     }
 
     const handleCardClick = (route) => {

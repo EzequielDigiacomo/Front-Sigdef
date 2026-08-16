@@ -28,7 +28,16 @@ const Auditoria = () => {
             try {
                 setLoading(true);
                 const data = await api.get('/support/logs?limit=100');
-                setLogs((data || []).map((log) => ({
+                const isForbidNoise = (detalle = '') =>
+                    detalle.includes('No authentication handler is registered for the scheme');
+
+                setLogs((data || [])
+                    .filter((log) => {
+                        const accion = log.accion ?? log.Accion ?? '';
+                        const detalle = log.detalle ?? log.Detalle ?? '';
+                        return !(accion === 'ERROR_FATAL' && isForbidNoise(detalle));
+                    })
+                    .map((log) => ({
                     id: log.id ?? log.Id,
                     tipo: inferTipo(log.accion ?? log.Accion),
                     accion: log.accion ?? log.Accion ?? 'Evento',

@@ -3,10 +3,75 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
-import { ArrowLeft, Users, Target, Calendar, ClipboardList, Edit, Plus, CheckCircle, AlertTriangle, XCircle, Info } from 'lucide-react';
+import Pagination from '../../../components/common/Pagination';
+import {
+    ArrowLeft, Users, Target, Edit, Plus, CheckCircle, AlertTriangle, XCircle, Info, Search, UserPlus,
+} from 'lucide-react';
 import Modal from '../../../components/common/Modal';
 import AtletaDetailModal from '../Atletas/components/AtletaDetailModal';
 import { getCategoriaLabel, getEstadoPagoColor, getEstadoPagoLabel } from '../../../utils/enums';
+import { pick } from '../../../utils/apiHelpers';
+import './ClubDetalles.css';
+
+const ATLETAS_PAGE_SIZE = 12;
+
+const resolvePersonaNombre = (entity) => {
+    const direct = pick(entity, 'nombrePersona', 'NombrePersona', 'nombreCompleto', 'NombreCompleto');
+    if (direct && String(direct).trim() && direct !== '-') return String(direct).trim();
+
+    const nested = entity?.persona || entity?.Persona || entity?.participante || entity?.Participante || {};
+    const nombre = pick(entity, 'nombre', 'Nombre') ?? pick(nested, 'nombre', 'Nombre') ?? '';
+    const apellido = pick(entity, 'apellido', 'Apellido') ?? pick(nested, 'apellido', 'Apellido') ?? '';
+    const full = `${nombre} ${apellido}`.trim();
+    return full || '—';
+};
+
+const resolveDocumento = (entity) => {
+    const nested = entity?.persona || entity?.Persona || entity?.participante || entity?.Participante || {};
+    const doc = pick(entity, 'documento', 'Documento', 'dni', 'Dni')
+        ?? pick(nested, 'documento', 'Documento', 'dni', 'Dni');
+    return doc != null && String(doc).trim() ? String(doc).trim() : '—';
+};
+
+const normalizeClubAtleta = (a) => {
+    const idPersona = pick(a, 'idPersona', 'IdPersona', 'participanteId', 'ParticipanteId');
+    return {
+        ...a,
+        idPersona,
+        idClub: pick(a, 'idClub', 'IdClub'),
+        nombrePersona: resolvePersonaNombre(a),
+        documento: resolveDocumento(a),
+        categoria: pick(a, 'categoria', 'Categoria'),
+        categoriaNombre: pick(a, 'categoriaNombre', 'CategoriaNombre'),
+        perteneceSeleccion: pick(a, 'perteneceSeleccion', 'PerteneceSeleccion') === true,
+        estadoPago: pick(a, 'estadoPago', 'EstadoPago'),
+    };
+};
+
+const normalizeClubEntrenador = (e) => ({
+    ...e,
+    idPersona: pick(e, 'idPersona', 'IdPersona'),
+    nombrePersona: resolvePersonaNombre(e),
+    licencia: pick(e, 'licencia', 'Licencia') || '—',
+    categoriaSeleccion: pick(e, 'categoriaSeleccion', 'CategoriaSeleccion'),
+    becadoEnard: pick(e, 'becadoEnard', 'BecadoEnard') === true,
+    becadoSdn: pick(e, 'becadoSdn', 'BecadoSdn') === true,
+});
+
+const normalizeClubDelegado = (d) => ({
+    ...d,
+    idPersona: pick(d, 'idPersona', 'IdPersona'),
+    nombrePersona: resolvePersonaNombre(d),
+    documento: resolveDocumento(d),
+    email: pick(d, 'email', 'Email') || '—',
+    telefono: pick(d, 'telefono', 'Telefono') || '—',
+});
+
+const formatCategoriaAtleta = (atleta) => {
+    if (atleta?.categoriaNombre) return atleta.categoriaNombre;
+    if (atleta?.categoria != null && atleta.categoria !== '') return getCategoriaLabel(atleta.categoria);
+    return 'Sin asignar';
+};
 
 const ClubDetalles = () => {
     const { id, fedId } = useParams();
@@ -17,9 +82,10 @@ const ClubDetalles = () => {
     const [entrenadores, setEntrenadores] = useState([]);
     const [delegados, setDelegados] = useState([]);
     const [eventos, setEventos] = useState([]);
-    const [inscripciones, setInscripciones] = useState([]);
     const [loading, setLoading] = useState(true);
     const [updatingStatus, setUpdatingStatus] = useState(false);
+    const [atletaSearch, setAtletaSearch] = useState('');
+    const [atletaPage, setAtletaPage] = useState(1);
 
     // Modal states
     const [showAddAtletaModal, setShowAddAtletaModal] = useState(false);
@@ -44,51 +110,63 @@ const ClubDetalles = () => {
         loadClubDetalles();
     }, [id]);
 
-    const loadClubDetalles = async () => {
+    const loadClubDetalles = async ({ silent = false } = {}) => {
         try {
-            const clubIdInt = parseInt(id);
+            if (!silent) setLoading(true);
+            const clubIdInt = parseInt(id, 10);
             const clubData = await api.get(`/Clubes/${id}`);
-            
-            // Variables para los datos
-            let atletasData = [], entrenadoresData = [], delegadosData = [], eventosData = [];
 
-            // Entrenadores: Intenta endpoint anidado, si falla (404 en prod), usa fallback
+            let atletasData = [];
+            let entrenadoresData = [];
+            let delegadosData = [];
+            let eventosData = [];
+
             try {
                 entrenadoresData = await api.get(`/Clubes/${id}/Entrenadores`, { silentErrors: true });
-                if (!Array.isArray(entrenadoresData)) throw new Error("Not array");
-            } catch (e) {
+                if (!Array.isArray(entrenadoresData)) throw new Error('Not array');
+            } catch {
                 const todos = await api.get(`/Entrenador`, { silentErrors: true }).catch(() => []);
-                entrenadoresData = (Array.isArray(todos) ? todos : []).filter(x => x.idClub === clubIdInt || x.IdClub === clubIdInt);
+                entrenadoresData = (Array.isArray(todos) ? todos : []).filter(
+                    (x) => Number(x.idClub ?? x.IdClub) === clubIdInt
+                );
             }
 
-            // Delegados: Intenta endpoint anidado, si falla (404 en prod), usa fallback
             try {
                 delegadosData = await api.get(`/Clubes/${id}/Delegados`, { silentErrors: true });
-                if (!Array.isArray(delegadosData)) throw new Error("Not array");
-            } catch (e) {
+                if (!Array.isArray(delegadosData)) throw new Error('Not array');
+            } catch {
                 const todos = await api.get(`/DelegadoClub`, { silentErrors: true }).catch(() => []);
-                delegadosData = (Array.isArray(todos) ? todos : []).filter(x => x.idClub === clubIdInt || x.IdClub === clubIdInt);
+                delegadosData = (Array.isArray(todos) ? todos : []).filter(
+                    (x) => Number(x.idClub ?? x.IdClub) === clubIdInt
+                );
             }
 
-            // Eventos: Intenta endpoint anidado, si falla (404 en prod), usa fallback
             try {
                 eventosData = await api.get(`/Clubes/${id}/Eventos`, { silentErrors: true });
-                if (!Array.isArray(eventosData)) throw new Error("Not array");
-            } catch (e) {
+                if (!Array.isArray(eventosData)) throw new Error('Not array');
+            } catch {
                 const todos = await api.get(`/Evento`, { silentErrors: true }).catch(() => []);
-                eventosData = (Array.isArray(todos) ? todos : []).filter(x => x.clubId === clubIdInt || x.ClubId === clubIdInt);
+                eventosData = (Array.isArray(todos) ? todos : []).filter(
+                    (x) => Number(x.clubId ?? x.ClubId) === clubIdInt
+                );
             }
 
-            // Atletas / Participantes
+            // Preferir /Atleta (trae nombre/documento); Participantes/club suele venir incompleto.
             try {
-                atletasData = await api.get(`/Participantes/club/${id}`, { silentErrors: true });
-                if (!Array.isArray(atletasData) || atletasData.length === 0) throw new Error("Fallback Atletas");
-            } catch (e) {
-                const todos = await api.get(`/Atleta`, { silentErrors: true }).catch(() => []);
-                atletasData = (Array.isArray(todos) ? todos : []).filter(x => x.idClub === clubIdInt || x.IdClub === clubIdInt);
+                const todos = await api.get(`/Atleta`, { silentErrors: true });
+                atletasData = (Array.isArray(todos) ? todos : []).filter(
+                    (x) => Number(x.idClub ?? x.IdClub) === clubIdInt
+                );
+                if (atletasData.length === 0) throw new Error('Fallback Participantes');
+            } catch {
+                try {
+                    const participantes = await api.get(`/Participantes/club/${id}`, { silentErrors: true });
+                    atletasData = Array.isArray(participantes) ? participantes : [];
+                } catch {
+                    atletasData = [];
+                }
             }
 
-            // Normalizar clubData
             const normalizedClub = {
                 idClub: clubData.idClub ?? clubData.id ?? clubData.Id,
                 nombre: clubData.nombre ?? clubData.Nombre,
@@ -96,19 +174,26 @@ const ClubDetalles = () => {
                 email: clubData.email ?? clubData.Email ?? '',
                 telefono: clubData.telefono ?? clubData.Telefono ?? '',
                 direccion: clubData.direccion ?? clubData.Direccion ?? '',
-                estadoMatricula: clubData.estadoMatricula ?? clubData.EstadoMatricula ?? 0
+                estadoMatricula: clubData.estadoMatricula ?? clubData.EstadoMatricula ?? 0,
             };
 
+            const normalizedAtletas = atletasData.map(normalizeClubAtleta);
+
             setClub(normalizedClub);
-            setAtletas(atletasData);
-            setEntrenadores(entrenadoresData);
-            setDelegados(delegadosData);
-            setEventos(eventosData);
-            setInscripciones([]);
+            setAtletas(normalizedAtletas);
+            setEntrenadores((Array.isArray(entrenadoresData) ? entrenadoresData : []).map(normalizeClubEntrenador));
+            setDelegados((Array.isArray(delegadosData) ? delegadosData : []).map(normalizeClubDelegado));
+            setEventos(Array.isArray(eventosData) ? eventosData : []);
+            setSelectedAtleta((prev) => {
+                if (!prev) return null;
+                const prevId = prev.idPersona ?? prev.IdPersona ?? prev.participanteId;
+                return normalizedAtletas.find((a) => String(a.idPersona) === String(prevId)) || prev;
+            });
+            if (!silent) setAtletaPage(1);
         } catch (error) {
             console.error('Error cargando detalles del club:', error);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     };
 
@@ -138,389 +223,418 @@ const ClubDetalles = () => {
     const getClubStats = () => {
         if (!club) return { atletasClub: [], entrenadoresClub: [], delegadoClub: null, eventosCreados: [], eventosAsistidos: [] };
 
-        // Al usar los endpoints específicos, los arrays en el estado YA SON los del club.
-        // No hace falta filtrar de nuevo.
         const atletasClub = atletas || [];
         const entrenadoresClub = entrenadores || [];
-        // La API devuelve lista de delegados, tomamos el primero si hay, o null. Verificación extra por seguridad.
         const delegadoClub = (delegados && delegados.length > 0) ? delegados[0] : null;
-
         const eventosCreados = eventos || [];
-
-        // Pendiente: Eventos Asistidos requeriría otro endpoint específico.
         const eventosAsistidos = [];
 
         return { atletasClub, entrenadoresClub, delegadoClub, eventosCreados, eventosAsistidos };
     };
 
+    const clubListPath = isSuperAdminView
+        ? `/superadmin/federacion/${fedId}/clubes`
+        : '/dashboard/clubes';
+    const clubEditPath = isSuperAdminView
+        ? `/superadmin/federacion/${fedId}/clubes/editar/${club?.idClub}`
+        : `/dashboard/clubes/editar/${club?.idClub}`;
+    const clubDetailPath = isSuperAdminView
+        ? `/superadmin/federacion/${fedId}/clubes/detalles/${club?.idClub}`
+        : `/dashboard/clubes/detalles/${club?.idClub}`;
+
     if (loading) {
         return (
-            <div className="page-container">
-                <div className="text-center">Cargando detalles del club...</div>
+            <div className="club-detalles">
+                <div className="club-empty">Cargando detalles del club...</div>
             </div>
         );
     }
 
     if (!club) {
         return (
-            <div className="page-container">
-                <div className="text-center">Club no encontrado</div>
+            <div className="club-detalles">
+                <div className="club-empty">Club no encontrado</div>
             </div>
         );
     }
 
-    const { atletasClub, entrenadoresClub, delegadoClub, eventosCreados, eventosAsistidos } = getClubStats();
+    const { atletasClub, entrenadoresClub, delegadoClub } = getClubStats();
+
+    const filteredAtletas = atletasClub.filter((a) => {
+        const q = atletaSearch.trim().toLowerCase();
+        if (!q) return true;
+        return (
+            String(a.nombrePersona || '').toLowerCase().includes(q)
+            || String(a.documento || '').toLowerCase().includes(q)
+            || String(formatCategoriaAtleta(a) || '').toLowerCase().includes(q)
+        );
+    });
+
+    const atletaTotalPages = Math.max(1, Math.ceil(filteredAtletas.length / ATLETAS_PAGE_SIZE));
+    const atletaPageSafe = Math.min(atletaPage, atletaTotalPages);
+    const atletasPageRows = filteredAtletas.slice(
+        (atletaPageSafe - 1) * ATLETAS_PAGE_SIZE,
+        atletaPageSafe * ATLETAS_PAGE_SIZE
+    );
 
     return (
-        <div className="page-container">
-            <div className="page-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Button variant="ghost" onClick={() => navigate(isSuperAdminView ? `/superadmin/federacion/${fedId}/clubes` : '/dashboard/clubes')}>
-                        <ArrowLeft size={20} />
+        <div className="club-detalles fade-in">
+            <div className="club-detalles-hero">
+                <div className="club-detalles-hero-left">
+                    <Button variant="ghost" size="sm" onClick={() => navigate(clubListPath)} title="Volver">
+                        <ArrowLeft size={18} />
                     </Button>
-                    <h2 className="page-title">Detalles - {club.nombre}</h2>
+                    <div className="club-detalles-sigla">{club.siglas || '—'}</div>
+                    <div className="club-detalles-title-block">
+                        <h1>{club.nombre}</h1>
+                        <p>{club.email || 'Sin email'} · Detalle del club</p>
+                    </div>
                 </div>
+                <Button variant="primary" size="sm" onClick={() => navigate(clubEditPath)}>
+                    <Edit size={14} /> Editar
+                </Button>
             </div>
- 
-            <div style={{ display: 'grid', gap: '2rem' }}>
-                {/* Info General */}
-                <Card>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <h3 style={{ color: 'var(--text-primary)', margin: 0 }}>Información del Club</h3>
-                        <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={() => navigate(isSuperAdminView ? `/superadmin/federacion/${fedId}/clubes/editar/${club.idClub}` : `/dashboard/clubes/editar/${club.idClub}`)}
-                        >
-                            <Edit size={16} className="mr-2" /> Editar
-                        </Button>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
-                        <div>
-                            <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Siglas</label>
-                            <div style={{ fontSize: '1rem', fontWeight: '500' }}>{club.siglas}</div>
-                        </div>
-                        <div>
-                            <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Teléfono</label>
-                            <div style={{ fontSize: '1rem', fontWeight: '500' }}>{club.telefono || '-'}</div>
-                        </div>
-                        <div>
-                            <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Dirección</label>
-                            <div style={{ fontSize: '1rem', fontWeight: '500' }}>{club.direccion || '-'}</div>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                            <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Estado de Matrícula</label>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <select 
-                                    value={club.estadoMatricula ?? 0}
-                                    onChange={(e) => handleUpdateClubStatus(parseInt(e.target.value))}
-                                    disabled={updatingStatus}
-                                    className={`badge badge-${getEstadoPagoColor(club.estadoMatricula)}`}
-                                    style={{ 
-                                        fontSize: '0.85rem', 
-                                        padding: '4px 24px 4px 12px', 
-                                        border: 'none', 
-                                        cursor: updatingStatus ? 'not-allowed' : 'pointer',
-                                        appearance: 'none',
-                                        opacity: updatingStatus ? 0.7 : 1,
-                                        backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'white\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")',
-                                        backgroundRepeat: 'no-repeat',
-                                        backgroundPosition: 'right 8px center',
-                                        backgroundSize: '14px'
-                                    }}
-                                >
-                                    <option value={0} style={{ backgroundColor: '#4b5563', color: 'white' }}>Pendiente</option>
-                                    <option value={1} style={{ backgroundColor: '#059669', color: 'white' }}>Pagado</option>
-                                    <option value={2} style={{ backgroundColor: '#dc2626', color: 'white' }}>Vencido</option>
-                                    <option value={3} style={{ backgroundColor: '#d97706', color: 'white' }}>Parcial</option>
-                                </select>
-                                {updatingStatus && <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Guardando...</span>}
-                            </div>
-                        </div>
-                    </div>
-                </Card>
 
-                {/* Información del Delegado */}
-                <Card>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <h3 style={{ color: 'var(--text-primary)', margin: 0 }}>Delegado del Club</h3>
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={() => {
-                                    const target = isSuperAdminView ? `/superadmin/federacion/${fedId}/delegados/nuevo` : '/dashboard/delegados/nuevo';
-                                    const returnPath = isSuperAdminView ? `/superadmin/federacion/${fedId}/clubes/detalles/${club.idClub}` : `/dashboard/clubes/detalles/${club.idClub}`;
-                                    navigate(target, { state: { clubId: club.idClub, returnPath } });
-                                }}
+            <Card className="club-panel-tight">
+                <div className="club-detalles-meta">
+                    <div className="club-meta-item">
+                        <label>Siglas</label>
+                        <div className="value">{club.siglas || '—'}</div>
+                    </div>
+                    <div className="club-meta-item">
+                        <label>Teléfono</label>
+                        <div className="value">{club.telefono || '—'}</div>
+                    </div>
+                    <div className="club-meta-item">
+                        <label>Dirección</label>
+                        <div className="value">{club.direccion || '—'}</div>
+                    </div>
+                    <div className="club-meta-item">
+                        <label>Matrícula</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <select
+                                value={club.estadoMatricula ?? 0}
+                                onChange={(e) => handleUpdateClubStatus(parseInt(e.target.value, 10))}
+                                disabled={updatingStatus}
+                                className={`badge badge-${getEstadoPagoColor(club.estadoMatricula)} club-matricula-select`}
                             >
-                                <Plus size={16} className="mr-2" /> Nuevo Delegado
-                            </Button>
-                            <Button
-                                variant="secondary"
-                                size="sm"
-                                onClick={async () => {
-                                    try {
-                                        // TODO: Idealmente tener un endpoint /DelegadoClub/Disponibles o similar.
-                                        // Por ahora, traemos todos y filtramos en el cliente los que tienen idClub = null o 0
-                                        const allDelegados = await api.get('/DelegadoClub');
-                                        // Asumimos que si no tiene club asignado, idClub es null o 0.
-                                        // OJO: Chequear cómo viene el DTO de lista general
-                                        const libres = allDelegados.filter(d => !d.idClub || d.idClub === 0);
-
-                                        // Enriquecer con Datos Personales si el endpoint /DelegadoClub no devuelve nombrePersona
-                                        // (Si usas el mismo endpoint que modificamos hace un rato para ByClub, seguro trae nombrePersona)
-                                        // Si el endpoint general /DelegadoClub es simple, puede que necesitemos buscar Persona.
-                                        // Asumiremos por ahora que trae datos básicos.
-
-                                        // Si necesitas enriquecer:
-                                        const libresEnriquecidos = await Promise.all(libres.map(async (d) => {
-                                            if (!d.nombrePersona) {
-                                                try {
-                                                    const p = await api.get(`/Persona/${d.idPersona}`);
-                                                    return { ...d, nombrePersona: `${p.nombre} ${p.apellido}`, documento: p.documento };
-                                                } catch (e) { return d; }
-                                            }
-                                            return d;
-                                        }));
-
-                                        setAvailableDelegados(libresEnriquecidos);
-                                        setShowAddDelegadoModal(true);
-                                    } catch (error) {
-                                        console.error("Error cargando delegados disponibles", error);
-                                        setConfirmModalState({
-                                            isOpen: true,
-                                            step: 'error',
-                                            message: 'Error al cargar delegados disponibles',
-                                            subMessage: 'Intente nuevamente más tarde.'
-                                        });
-                                    }
-                                }}
-                            >
-                                <Users size={16} className="mr-2" /> Agregar Existente
-                            </Button>
+                                <option value={0} style={{ backgroundColor: '#4b5563', color: 'white' }}>Pendiente</option>
+                                <option value={1} style={{ backgroundColor: '#059669', color: 'white' }}>Pagado</option>
+                                <option value={2} style={{ backgroundColor: '#dc2626', color: 'white' }}>Vencido</option>
+                                <option value={3} style={{ backgroundColor: '#d97706', color: 'white' }}>Parcial</option>
+                            </select>
+                            {updatingStatus && <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>…</span>}
                         </div>
                     </div>
-                    {delegadoClub ? (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
-                            <div>
-                                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Nombre Completo</label>
-                                <div style={{ fontSize: '1rem', fontWeight: '500' }}>{delegadoClub.nombrePersona || '-'}</div>
-                            </div>
-                            <div>
-                                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>DNI</label>
-                                <div style={{ fontSize: '1rem', fontWeight: '500' }}>{delegadoClub.documento || '-'}</div>
-                            </div>
-                            <div>
-                                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Email</label>
-                                <div style={{ fontSize: '1rem', fontWeight: '500' }}>{delegadoClub.email || '-'}</div>
-                            </div>
-                            <div>
-                                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Teléfono</label>
-                                <div style={{ fontSize: '1rem', fontWeight: '500' }}>{delegadoClub.telefono || '-'}</div>
-                            </div>
-                        </div>
-                    ) : (
-                        <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
-                            No hay delegado asignado a este club
-                        </div>
-                    )}
-                </Card>
-
-                {/* KPI Cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
-                    <Card style={{ textAlign: 'center', padding: '1.5rem' }}>
-                        <Target size={32} style={{ margin: '0 auto 0.5rem', color: 'var(--primary)' }} />
-                        <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{entrenadoresClub.length}</div>
-                        <div style={{ color: 'var(--text-secondary)' }}>Entrenadores</div>
-                    </Card>
-                    <Card style={{ textAlign: 'center', padding: '1.5rem' }}>
-                        <Users size={32} style={{ margin: '0 auto 0.5rem', color: 'var(--success)' }} />
-                        <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{atletasClub.length}</div>
-                        <div style={{ color: 'var(--text-secondary)' }}>Atletas</div>
-                    </Card>
                 </div>
+            </Card>
 
-                {/* Eventos y Competencias temporalmente deshabilitados */}
+            <div className="club-detalles-kpis">
+                <Card className="club-panel-tight club-kpi">
+                    <span className="club-kpi-icon" style={{ background: 'rgba(16,185,129,0.12)', color: 'var(--success)' }}>
+                        <Users size={16} />
+                    </span>
+                    <div>
+                        <strong>{atletasClub.length}</strong>
+                        <span>Atletas</span>
+                    </div>
+                </Card>
+                <Card className="club-panel-tight club-kpi">
+                    <span className="club-kpi-icon" style={{ background: 'rgba(59,130,246,0.12)', color: 'var(--primary)' }}>
+                        <Target size={16} />
+                    </span>
+                    <div>
+                        <strong>{entrenadoresClub.length}</strong>
+                        <span>Entrenadores</span>
+                    </div>
+                </Card>
+                <Card className="club-panel-tight club-kpi">
+                    <span className="club-kpi-icon" style={{ background: 'rgba(245,158,11,0.12)', color: 'var(--warning)' }}>
+                        <UserPlus size={16} />
+                    </span>
+                    <div>
+                        <strong>{delegadoClub ? 1 : 0}</strong>
+                        <span>Delegado</span>
+                    </div>
+                </Card>
+            </div>
 
-
-                {/* Entrenadores */}
-                <Card>
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 style={{ color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                            <Target size={20} />
-                            Entrenadores ({entrenadoresClub.length})
-                        </h3>
+            <Card className="club-panel-tight club-section">
+                <div className="club-section-head">
+                    <h2>Delegado</h2>
+                    <div className="club-section-actions">
                         <Button
                             variant="primary"
                             size="sm"
                             onClick={() => {
-                                const target = isSuperAdminView ? `/superadmin/federacion/${fedId}/entrenadores/nuevo` : '/dashboard/entrenadores/nuevo';
-                                const returnPath = isSuperAdminView ? `/superadmin/federacion/${fedId}/clubes/detalles/${club.idClub}` : `/dashboard/clubes/detalles/${club.idClub}`;
-                                navigate(target, { state: { clubId: club.idClub, returnPath } });
+                                const target = isSuperAdminView
+                                    ? `/superadmin/federacion/${fedId}/delegados/nuevo`
+                                    : '/dashboard/delegados/nuevo';
+                                navigate(target, { state: { clubId: club.idClub, returnPath: clubDetailPath } });
                             }}
                         >
-                            <Plus size={16} className="mr-2" /> Agregar Entrenador
+                            <Plus size={14} /> Nuevo
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={async () => {
+                                try {
+                                    const allDelegados = await api.get('/DelegadoClub');
+                                    const libres = (Array.isArray(allDelegados) ? allDelegados : []).filter(
+                                        (d) => !d.idClub || d.idClub === 0
+                                    );
+                                    const libresEnriquecidos = await Promise.all(libres.map(async (d) => {
+                                        const base = normalizeClubDelegado(d);
+                                        if (base.nombrePersona !== '—' && base.documento !== '—') return base;
+                                        try {
+                                            const p = await api.get(`/Persona/${d.idPersona}`);
+                                            return normalizeClubDelegado({
+                                                ...d,
+                                                nombrePersona: `${p.nombre || ''} ${p.apellido || ''}`.trim(),
+                                                documento: p.documento,
+                                            });
+                                        } catch {
+                                            return base;
+                                        }
+                                    }));
+                                    setAvailableDelegados(libresEnriquecidos);
+                                    setShowAddDelegadoModal(true);
+                                } catch (error) {
+                                    console.error('Error cargando delegados disponibles', error);
+                                    setConfirmModalState({
+                                        isOpen: true,
+                                        step: 'error',
+                                        message: 'Error al cargar delegados disponibles',
+                                        subMessage: 'Intente nuevamente más tarde.',
+                                    });
+                                }
+                            }}
+                        >
+                            <Users size={14} /> Existente
                         </Button>
                     </div>
-                    {entrenadoresClub.length > 0 ? (
-                        <div className="table-responsive">
-                            <table className="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Nombre</th>
-                                        <th>Licencia</th>
-                                        <th>Categoría Selección</th>
-                                        <th>Becado ENARD</th>
-                                        <th>Becado SDN</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {entrenadoresClub.map((entrenador) => (
-                                        <tr key={entrenador.idPersona}>
-                                            <td>{entrenador.nombrePersona}</td>
-                                            <td>{entrenador.licencia || '-'}</td>
-                                            <td>
-                                                {entrenador.categoriaSeleccion ?
-                                                    getCategoriaLabel(entrenador.categoriaSeleccion) :
-                                                    '-'
-                                                }
-                                            </td>
-                                            <td>
-                                                {entrenador.becadoEnard ? (
-                                                    <span className="badge badge-success">Sí</span>
-                                                ) : (
-                                                    <span className="badge badge-secondary">No</span>
-                                                )}
-                                            </td>
-                                            <td>
-                                                {entrenador.becadoSdn ? (
-                                                    <span className="badge badge-success">Sí</span>
-                                                ) : (
-                                                    <span className="badge badge-secondary">No</span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                </div>
+                {delegadoClub ? (
+                    <div className="club-delegado-row">
+                        <div className="club-meta-item">
+                            <label>Nombre</label>
+                            <div className="value">{delegadoClub.nombrePersona}</div>
                         </div>
-                    ) : (
-                        <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
-                            No hay entrenadores registrados en este club
+                        <div className="club-meta-item">
+                            <label>DNI</label>
+                            <div className="value">{delegadoClub.documento}</div>
                         </div>
-                    )}
-                </Card>
-
-                {/* Atletas */}
-                <Card>
-                    <div className="flex flex-col items-center mb-4 gap-3">
-                        <h3 style={{ color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                            <Users size={20} />
-                            Atletas ({atletasClub.length})
-                        </h3>
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={() => {
-                                    const target = isSuperAdminView ? `/superadmin/federacion/${fedId}/atletas/nuevo` : '/dashboard/atletas/nuevo';
-                                    const returnPath = isSuperAdminView ? `/superadmin/federacion/${fedId}/clubes/detalles/${club.idClub}` : `/dashboard/clubes/detalles/${club.idClub}`;
-                                    navigate(target, { state: { clubId: club.idClub, returnPath } });
-                                }}
-                            >
-                                <Plus size={16} className="mr-2" /> Crear Atleta
-                            </Button>
-                            <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={async () => {
-                                    try {
-                                        const [allAtletas, allClubes] = await Promise.all([
-                                            api.get('/Atleta'),
-                                            api.get('/Club')
-                                        ]);
-
-                                        // Crear mapa de clubes para búsqueda rápida
-                                        const clubsMap = allClubes.reduce((acc, c) => ({ ...acc, [c.idClub]: c.nombre }), {});
-
-                                        // Enriquecer atletas con nombre de club y datos de persona si es necesario
-                                        // Nota: Para la lista de selección, idClub y nombreClub es lo crítico
-                                        const athletesWithClubName = await Promise.all(allAtletas.map(async (a) => {
-                                            let nombrePersona = a.nombrePersona;
-                                            if (!nombrePersona) {
-                                                // Si no viene el nombre, intentar sacarlo de persona o dejar placeholder
-                                                // En este contexto asumimos que viene o el endpoint /Atleta devolvió DTOs completos
-                                                // Si falta info, podríamos buscar Persona, pero sería muy lento para TODOS.
-                                                // Asumimos que el DTO de lista trae info básica.
-                                            }
-                                            return {
-                                                ...a,
-                                                nombreClub: a.idClub ? clubsMap[a.idClub] : null
-                                            };
-                                        }));
-
-                                        setTodosAtletas(athletesWithClubName);
-                                        setShowAddAtletaModal(true);
-                                    } catch (error) {
-                                        console.error("Error loading info for modal", error);
-                                    }
-                                }}
-                            >
-                                <Users size={16} className="mr-2" /> Agregar Existente
-                            </Button>
+                        <div className="club-meta-item">
+                            <label>Email</label>
+                            <div className="value">{delegadoClub.email}</div>
+                        </div>
+                        <div className="club-meta-item">
+                            <label>Teléfono</label>
+                            <div className="value">{delegadoClub.telefono}</div>
                         </div>
                     </div>
-                    {atletasClub.length > 0 ? (
-                        <div className="table-responsive">
-                            <table className="data-table">
+                ) : (
+                    <div className="club-empty">No hay delegado asignado</div>
+                )}
+            </Card>
+
+            <Card className="club-panel-tight club-section">
+                <div className="club-section-head">
+                    <h2><Target size={16} /> Entrenadores ({entrenadoresClub.length})</h2>
+                    <div className="club-section-actions">
+                        <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => {
+                                const target = isSuperAdminView
+                                    ? `/superadmin/federacion/${fedId}/entrenadores/nuevo`
+                                    : '/dashboard/entrenadores/nuevo';
+                                navigate(target, { state: { clubId: club.idClub, returnPath: clubDetailPath } });
+                            }}
+                        >
+                            <Plus size={14} /> Agregar
+                        </Button>
+                    </div>
+                </div>
+                {entrenadoresClub.length > 0 ? (
+                    <div className="club-dense-table-wrap">
+                        <table className="club-dense-table">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Licencia</th>
+                                    <th>Categoría</th>
+                                    <th>ENARD</th>
+                                    <th>SDN</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {entrenadoresClub.map((entrenador) => (
+                                    <tr key={entrenador.idPersona}>
+                                        <td className="club-name-cell">{entrenador.nombrePersona}</td>
+                                        <td>{entrenador.licencia}</td>
+                                        <td>
+                                            {entrenador.categoriaSeleccion
+                                                ? getCategoriaLabel(entrenador.categoriaSeleccion)
+                                                : '—'}
+                                        </td>
+                                        <td>
+                                            <span className={`club-pill ${entrenador.becadoEnard ? 'club-pill-ok' : 'club-pill-muted'}`}>
+                                                {entrenador.becadoEnard ? 'Sí' : 'No'}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span className={`club-pill ${entrenador.becadoSdn ? 'club-pill-ok' : 'club-pill-muted'}`}>
+                                                {entrenador.becadoSdn ? 'Sí' : 'No'}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <div className="club-empty">Sin entrenadores en este club</div>
+                )}
+            </Card>
+
+            <Card className="club-panel-tight club-section">
+                <div className="club-section-head">
+                    <h2><Users size={16} /> Atletas ({filteredAtletas.length}{atletaSearch ? ` / ${atletasClub.length}` : ''})</h2>
+                    <div className="club-section-tools">
+                        <div style={{ position: 'relative', flex: 1, maxWidth: 220 }}>
+                            <Search
+                                size={14}
+                                style={{
+                                    position: 'absolute',
+                                    left: 10,
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    color: 'var(--text-secondary)',
+                                    pointerEvents: 'none',
+                                }}
+                            />
+                            <input
+                                className="form-input club-search"
+                                style={{ paddingLeft: '2rem' }}
+                                placeholder="Buscar nombre o DNI..."
+                                value={atletaSearch}
+                                onChange={(e) => {
+                                    setAtletaSearch(e.target.value);
+                                    setAtletaPage(1);
+                                }}
+                            />
+                        </div>
+                        <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => {
+                                const target = isSuperAdminView
+                                    ? `/superadmin/federacion/${fedId}/atletas/nuevo`
+                                    : '/dashboard/atletas/nuevo';
+                                navigate(target, { state: { clubId: club.idClub, returnPath: clubDetailPath } });
+                            }}
+                        >
+                            <Plus size={14} /> Crear
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={async () => {
+                                try {
+                                    const [allAtletas, allClubes] = await Promise.all([
+                                        api.get('/Atleta'),
+                                        api.get('/Club'),
+                                    ]);
+                                    const clubsMap = (Array.isArray(allClubes) ? allClubes : []).reduce(
+                                        (acc, c) => ({ ...acc, [c.idClub ?? c.IdClub]: c.nombre ?? c.Nombre }),
+                                        {}
+                                    );
+                                    const athletesWithClubName = (Array.isArray(allAtletas) ? allAtletas : []).map((a) => {
+                                        const normalized = normalizeClubAtleta(a);
+                                        return {
+                                            ...normalized,
+                                            nombreClub: a.idClub || a.IdClub
+                                                ? clubsMap[a.idClub ?? a.IdClub]
+                                                : null,
+                                        };
+                                    });
+                                    setTodosAtletas(athletesWithClubName);
+                                    setShowAddAtletaModal(true);
+                                } catch (error) {
+                                    console.error('Error loading info for modal', error);
+                                }
+                            }}
+                        >
+                            <UserPlus size={14} /> Existente
+                        </Button>
+                    </div>
+                </div>
+
+                {atletasClub.length > 0 ? (
+                    <>
+                        <div className="club-dense-table-wrap">
+                            <table className="club-dense-table">
                                 <thead>
                                     <tr>
                                         <th>Nombre</th>
                                         <th>Documento</th>
                                         <th>Categoría</th>
                                         <th>Selección</th>
-                                        <th>Estado Pago</th>
+                                        <th>Pago</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {atletasClub.map((atleta) => (
-                                        <tr
-                                            key={atleta.idPersona}
-                                            onClick={() => {
-                                                setSelectedAtleta(atleta);
-                                                setShowAtletaDetailsModal(true);
-                                            }}
-                                            style={{ cursor: 'pointer' }}
-                                            className="hover:bg-gray-50"
-                                        >
-                                            <td>{atleta.nombrePersona}</td>
-                                            <td>{atleta.documento}</td>
-                                            <td>{getCategoriaLabel(atleta.categoria)}</td>
-                                            <td>
-                                                {atleta.perteneceSeleccion ? (
-                                                    <span className="badge badge-success">Sí</span>
-                                                ) : (
-                                                    <span className="badge badge-secondary">No</span>
-                                                )}
-                                            </td>
-                                            <td>
-                                                <span className={`badge badge-${getEstadoPagoColor(atleta.estadoPago)}`}>
-                                                    {getEstadoPagoLabel(atleta.estadoPago)}
-                                                </span>
+                                    {atletasPageRows.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                                Sin resultados para “{atletaSearch}”
                                             </td>
                                         </tr>
-                                    ))}
+                                    ) : (
+                                        atletasPageRows.map((atleta) => (
+                                            <tr
+                                                key={atleta.idPersona}
+                                                onClick={() => {
+                                                    setSelectedAtleta(atleta);
+                                                    setShowAtletaDetailsModal(true);
+                                                }}
+                                            >
+                                                <td className="club-name-cell">{atleta.nombrePersona}</td>
+                                                <td className="club-doc-cell">{atleta.documento}</td>
+                                                <td>{formatCategoriaAtleta(atleta)}</td>
+                                                <td>
+                                                    <span className={`club-pill ${atleta.perteneceSeleccion ? 'club-pill-ok' : 'club-pill-muted'}`}>
+                                                        {atleta.perteneceSeleccion ? 'Sí' : 'No'}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span className={`badge badge-${getEstadoPagoColor(atleta.estadoPago)}`} style={{ fontSize: '0.68rem' }}>
+                                                        {getEstadoPagoLabel(atleta.estadoPago)}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
                                 </tbody>
                             </table>
                         </div>
-                    ) : (
-                        <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
-                            No hay atletas registrados en este club
-                        </div>
-                    )}
-                </Card>
-            </div>
+                        {filteredAtletas.length > ATLETAS_PAGE_SIZE && (
+                            <div className="club-pagination">
+                                <Pagination
+                                    currentPage={atletaPageSafe}
+                                    totalPages={atletaTotalPages}
+                                    onPageChange={setAtletaPage}
+                                />
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <div className="club-empty">No hay atletas registrados en este club</div>
+                )}
+            </Card>
+
             {/* Modal Agregar Atleta Existente (Lista) */}
             {showAddAtletaModal && (
                 <Modal
@@ -928,7 +1042,7 @@ const ClubDetalles = () => {
                         setSelectedAtleta(null);
                     }}
                     athlete={selectedAtleta}
-                    onRefresh={loadClubDetalles}
+                    onRefresh={() => loadClubDetalles({ silent: true })}
                     returnPath={`/dashboard/clubes/detalles/${id}`}
                 />
             )}
