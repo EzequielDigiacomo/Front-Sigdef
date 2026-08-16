@@ -173,7 +173,7 @@ const DelegadosForm = () => {
     };
 
     const buscarPersonaPorDni = async (docOverride, { notify = true } = {}) => {
-        const documento = String(docOverride ?? formData.documento ?? '').trim();
+        const documento = String(docOverride ?? formData.documento ?? '').replace(/\D/g, '').trim();
         if (documento.length < 7) {
             if (notify) showModal('DNI incompleto', 'Ingresá al menos 7 dígitos del DNI.', 'info');
             return null;
@@ -182,25 +182,54 @@ const DelegadosForm = () => {
 
         setSearching(true);
         try {
-            const persona = await api.get(`/Persona/documento/${encodeURIComponent(documento)}`, {
-                silentErrors: true,
-            });
+            let persona = null;
+            try {
+                persona = await api.get(`/Persona/documento/${encodeURIComponent(documento)}`, {
+                    silentErrors: true,
+                });
+            } catch {
+                persona = null;
+            }
+
+            // Fallback: buscar en entrenadores (misma persona, otro rol)
+            if (!persona) {
+                try {
+                    const entrenadores = await api.get('/Entrenador', { silentErrors: true });
+                    const list = Array.isArray(entrenadores) ? entrenadores : [];
+                    const match = list.find((e) => {
+                        const doc = String(e.documento || e.Documento || '').replace(/\D/g, '');
+                        return doc === documento;
+                    });
+                    if (match) {
+                        const nombreParts = String(match.nombrePersona || match.NombrePersona || '')
+                            .trim()
+                            .split(/\s+/);
+                        persona = {
+                            participanteId: match.participanteId ?? match.ParticipanteId ?? match.idPersona ?? match.IdPersona,
+                            nombre: match.nombre || match.Nombre || nombreParts[0] || '',
+                            apellido:
+                                match.apellido ||
+                                match.Apellido ||
+                                (nombreParts.length > 1 ? nombreParts.slice(1).join(' ') : ''),
+                            documento: match.documento || match.Documento || documento,
+                            email: match.email || match.Email || '',
+                            telefono: match.telefono || match.Telefono || '',
+                            direccion: match.direccion || match.Direccion || '',
+                            sexo: match.sexoId ?? match.SexoId ?? 1,
+                            fechaNacimiento: match.fechaNacimiento || match.FechaNacimiento || '',
+                        };
+                    }
+                } catch {
+                    /* sin fallback */
+                }
+            }
+
             if (persona) {
                 lastSearchedDoc.current = documento;
                 applyPersona(persona, { notify });
                 return pickPersonaId(persona);
             }
-            clearPersonaLink();
-            lastSearchedDoc.current = documento;
-            if (notify) {
-                showModal(
-                    'Persona nueva',
-                    'No hay persona con ese DNI. Completá los datos para crearla como delegado.',
-                    'info'
-                );
-            }
-            return null;
-        } catch {
+
             clearPersonaLink();
             lastSearchedDoc.current = documento;
             if (notify) {
