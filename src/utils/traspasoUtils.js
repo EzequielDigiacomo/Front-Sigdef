@@ -17,7 +17,8 @@ export const normalizeSolicitud = (s) => ({
     participanteNombre: pick(s, 'participanteNombre', 'ParticipanteNombre') || '—',
     participanteDocumento: pick(s, 'participanteDocumento', 'ParticipanteDocumento') || '—',
     idClubOrigen: pick(s, 'idClubOrigen', 'IdClubOrigen'),
-    clubOrigenNombre: pick(s, 'clubOrigenNombre', 'ClubOrigenNombre') || '—',
+    clubOrigenNombre: pick(s, 'clubOrigenNombre', 'ClubOrigenNombre')
+        || (!pick(s, 'idClubOrigen', 'IdClubOrigen') ? 'Agente Libre' : '—'),
     idClubDestino: pick(s, 'idClubDestino', 'IdClubDestino'),
     clubDestinoNombre: pick(s, 'clubDestinoNombre', 'ClubDestinoNombre') || '—',
     estado: pick(s, 'estado', 'Estado') || '',
@@ -43,8 +44,10 @@ export const normalizeAtletaBusqueda = (a) => ({
     participanteId: pick(a, 'participanteId', 'ParticipanteId'),
     nombre: pick(a, 'nombre', 'Nombre') || '—',
     documento: pick(a, 'documento', 'Documento') || '—',
-    idClub: pick(a, 'idClub', 'IdClub'),
-    clubNombre: pick(a, 'clubNombre', 'ClubNombre') || '—',
+    idClub: pick(a, 'idClub', 'IdClub') ?? null,
+    clubNombre: pick(a, 'clubNombre', 'ClubNombre') || 'Agente Libre',
+    sinClub: pick(a, 'sinClub', 'SinClub') === true
+        || pick(a, 'idClub', 'IdClub') == null,
 });
 
 export const normalizeValidaciones = (v) => ({

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { api } from '../../../services/api';
 import { useNavigate } from 'react-router-dom';
-import { Users, Plus, Search, Edit, Trash2, Phone, Mail, MapPin, User, Award, Eye, FileText, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Users, Plus, Search, Edit, Trash2, Phone, Mail, MapPin, User, Award, Eye, FileText, CheckCircle2, RotateCcw, UserMinus } from 'lucide-react';
 import Button from '../../../components/common/Button';
 import Card from '../../../components/common/Card';
 import FormField from '../../../components/forms/FormField';
@@ -50,6 +50,8 @@ const ClubAtletas = () => {
     const [showModal, setShowModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [atletaToDelete, setAtletaToDelete] = useState(null);
+    const [showLiberarModal, setShowLiberarModal] = useState(false);
+    const [liberando, setLiberando] = useState(false);
     const [feedbackModal, setFeedbackModal] = useState({ isOpen: false, title: '', message: '', type: 'info' });
 
     // Documentation State
@@ -392,6 +394,43 @@ const ClubAtletas = () => {
             setShowDeleteModal(false);
         } catch (error) {
             console.error('Error al eliminar:', error);
+        }
+    };
+
+    const handleLiberarClick = () => {
+        if (!atletaDetails) return;
+        setShowLiberarModal(true);
+    };
+
+    const handleConfirmLiberar = async () => {
+        if (!atletaDetails) return;
+        const id = getParticipanteId(atletaDetails);
+        if (!id) return;
+        setLiberando(true);
+        try {
+            await api.post(`/Atleta/${id}/liberar`);
+            setShowLiberarModal(false);
+            handleCloseModal();
+            const clubId = user?.IdClub || user?.idClub || user?.clubId || user?.club?.id;
+            if (clubId) await fetchAtletas(clubId);
+            setFeedbackModal({
+                isOpen: true,
+                title: 'Atleta liberado',
+                message: 'Quedó como Agente Libre. Otro club puede solicitar el traspaso; la federación verificará deudas y dará el OK.',
+                type: 'success',
+                showCancel: false,
+            });
+        } catch (error) {
+            setShowLiberarModal(false);
+            setFeedbackModal({
+                isOpen: true,
+                title: 'No se pudo liberar',
+                message: error?.message || 'Ocurrió un error al liberar al atleta.',
+                type: 'danger',
+                showCancel: false,
+            });
+        } finally {
+            setLiberando(false);
         }
     };
 
@@ -881,6 +920,24 @@ const ClubAtletas = () => {
                             )}
                         </div>
 
+                        <div className="detail-section">
+                            <h4><UserMinus size={18} /> Baja del club</h4>
+                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: 0 }}>
+                                Liberar al atleta lo deja como Agente Libre. Así otro club puede solicitar el traspaso
+                                y la federación corrobora deudas antes de aprobar. También puede traspasarse sin liberar,
+                                si pertenece a un club y el club destino inicia la solicitud.
+                            </p>
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                icon={UserMinus}
+                                onClick={handleLiberarClick}
+                                style={{ width: '100%' }}
+                            >
+                                Liberar Atleta
+                            </Button>
+                        </div>
+
                         <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
                             <Button
                                 variant="secondary"
@@ -953,6 +1010,18 @@ const ClubAtletas = () => {
                 confirmText="Eliminar"
                 cancelText="Cancelar"
                 type="danger"
+            />
+
+            <ConfirmationModal
+                isOpen={showLiberarModal}
+                onClose={() => !liberando && setShowLiberarModal(false)}
+                onConfirm={handleConfirmLiberar}
+                title="Liberar Atleta"
+                message={`¿Liberar a ${atletaDetails?.nombrePersona || 'este atleta'}? Dejará de pertenecer a tu club (Agente Libre). Otro club podrá solicitar el traspaso y la federación verificará deudas.`}
+                confirmText="Liberar"
+                cancelText="Cancelar"
+                type="danger"
+                isLoading={liberando}
             />
 
              <ConfirmationModal

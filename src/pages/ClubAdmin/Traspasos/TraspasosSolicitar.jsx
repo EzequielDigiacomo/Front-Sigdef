@@ -118,7 +118,8 @@ const TraspasosSolicitar = () => {
 
             <Card title="Buscar atleta de otro club">
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: 0 }}>
-                    Busque por nombre, apellido o documento. Solo se muestran atletas de otros clubes de su federación.
+                    Busque por nombre, apellido o documento. Incluye atletas de otros clubes y agentes libres de su federación.
+                    Dos caminos: atleta con club (traspaso clásico) o Agente Libre (la federación verifica deudas y aprueba).
                     Un rechazo previo no bloquea una nueva solicitud.
                 </p>
                 <div className="traspasos-search-box">
@@ -140,7 +141,10 @@ const TraspasosSolicitar = () => {
                             <div key={a.participanteId} className="traspasos-result-item">
                                 <div>
                                     <h4>{a.nombre}</h4>
-                                    <p>Doc: {a.documento} · Club actual: {a.clubNombre}</p>
+                                    <p>
+                                        Doc: {a.documento} · Club actual: {a.clubNombre}
+                                        {a.sinClub ? ' — la federación verificará deudas al aprobar' : ''}
+                                    </p>
                                 </div>
                                 <Button variant="primary" size="sm" icon={Send} onClick={() => setSelected(a)}>
                                     Solicitar
@@ -152,9 +156,8 @@ const TraspasosSolicitar = () => {
 
                 {!searching && searchTerm.trim().length >= 2 && results.length === 0 && (
                     <div className="traspasos-empty" style={{ marginTop: '1rem' }}>
-                        No se encontraron atletas de otros clubes.
-                        La deuda no impide buscarlos (sí puede bloquear la aprobación de la federación).
-                        Probá con apellido o DNI. Si el atleta ya está en tu club, no aparece acá.
+                        No se encontraron atletas. Un rechazo previo no bloquea la búsqueda.
+                        Si el atleta ya está en tu club, no aparece acá.
                     </div>
                 )}
             </Card>
@@ -177,8 +180,10 @@ const TraspasosSolicitar = () => {
                 {selected && (
                     <>
                         <p>
-                            Solicitar traspaso de <strong>{selected.nombre}</strong> desde{' '}
-                            <strong>{selected.clubNombre}</strong> hacia su club.
+                            Solicitar traspaso de <strong>{selected.nombre}</strong>
+                            {selected.sinClub
+                                ? ' (Agente Libre). La federación verificará deudas y, al aprobar, el atleta pasará a su club.'
+                                : <> desde <strong>{selected.clubNombre}</strong> hacia su club.</>}
                         </p>
                         <label htmlFor="motivoSolicitud" style={{ display: 'block', marginBottom: 6 }}>Motivo (opcional)</label>
                         <textarea

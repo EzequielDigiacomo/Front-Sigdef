@@ -70,11 +70,20 @@ const TraspasoDetalle = () => {
         setActionLoading(true);
         try {
             const updated = await TraspasoService.aprobar(id, forzar);
-            setSolicitud(normalizeSolicitud(updated));
+            const norm = normalizeSolicitud(updated);
+            setSolicitud(norm);
             await loadData();
             notifyTraspasosChanged();
             notifyMensajesChanged();
-            showAlert('success', forzar ? 'Traspaso habilitado (forzado). El club origen puede responder.' : 'Deuda verificada. El club origen puede aceptar o rechazar.');
+            if (norm.estado === 'Aprobado') {
+                showAlert('success', forzar
+                    ? 'Traspaso aprobado y ejecutado (forzado). El atleta ya pertenece al club destino.'
+                    : 'Deuda verificada. Traspaso aprobado y ejecutado. El atleta ya pertenece al club destino.');
+            } else {
+                showAlert('success', forzar
+                    ? 'Traspaso habilitado (forzado). El club origen puede responder.'
+                    : 'Deuda verificada. El club origen puede aceptar o rechazar.');
+            }
         } catch (err) {
             showAlert('error', err.message || 'No se pudo aprobar.');
         } finally {
