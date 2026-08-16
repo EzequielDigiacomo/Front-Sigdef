@@ -2,11 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { api } from '../../../services/api';
-import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Award } from 'lucide-react';
 import { CATEGORIA_MAP, SEXO_MAP } from '../../../utils/enums';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
+import PageHeader from '../../../components/common/PageHeader';
 import './EntrenadorSeleccion.css';
  
 const EntrenadorSeleccionForm = () => {
@@ -331,20 +331,23 @@ const EntrenadorSeleccionForm = () => {
     };
 
     return (
-        <div className="page-container">
-            <div className="page-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Button variant="ghost" onClick={goBack}>
-                        <ArrowLeft size={20} />
+        <div className="sel-page fade-in">
+            <PageHeader
+                title={id ? 'Editar entrenador de selección' : 'Nuevo entrenador de selección'}
+                subtitle="Alta y datos del cuerpo técnico nacional"
+                icon={Award}
+                backTo={false}
+                actions={(
+                    <Button variant="secondary" size="sm" icon={ArrowLeft} onClick={goBack}>
+                        Volver
                     </Button>
-                    <h2 className="page-title">{id ? 'Editar Entrenador de Selección' : 'Nuevo Entrenador de Selección'}</h2>
-                </div>
-            </div>
+                )}
+            />
 
-            <Card style={{ maxWidth: '800px', margin: '0 auto' }}>
+            <div className="sel-form-card">
                 <form onSubmit={handleSubmit}>
                     <div className="form-grid">
-                        <h3 className="form-section-title">Datos Personales</h3>
+                        <h3 className="form-section-title">Datos personales</h3>
 
                         <div className="form-group">
                             <label>Nombre *</label>
@@ -525,16 +528,17 @@ const EntrenadorSeleccionForm = () => {
                         <Button
                             type="button"
                             variant="secondary"
+                            size="sm"
                             onClick={goBack}
                         >
                             Cancelar
                         </Button>
-                        <Button type="submit" variant="primary" isLoading={loading}>
-                            <Save size={18} /> {id ? 'Actualizar' : 'Crear'} Entrenador
+                        <Button type="submit" variant="primary" size="sm" isLoading={loading} icon={Save}>
+                            {id ? 'Actualizar' : 'Crear'} entrenador
                         </Button>
                     </div>
                 </form>
-            </Card>
+            </div>
 
             <ConfirmationModal
                 isOpen={showConfirmation}

@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../../services/api';
 import DataTable from '../../../components/common/DataTable';
-import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
-import { ArrowLeft, Plus, Trash2, Edit, Eye, UserCog, X } from 'lucide-react';
+import PageHeader from '../../../components/common/PageHeader';
+import { Plus, Trash2, Edit, Eye, UserCog, X, Award, Users } from 'lucide-react';
 import { getCategoriaLabel, normalizeCategoriaId } from '../../../utils/enums';
 import { withFederationScope } from '../../../utils/apiHelpers';
 import AddAtletaSeleccionModal from './components/AddAtletaSeleccionModal';
@@ -14,6 +14,7 @@ import DocumentUploadModal from '../../../components/common/DocumentUploadModal'
 import DocumentViewerModal from '../../../components/common/DocumentViewerModal';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import './SeleccionCategoriaDetalle.css';
+import './EntrenadorSeleccion.css';
 
 const SeleccionCategoriaDetalle = () => {
     const { categoryId, fedId } = useParams();
@@ -387,54 +388,62 @@ const SeleccionCategoriaDetalle = () => {
     ];
 
     return (
-        <div className="page-container fade-in">
-            <div className="page-header">
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" onClick={() => navigate(baseSelecciones)}>
-                        <ArrowLeft size={24} />
-                    </Button>
-                    <div>
-                        <h1 className="page-title">
-                            Categoría {categoryLabel}
-                        </h1>
-                        <p className="page-subtitle">Gestión de atletas y cuerpo técnico de la selección</p>
+        <div className="sel-page sel-detail-page fade-in">
+            <PageHeader
+                title={`Categoría ${categoryLabel}`}
+                subtitle="Plantel y cuerpo técnico de la selección"
+                icon={Award}
+                backTo={baseSelecciones}
+                backLabel="Selecciones"
+                actions={(
+                    <div className="sel-detail-actions">
+                        <Button variant="secondary" size="sm" icon={UserCog} onClick={() => setShowCoachModal(true)}>
+                            Asignar entrenador
+                        </Button>
+                        <Button variant="primary" size="sm" icon={Plus} onClick={() => setShowAddModal(true)}>
+                            Agregar atleta
+                        </Button>
                     </div>
+                )}
+            />
+
+            <div className="sel-detail-summary">
+                <div className="sel-kpi">
+                    <span className="sel-kpi-label">Atletas</span>
+                    <span className="sel-kpi-value">{athletes.length}</span>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                    <Button variant="secondary" onClick={() => setShowCoachModal(true)}>
-                        <UserCog size={20} /> Asignar Entrenador
-                    </Button>
-                    <Button onClick={() => setShowAddModal(true)}>
-                        <Plus size={20} /> Agregar Atleta
-                    </Button>
+                <div className="sel-kpi">
+                    <span className="sel-kpi-label">Cuerpo técnico</span>
+                    <span className="sel-kpi-value">{coaches.length}</span>
                 </div>
             </div>
 
-            <Card className="seleccion-coaches-card">
-                <div className="seleccion-coaches-head">
+            <section className="sel-staff-panel">
+                <div className="sel-staff-panel-head">
                     <h3>
-                        <UserCog size={18} /> Cuerpo técnico asignado
+                        <UserCog size={15} />
+                        Cuerpo técnico
                     </h3>
-                    <span>{coaches.length} entrenador{coaches.length !== 1 ? 'es' : ''}</span>
+                    <span>{coaches.length} asignado{coaches.length !== 1 ? 's' : ''}</span>
                 </div>
                 {loadingCoaches ? (
-                    <p className="seleccion-coaches-empty">Cargando...</p>
+                    <p className="sel-staff-empty">Cargando...</p>
                 ) : coaches.length === 0 ? (
-                    <p className="seleccion-coaches-empty">
-                        No hay entrenadores asignados a esta categoría.
+                    <p className="sel-staff-empty">
+                        Sin entrenadores en esta categoría. Usá «Asignar entrenador».
                     </p>
                 ) : (
-                    <div className="seleccion-coaches-grid">
+                    <div className="sel-staff-grid">
                         {coaches.map((coach) => (
-                            <div key={coach.id} className="seleccion-coach-chip">
-                                <div className="seleccion-coach-info">
+                            <div key={coach.id} className="sel-staff-chip">
+                                <div className="sel-staff-chip-info">
                                     <strong>{coach.nombre}</strong>
                                     <span>{coach.email}</span>
                                     <span>{coach.telefono}</span>
                                 </div>
                                 <button
                                     type="button"
-                                    className="seleccion-coach-remove"
+                                    className="sel-staff-remove"
                                     title="Quitar de la categoría"
                                     aria-label={`Quitar a ${coach.nombre}`}
                                     onClick={() => handleRemoveCoach(coach)}
@@ -445,9 +454,16 @@ const SeleccionCategoriaDetalle = () => {
                         ))}
                     </div>
                 )}
-            </Card>
+            </section>
 
-            <Card>
+            <section className="sel-athletes-panel">
+                <div className="sel-athletes-panel-head">
+                    <h3>
+                        <Users size={15} />
+                        Plantel
+                    </h3>
+                    <span>{athletes.length} atleta{athletes.length !== 1 ? 's' : ''}</span>
+                </div>
                 <DataTable
                     columns={columns}
                     data={athletes}
@@ -456,7 +472,7 @@ const SeleccionCategoriaDetalle = () => {
                     itemsPerPage={10}
                     emptyMessage="No hay atletas en esta categoría de selección."
                 />
-            </Card>
+            </section>
 
             {showAddModal && (
                 <AddAtletaSeleccionModal

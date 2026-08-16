@@ -1,265 +1,311 @@
-/* Dashboard Layout */
-.dashboard-selection-container {
+/* Selección Nacional — layout denso y minimalista */
+
+.sel-page {
     width: 100%;
-    height: 100%;
-    padding: 1.5rem 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0.85rem 1rem 1.25rem;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    gap: 0.75rem;
 }
 
-.dashboard-selection-header {
-    margin-bottom: 1.5rem;
-    flex-shrink: 0;
-    border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
-    padding-bottom: 1rem;
-}
-
-.dashboard-title {
-    font-size: 1.8rem;
-    font-weight: 800;
-    color: var(--text-primary);
+.sel-loading {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    margin: 0;
+    justify-content: center;
+    min-height: 160px;
 }
 
-.dashboard-subtitle {
-    color: var(--text-secondary);
-    margin-top: 0.25rem;
-}
-
-/* GRILLA */
-.categories-grid {
+/* KPIs */
+.sel-kpi-row {
     display: grid;
-    /* Forzamos exactamente 3 columnas para el diseño 3x3 */
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(3, auto);
-    gap: 1rem;
-    padding: 0.5rem;
-    width: 100%;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem;
 }
 
-/* TARJETA VERTICAL PARA 3x3 */
-.category-card-horizontal {
-    background-color: var(--bg-card, #1e293b);
-    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
-    border-top: 5px solid var(--primary, #3b82f6);
-    /* Barra arriba ahora */
-    border-radius: 16px;
+.sel-kpi {
+    background: var(--bg-card, rgba(30, 41, 59, 0.65));
+    border: 1px solid var(--border-color, rgba(148, 163, 184, 0.14));
+    border-radius: 10px;
+    padding: 0.55rem 0.7rem;
     display: flex;
     flex-direction: column;
-    /* VERTICAL */
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-    min-height: 200px;
-    /* Aumentamos para que quepa todo el contenido vertical */
-    /* Mucho más grandes */
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    gap: 0.75rem;
-    text-align: center;
+    gap: 0.15rem;
+    min-height: 58px;
 }
 
-.category-card-horizontal:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px -10px rgba(0, 0, 0, 0.5);
-    border-color: var(--primary, #3b82f6);
+.sel-kpi-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-secondary, #94a3b8);
 }
 
-/* COLUMNA 1: ICONO Y NOMBRE (Izquierda) */
-.card-col-left {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-}
-
-.category-icon-wrapper {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    background: var(--bg-secondary, rgba(255, 255, 255, 0.05));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--primary, #3b82f6);
-    margin-bottom: 0.75rem;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.category-title {
+.sel-kpi-value {
     font-size: 1.25rem;
     font-weight: 800;
-    color: var(--text-primary, #f3f4f6);
+    line-height: 1.1;
+    color: var(--text-primary, #f1f5f9);
+}
+
+.sel-kpi-ok {
+    color: #34d399;
+}
+
+.sel-kpi-warn {
+    color: #fbbf24;
+}
+
+/* Grilla de categorías */
+.sel-cat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+}
+
+.sel-cat-card {
+    appearance: none;
+    text-align: left;
+    width: 100%;
+    margin: 0;
+    cursor: pointer;
+    background: var(--bg-card, rgba(30, 41, 59, 0.72));
+    border: 1px solid var(--border-color, rgba(148, 163, 184, 0.14));
+    border-radius: 12px;
+    padding: 0.7rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+    color: inherit;
+    font: inherit;
+}
+
+.sel-cat-card:hover {
+    border-color: rgba(59, 130, 246, 0.55);
+    background: rgba(30, 41, 59, 0.92);
+    transform: translateY(-1px);
+}
+
+.sel-cat-card:focus-visible {
+    outline: 2px solid var(--primary, #3b82f6);
+    outline-offset: 2px;
+}
+
+.sel-cat-card.is-empty-staff {
+    border-color: rgba(251, 191, 36, 0.22);
+}
+
+.sel-cat-top {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+}
+
+.sel-cat-icon {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(59, 130, 246, 0.12);
+    color: var(--primary, #3b82f6);
+}
+
+.sel-cat-title-wrap {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.sel-cat-title {
+    margin: 0;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--text-primary, #f8fafc);
     line-height: 1.2;
+}
+
+.sel-cat-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    font-size: 0.72rem;
+    color: var(--text-secondary, #94a3b8);
+}
+
+.sel-cat-go {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(148, 163, 184, 0.1);
+    color: var(--text-secondary, #94a3b8);
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sel-cat-card:hover .sel-cat-go {
+    background: var(--primary, #3b82f6);
+    color: #fff;
+}
+
+.sel-cat-staff {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding-top: 0.45rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.sel-staff-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary, #94a3b8);
+}
+
+.sel-coach-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    align-items: center;
+}
+
+.sel-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    max-width: 100%;
+    padding: 0.18rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 1.2;
+    border: 1px solid transparent;
+}
+
+.sel-chip-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 9.5rem;
+}
+
+.sel-chip-ok {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.22);
+    color: #93c5fd;
+}
+
+.sel-chip-warn {
+    background: rgba(251, 191, 36, 0.1);
+    border-color: rgba(251, 191, 36, 0.28);
+    color: #fbbf24;
+}
+
+.sel-chip-muted {
+    background: rgba(148, 163, 184, 0.1);
+    color: var(--text-secondary, #94a3b8);
+}
+
+/* Compat: clases viejas del form de entrenador de selección */
+.dashboard-selection-container {
+    width: 100%;
+    padding: 0.85rem 1rem 1.25rem;
+}
+
+.sel-form-card {
+    max-width: 760px;
+    margin: 0 auto;
+    background: var(--bg-card, rgba(30, 41, 59, 0.72));
+    border: 1px solid var(--border-color, rgba(148, 163, 184, 0.14));
+    border-radius: 12px;
+    padding: 0.85rem 1rem 1rem;
+}
+
+.sel-form-card .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem 0.75rem;
+}
+
+.sel-form-card .form-section-title {
+    grid-column: 1 / -1;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin: 0.35rem 0 0.15rem;
+    color: var(--text-secondary);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+    padding-bottom: 0.35rem;
+}
+
+.sel-form-card .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
     margin: 0;
 }
 
-/* COLUMNA 2: ENTRENADORES (Ahora abajo del título) */
-.card-col-center {
-    display: flex !important;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    margin: 0.25rem 0;
-    padding: 0.5rem 0;
-    border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
-    border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
-}
-
-.coach-mini-list {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.4rem;
-}
-
-.coach-mini-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.85rem;
-    color: var(--text-primary);
-}
-
-.section-label {
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: var(--text-secondary, #9ca3af);
-    margin-bottom: 0.35rem;
-    letter-spacing: 0.05em;
-}
-
-.coach-item-row {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.25rem;
-}
-
-.avatar-circle {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background-color: var(--bg-secondary, rgba(255, 255, 255, 0.1));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 9px;
-    color: var(--text-primary);
-}
-
-.coach-name-clean {
-    font-size: 0.9rem;
-    color: var(--text-primary, #f3f4f6);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 180px;
-}
-
-/* Badge No Asignado (Limpio) */
-.badge-no-coach {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.2rem 0.4rem;
-    background-color: rgba(234, 179, 8, 0.1);
-    /* Amarillo muy suave */
-    border: 1px solid rgba(234, 179, 8, 0.3);
-    border-radius: 6px;
-    color: #fca5a5;
-    /* Rojo suave o Amarillo según preferencia */
-    color: var(--warning, #fbbf24);
-    font-size: 0.7rem;
-    font-weight: 500;
-}
-
-/* COLUMNA 3: ATLETAS Y ACCIÓN */
-.card-col-right {
-    display: flex !important;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    margin-top: auto;
-    padding-top: 0.5rem;
-}
-
-.stat-group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.stat-big-number {
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: var(--primary, #3b82f6);
-    line-height: 1;
-}
-
-.stat-sublabel {
-    font-size: 0.7rem;
+.sel-form-card .form-group label {
+    font-size: 0.72rem;
     font-weight: 600;
-    text-transform: uppercase;
-    color: var(--text-secondary, #9ca3af);
-}
-
-.btn-icon-action {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    background-color: var(--bg-secondary, rgba(255, 255, 255, 0.05));
     color: var(--text-secondary);
 }
 
-.category-card-horizontal:hover .btn-icon-action {
-    background-color: var(--primary);
-    color: white;
+.sel-form-card .form-input {
+    padding: 0.45rem 0.6rem;
+    font-size: 0.85rem;
+    border-radius: 8px;
 }
 
-@media (max-width: 960px) {
-    .dashboard-selection-container {
-        padding: 0.85rem 0.75rem 1.25rem;
-        overflow: auto;
-    }
+.sel-form-card .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.45rem;
+    margin-top: 0.85rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
 
-    .categories-grid {
+@media (max-width: 640px) {
+    .sel-form-card .form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 900px) {
+    .sel-cat-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        grid-template-rows: none;
-        gap: 0.55rem;
-        padding: 0;
     }
 
-    .category-card-horizontal {
-        min-height: 0;
-        padding: 0.7rem 0.65rem;
-        border-radius: 12px;
-        border-top-width: 3px;
-        gap: 0.45rem;
-    }
-
-    .category-icon-wrapper {
-        width: 36px;
-        height: 36px;
-    }
-
-    .category-icon-wrapper svg {
-        width: 18px;
-        height: 18px;
+    .sel-kpi-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
-@media (max-width: 480px) {
-    .categories-grid {
-        grid-template-columns: 1fr 1fr;
+@media (max-width: 520px) {
+    .sel-page {
+        padding: 0.65rem 0.65rem 1rem;
+    }
+
+    .sel-cat-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sel-kpi-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }

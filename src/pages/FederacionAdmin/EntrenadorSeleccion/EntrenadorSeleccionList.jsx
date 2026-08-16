@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../../services/api';
-import Card from '../../../components/common/Card';
-import { Users, Award, ChevronRight, User, Plus } from 'lucide-react';
+import Button from '../../../components/common/Button';
+import { Award, ChevronRight, User, Plus, AlertTriangle, Users } from 'lucide-react';
 import { CATEGORIA_MAP, normalizeCategoriaId } from '../../../utils/enums';
 import { withFederationScope } from '../../../utils/apiHelpers';
 import PageHeader from '../../../components/common/PageHeader';
-import './EntrenadorSeleccion.css?v=2';
+import './EntrenadorSeleccion.css';
 
 const EntrenadorSeleccionList = () => {
     const { fedId } = useParams();
@@ -84,90 +84,116 @@ const EntrenadorSeleccionList = () => {
         }
     };
 
+    const summary = useMemo(() => {
+        const totalAtletas = stats.reduce((acc, s) => acc + (s.athleteCount || 0), 0);
+        const conStaff = stats.filter((s) => s.hasTrainer).length;
+        const sinStaff = stats.length - conStaff;
+        return { totalAtletas, conStaff, sinStaff, categorias: stats.length };
+    }, [stats]);
+
     const renderCoachSection = (names) => {
         if (!names || names.length === 0) {
             return (
-                <div className="no-coach-badge">
-                    <span className="mr-2">⚠️</span> No asignado
-                </div>
+                <span className="sel-chip sel-chip-warn">
+                    <AlertTriangle size={12} />
+                    Sin staff
+                </span>
             );
         }
 
-        const maxDisplay = 3;
+        const maxDisplay = 2;
         const displayed = names.slice(0, maxDisplay);
         const remaining = names.length - maxDisplay;
 
         return (
-            <div className="coach-mini-list">
+            <div className="sel-coach-inline">
                 {displayed.map((name, i) => (
-                    <div key={i} className="coach-mini-item">
-                        <div className="coach-avatar-small">
-                            <User size={14} />
-                        </div>
-                        <span className="text-ellipsis" title={name}>{name}</span>
-                    </div>
+                    <span key={i} className="sel-chip sel-chip-ok" title={name}>
+                        <User size={11} />
+                        <span className="sel-chip-text">{name}</span>
+                    </span>
                 ))}
                 {remaining > 0 && (
-                    <span className="text-xs text-primary font-medium ml-1">+{remaining} más</span>
+                    <span className="sel-chip sel-chip-muted">+{remaining}</span>
                 )}
             </div>
         );
     };
 
     return (
-        <div className="dashboard-selection-container fade-in">
+        <div className="sel-page fade-in">
             <PageHeader
                 title="Selección Nacional"
-                subtitle="Vista general de categorías y cuerpo técnico"
+                subtitle="Categorías, cuerpo técnico y planteles"
                 icon={Award}
                 backTo={backTo}
-                backLabel={isSuperAdminView ? 'Dashboard federación' : 'Dashboard'}
+                backLabel={isSuperAdminView ? 'Federación' : 'Dashboard'}
                 actions={(
-                    <button
-                        className="btn-primary"
+                    <Button
+                        variant="primary"
+                        size="sm"
+                        icon={Plus}
                         onClick={() => navigate(`${baseEntrenadores}/nuevo`)}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                     >
-                        <Plus size={20} />
-                        Crear Entrenador
-                    </button>
+                        Crear entrenador
+                    </Button>
                 )}
             />
 
+            {!loading && (
+                <div className="sel-kpi-row">
+                    <div className="sel-kpi">
+                        <span className="sel-kpi-label">Categorías</span>
+                        <span className="sel-kpi-value">{summary.categorias}</span>
+                    </div>
+                    <div className="sel-kpi">
+                        <span className="sel-kpi-label">Atletas</span>
+                        <span className="sel-kpi-value">{summary.totalAtletas}</span>
+                    </div>
+                    <div className="sel-kpi">
+                        <span className="sel-kpi-label">Con staff</span>
+                        <span className="sel-kpi-value sel-kpi-ok">{summary.conStaff}</span>
+                    </div>
+                    <div className="sel-kpi">
+                        <span className="sel-kpi-label">Sin staff</span>
+                        <span className="sel-kpi-value sel-kpi-warn">{summary.sinStaff}</span>
+                    </div>
+                </div>
+            )}
+
             {loading ? (
-                <div className="flex-center h-64">
-                    <div className="spinner"></div>
+                <div className="sel-loading">
+                    <div className="spinner" />
                 </div>
             ) : (
-                <div className="categories-grid">
+                <div className="sel-cat-grid">
                     {stats.map((stat) => (
-                        <div
+                        <button
+                            type="button"
                             key={stat.id}
-                            className="category-card-horizontal"
+                            className={`sel-cat-card${stat.hasTrainer ? '' : ' is-empty-staff'}`}
                             onClick={() => navigate(`${baseSelecciones}/categoria/${stat.id}`)}
                         >
-                            <div className="card-col-left">
-                                <div className="category-icon-wrapper">
-                                    <Award size={32} />
+                            <div className="sel-cat-top">
+                                <div className="sel-cat-icon" aria-hidden>
+                                    <Award size={16} />
                                 </div>
-                                <h3 className="category-title">{stat.label}</h3>
+                                <div className="sel-cat-title-wrap">
+                                    <h3 className="sel-cat-title">{stat.label}</h3>
+                                    <span className="sel-cat-meta">
+                                        <Users size={12} />
+                                        {stat.athleteCount} atleta{stat.athleteCount === 1 ? '' : 's'}
+                                    </span>
+                                </div>
+                                <span className="sel-cat-go" aria-hidden>
+                                    <ChevronRight size={16} />
+                                </span>
                             </div>
-
-                            <div className="card-col-center">
-                                <div className="section-label">Cuerpo Técnico</div>
+                            <div className="sel-cat-staff">
+                                <span className="sel-staff-label">Cuerpo técnico</span>
                                 {renderCoachSection(stat.coachNames)}
                             </div>
-
-                            <div className="card-col-right">
-                                <div className="stat-group">
-                                    <div className="stat-big-number">{stat.athleteCount}</div>
-                                    <div className="stat-sublabel">Atletas</div>
-                                </div>
-                                <div className="btn-icon-action">
-                                    <ChevronRight size={28} />
-                                </div>
-                            </div>
-                        </div>
+                        </button>
                     ))}
                 </div>
             )}

@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { api } from '../../../../services/api';
 import Button from '../../../../components/common/Button';
 import ConfirmationModal from '../../../../components/common/ConfirmationModal';
-import { X, Award } from 'lucide-react';
+import { X, Award, Check } from 'lucide-react';
 import { CATEGORIA_MAP } from '../../../../utils/enums';
 import './AssignCategoryModal.css';
 
@@ -10,25 +10,24 @@ const AssignCategoryModal = ({ isOpen, onClose, onSuccess, coach }) => {
     const [selectedCategory, setSelectedCategory] = useState(
         String(coach?.categoriaSeleccion || coach?.CategoriaSeleccion || '0')
     );
-
     const [submitting, setSubmitting] = useState(false);
-
-    React.useEffect(() => {
-        setSelectedCategory(String(coach?.categoriaSeleccion || coach?.CategoriaSeleccion || '0'));
-    }, [coach]);
-
-    // Confirmation Modal State
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [confirmationConfig, setConfirmationConfig] = useState({
         type: 'success',
         title: '',
-        message: ''
+        message: '',
     });
+
+    useEffect(() => {
+        setSelectedCategory(String(coach?.categoriaSeleccion || coach?.CategoriaSeleccion || '0'));
+    }, [coach]);
+
+    const coachName =
+        coach?.nombrePersona || `${coach?.nombre || ''} ${coach?.apellido || ''}`.trim() || 'entrenador';
 
     const handleAssign = async () => {
         setSubmitting(true);
         try {
-            // Prepare the DTO with the correct format expected by the backend
             const entrenadorData = {
                 participanteId: coach.idPersona,
                 ParticipanteId: coach.idPersona,
@@ -36,31 +35,28 @@ const AssignCategoryModal = ({ isOpen, onClose, onSuccess, coach }) => {
                 idClub: coach.idClub || null,
                 licencia: coach.licencia || '',
                 perteneceSeleccion: true,
-                categoriaSeleccion: selectedCategory, // Already a string
+                categoriaSeleccion: selectedCategory,
                 becadoEnard: coach.becadoEnard || false,
                 becadoSdn: coach.becadoSdn || false,
                 montoBeca: coach.montoBeca || 0,
-                presentoAptoMedico: coach.presentoAptoMedico || false
+                presentoAptoMedico: coach.presentoAptoMedico || false,
             };
 
-            console.log('📤 Asignando categoría al entrenador:', entrenadorData);
             await api.put(`/Entrenador/${coach.idPersona}`, entrenadorData);
 
-            // Show success modal
             const categoryName = CATEGORIA_MAP[selectedCategory] || 'Sin Asignar';
             setConfirmationConfig({
                 type: 'success',
-                title: '¡Éxito!',
-                message: `La categoría ${categoryName} ha sido asignada correctamente al entrenador ${coach.nombrePersona || coach.nombre + ' ' + coach.apellido}.`
+                title: 'Categoría asignada',
+                message: `${categoryName} quedó asignada a ${coachName}.`,
             });
             setShowConfirmation(true);
         } catch (error) {
             console.error('Error assigning category:', error);
-            // Show error modal
             setConfirmationConfig({
                 type: 'danger',
                 title: 'Error',
-                message: 'Hubo un problema al asignar la categoría. Por favor, intente nuevamente.'
+                message: 'No se pudo asignar la categoría. Intentá de nuevo.',
             });
             setShowConfirmation(true);
         } finally {
@@ -78,51 +74,66 @@ const AssignCategoryModal = ({ isOpen, onClose, onSuccess, coach }) => {
     if (!isOpen || !coach) return null;
 
     return (
-        <div className="modal-overlay">
-            <div className="modal-content-category">
-                <div className="modal-header">
-                    <h3 className="modal-title">
-                        Asignar Categoría - {coach.nombrePersona || `${coach.nombre} ${coach.apellido}`}
-                    </h3>
-                    <button className="modal-close" onClick={onClose}>
-                        <X size={24} />
+        <div className="acm-overlay" onClick={onClose}>
+            <div
+                className="acm-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="acm-title"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="acm-header">
+                    <div className="acm-header-text">
+                        <h3 id="acm-title" className="acm-title">Asignar categoría</h3>
+                        <p className="acm-subtitle">{coachName}</p>
+                    </div>
+                    <button type="button" className="acm-close" onClick={onClose} aria-label="Cerrar">
+                        <X size={18} />
                     </button>
                 </div>
 
-                <div className="modal-body">
-                    <p className="modal-description">
-                        Seleccione la categoría de selección para este entrenador:
-                    </p>
-
-                    <div className="categories-grid">
-                        {Object.entries(CATEGORIA_MAP).map(([key, label]) => (
-                            <div
-                                key={key}
-                                className={`category-card ${selectedCategory === key ? 'selected' : ''}`}
-                                onClick={() => setSelectedCategory(key)}
-                            >
-                                <div className="category-icon">
-                                    <Award size={24} />
-                                </div>
-                                <div className="category-label">{label}</div>
-                                {selectedCategory === key && (
-                                    <div className="category-check">✓</div>
-                                )}
-                            </div>
-                        ))}
+                <div className="acm-body">
+                    <p className="acm-hint">Elegí la categoría de selección</p>
+                    <div className="acm-list" role="listbox" aria-label="Categorías">
+                        {Object.entries(CATEGORIA_MAP).map(([key, label]) => {
+                            const selected = selectedCategory === key;
+                            return (
+                                <button
+                                    type="button"
+                                    key={key}
+                                    role="option"
+                                    aria-selected={selected}
+                                    className={`acm-option${selected ? ' is-selected' : ''}`}
+                                    onClick={() => setSelectedCategory(key)}
+                                >
+                                    <span className="acm-option-icon" aria-hidden>
+                                        <Award size={14} />
+                                    </span>
+                                    <span className="acm-option-label">{label}</span>
+                                    {selected && (
+                                        <span className="acm-option-check" aria-hidden>
+                                            <Check size={14} />
+                                        </span>
+                                    )}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
-                <div className="modal-footer">
-                    <Button variant="ghost" onClick={onClose} disabled={submitting}>
+                <div className="acm-footer">
+                    <Button variant="secondary" size="sm" onClick={onClose} disabled={submitting}>
                         Cancelar
                     </Button>
                     <Button
+                        variant="primary"
+                        size="sm"
+                        icon={Award}
                         onClick={handleAssign}
                         disabled={submitting}
                         isLoading={submitting}
                     >
-                        <Award size={18} /> Asignar Categoría
+                        Asignar
                     </Button>
                 </div>
             </div>

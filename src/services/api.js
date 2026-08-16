@@ -1,4 +1,5 @@
 import { PARENTESCO_MAP } from '../utils/enums';
+import { toFriendlyErrorMessage } from '../utils/friendlyError';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5029/api';
 const CLIENT_APP = 'sigdef';
@@ -23,6 +24,10 @@ const getAuthToken = () => {
         /* ignorar */
     }
     return localStorage.getItem('token') || null;
+};
+
+const throwFriendly = (raw, status, fallback) => {
+    throw new Error(toFriendlyErrorMessage(raw, { status, fallback }));
 };
 
 const handleResponse = async (response, options = {}) => {
@@ -59,36 +64,32 @@ const handleResponse = async (response, options = {}) => {
             }
         }
 
-        if (serverMessage) {
-            throw new Error(serverMessage);
-        }
-
         if (isLoginRequest) {
-            throw new Error('Usuario o contraseña incorrectos.');
+            throwFriendly(serverMessage, 401, 'Usuario o contraseña incorrectos.');
         }
 
-        throw new Error('Su sesión ha expirado. Por favor inicie sesión nuevamente.');
+        throwFriendly(serverMessage, 401, 'Tu sesión expiró. Volvé a iniciar sesión.');
     }
 
     if (!response.ok) {
+        // Detalle técnico solo en consola — la UI recibe mensaje amigable
         if (!silentErrors) {
             console.error('Error del servidor:', response.status, responseText, 'URL:', response.url);
         }
 
-        if (!responseText) {
-            throw new Error(`Error ${response.status}: ${response.statusText || 'Sin respuesta del servidor'}`);
+        let raw = '';
+        try {
+            const errorObj = JSON.parse(responseText || '{}');
+            raw = errorObj.message || errorObj.Message || errorObj.error || errorObj.Error || '';
+        } catch {
+            raw = '';
         }
 
-        try {
-            const errorObj = JSON.parse(responseText);
-            throw new Error(errorObj.message || errorObj.error || `Error ${response.status}`);
-        } catch (e) {
-            if (e.message && !e.message.startsWith('Error ') && !e.message.includes('Unexpected end')) throw e;
-            if (e instanceof SyntaxError) {
-                throw new Error(responseText || `Error ${response.status}: ${response.statusText}`);
-            }
-            throw e;
-        }
+        throwFriendly(
+            raw,
+            response.status,
+            'No se pudo completar la operación. Revisá los datos e intentá nuevamente.'
+        );
     }
 
     if (!responseText) return { success: true };
@@ -116,9 +117,13 @@ const fetchWithTimeout = async (resource, options = {}) => {
     } catch (error) {
         clearTimeout(id);
         if (error.name === 'AbortError') {
-            throw new Error('La petición ha tardó demasiado tiempo (Timeout)');
+            throw new Error(toFriendlyErrorMessage('timeout', {
+                fallback: 'La operación tardó demasiado. Intentá nuevamente.',
+            }));
         }
-        throw error;
+        throw new Error(toFriendlyErrorMessage(error, {
+            fallback: 'No se pudo conectar con el servidor. Revisá tu conexión.',
+        }));
     }
 };
 

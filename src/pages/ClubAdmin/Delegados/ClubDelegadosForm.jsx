@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { api } from '../../../services/api';
@@ -8,6 +8,7 @@ import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import { ArrowLeft, Save, Search } from 'lucide-react';
 import '../Atletas/ClubAtletas.css';
 import '../../../styles/CompactForm.css';
+import { toFriendlyErrorMessage } from '../../../utils/friendlyError';
 
 const ClubDelegadosForm = () => {
     const { id } = useParams();
@@ -42,6 +43,10 @@ const ClubDelegadosForm = () => {
         shouldNavigate: false
     });
 
+    const [participanteId, setParticipanteId] = useState(null);
+    const [personaFound, setPersonaFound] = useState(false);
+    const searchTimer = useRef(null);
+
     const handleModalClose = () => {
         const shouldNav = modalConfig.shouldNavigate;
         setModalConfig((prev) => ({ ...prev, isOpen: false, shouldNavigate: false }));
@@ -56,27 +61,30 @@ const ClubDelegadosForm = () => {
 
     useEffect(() => {
         if (id) loadDelegado();
+        return () => {
+            if (searchTimer.current) clearTimeout(searchTimer.current);
+        };
     }, [id]);
 
     const loadDelegado = async () => {
         try {
             const data = await api.get('/Auth/usuarios');
-            const user = data.find(u => (u.id || u.idPersona || u.IdPersona).toString() === id);
+            const found = data.find(u => (u.id || u.idPersona || u.IdPersona).toString() === id);
 
-            if (user) {
+            if (found) {
                 setFormData({
-                    nombre: user.nombre || user.nombrePersona || '',
-                    apellido: user.apellido || user.apellidoPersona || '',
-                    documento: user.dni || user.documento || '',
-                    fechaNacimiento: '', 
-                    email: user.email || '',
-                    telefono: user.telefono || '',
+                    nombre: found.nombre || found.nombrePersona || '',
+                    apellido: found.apellido || found.apellidoPersona || '',
+                    documento: found.dni || found.documento || '',
+                    fechaNacimiento: '',
+                    email: found.email || '',
+                    telefono: found.telefono || '',
                     direccion: '',
                     sexo: 1,
-
                     idRol: 3,
-                    idFederacion: user.federacionId || 1
+                    idFederacion: found.federacionId || 1
                 });
+                setParticipanteId(found.participanteId || found.ParticipanteId || null);
             }
         } catch (error) {
             console.error('Error cargando delegado:', error);
@@ -90,11 +98,46 @@ const ClubDelegadosForm = () => {
             ...prev,
             [name]: type === 'number' ? parseInt(value) : value
         }));
+
+        if (name === 'documento' && !id) {
+            setPersonaFound(false);
+            setParticipanteId(null);
+            if (searchTimer.current) clearTimeout(searchTimer.current);
+            const digits = String(value || '').replace(/\D/g, '');
+            if (digits.length >= 7) {
+                searchTimer.current = setTimeout(() => buscarPersonaPorDni(digits, false), 450);
+            }
+        }
     };
 
-    const buscarPersonaPorDni = async () => {
-        // Feature not supported natively with Auth/usuarios
-        console.log('Búsqueda por DNI no disponible en este contexto.');
+    const buscarPersonaPorDni = async (docOverride, notify = true) => {
+        const documento = String(docOverride ?? formData.documento ?? '').trim();
+        if (documento.length < 7) return;
+        try {
+            const persona = await api.get(`/Persona/documento/${encodeURIComponent(documento)}`, { silentErrors: true });
+            if (!persona) {
+                if (notify) showModal('Persona nueva', 'No hay persona con ese DNI. Completá los datos.', 'info');
+                return;
+            }
+            setFormData(prev => ({
+                ...prev,
+                nombre: persona.nombre || persona.Nombre || '',
+                apellido: persona.apellido || persona.Apellido || '',
+                documento: persona.documento || persona.Documento || documento,
+                sexo: persona.sexoId ?? persona.SexoId ?? persona.sexo ?? 1,
+                fechaNacimiento: String(persona.fechaNacimiento || persona.FechaNacimiento || '').split('T')[0],
+                email: persona.email || persona.Email || '',
+                telefono: persona.telefono || persona.Telefono || '',
+                direccion: persona.direccion || persona.Direccion || '',
+            }));
+            setParticipanteId(persona.participanteId ?? persona.ParticipanteId ?? persona.idPersona ?? persona.IdPersona);
+            setPersonaFound(true);
+            if (notify) {
+                showModal('Persona encontrada', 'Datos autocompletados. Puede ser entrenador y también delegado.', 'success');
+            }
+        } catch {
+            if (notify) showModal('Persona nueva', 'No hay persona con ese DNI. Completá los datos.', 'info');
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -102,13 +145,41 @@ const ClubDelegadosForm = () => {
         setLoading(true);
 
         try {
+            let pid = participanteId;
+            const personaPayload = {
+                nombre: formData.nombre,
+                apellido: formData.apellido,
+                documento: formData.documento,
+                fechaNacimiento: formData.fechaNacimiento
+                    ? new Date(formData.fechaNacimiento).toISOString()
+                    : new Date('2000-01-01T00:00:00.000Z').toISOString(),
+                email: formData.email || null,
+                telefono: formData.telefono || null,
+                direccion: formData.direccion || null,
+                sexoId: parseInt(formData.sexo, 10) || 1,
+            };
+
+            if (!pid) {
+                try {
+                    const existing = await api.get(`/Persona/documento/${encodeURIComponent(formData.documento)}`, { silentErrors: true });
+                    pid = existing?.participanteId ?? existing?.ParticipanteId ?? existing?.idPersona ?? existing?.IdPersona;
+                } catch { /* nueva */ }
+            }
+
+            if (pid) {
+                await api.put(`/Persona/${pid}`, personaPayload).catch(() => {});
+            } else {
+                const created = await api.post('/Persona', personaPayload);
+                pid = created?.participanteId ?? created?.ParticipanteId ?? created?.idPersona ?? created?.IdPersona;
+            }
+
             const userPayload = {
-                username: formData.documento, // DNI as username
-                password: formData.documento, // DNI as password for initial creation
-                email: formData.email || `${formData.documento}@sigdef.com`,
+                username: formData.documento,
+                password: formData.documento,
+                email: formData.email || `${formData.documento}@sigdef.local`,
                 rol: 'Club',
                 rolFederacion: 'Club',
-                clubId: parseInt(clubId),
+                clubId: parseInt(clubId, 10),
                 nombre: formData.nombre,
                 apellido: formData.apellido,
                 dni: formData.documento,
@@ -126,11 +197,32 @@ const ClubDelegadosForm = () => {
                 await api.post('/Auth/register', userPayload);
             }
 
-            showModal('Éxito', 'Delegado guardado correctamente.', 'success', true);
+            if (pid) {
+                await api.post('/DelegadoClub', {
+                    participanteId: pid,
+                    idRol: 3,
+                    idFederacion: formData.idFederacion || user?.idFederacion || null,
+                    idClub: parseInt(clubId, 10),
+                }).catch(() => {});
+            }
 
+            showModal(
+                'Éxito',
+                personaFound
+                    ? 'Delegado guardado. La persona puede ser entrenador y delegado a la vez.'
+                    : 'Delegado guardado correctamente.',
+                'success',
+                true
+            );
         } catch (error) {
             console.error('Error guardando:', error);
-            showModal('Error', error.message || 'Error al guardar el delegado.', 'danger');
+            showModal(
+                'Error',
+                toFriendlyErrorMessage(error, {
+                    fallback: 'No se pudo guardar el delegado. Revisá los datos e intentá nuevamente.',
+                }),
+                'danger'
+            );
         } finally {
             setLoading(false);
         }

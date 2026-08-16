@@ -417,23 +417,19 @@ const EntrenadoresList = () => {
                 backLabel={isSuperAdminView ? 'Dashboard federación' : 'Dashboard'}
                 actions={(
                     <div className="flex gap-2">
-                        <Button variant="outline" onClick={() => setShowAddCoachModal(true)}>
-                            {isMobileView ? (
-                                <UserPlus size={20} />
-                            ) : (
-                                <>
-                                    <UserPlus size={20} /> Vincular a Selección
-                                </>
-                            )}
+                        <Button variant="primary" icon={UserPlus} onClick={() => setShowAddCoachModal(true)}>
+                            {isMobileView ? null : 'Vincular a Selección'}
                         </Button>
                         <Button
+                            variant="primary"
+                            icon={Plus}
                             onClick={() =>
                                 navigate(`${basePath}/nuevo`, {
                                     state: { returnPath: location.pathname },
                                 })
                             }
                         >
-                            <Plus size={20} /> {isMobileView ? 'Crear' : 'Nuevo Entrenador'}
+                            {isMobileView ? 'Crear' : 'Nuevo Entrenador'}
                         </Button>
                     </div>
                 )}

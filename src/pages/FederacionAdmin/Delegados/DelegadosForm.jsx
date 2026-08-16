@@ -1,14 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
-import { ArrowLeft, Save, Search } from 'lucide-react';
+import { ArrowLeft, Save, Search, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { withFederationScope } from '../../../utils/apiHelpers';
 import { canAccessDashboardClub, extractPlanFromUser } from '../../../utils/planHelpers';
+import { toFriendlyErrorMessage } from '../../../utils/friendlyError';
 import '../../../styles/CompactForm.css';
+
+const pickPersonaId = (p) =>
+    p?.participanteId ?? p?.ParticipanteId ?? p?.idPersona ?? p?.IdPersona ?? p?.id ?? p?.Id ?? null;
+
+const mapPersonaToForm = (persona) => ({
+    nombre: persona.nombre || persona.Nombre || '',
+    apellido: persona.apellido || persona.Apellido || '',
+    documento: persona.documento || persona.Documento || persona.dni || persona.Dni || '',
+    sexo: persona.sexoId ?? persona.SexoId ?? persona.sexo?.id ?? persona.Sexo?.Id ?? persona.sexo ?? persona.Sexo ?? 1,
+    fechaNacimiento: String(persona.fechaNacimiento || persona.FechaNacimiento || '').split('T')[0],
+    email: persona.email || persona.Email || '',
+    telefono: persona.telefono || persona.Telefono || '',
+    direccion: persona.direccion || persona.Direccion || '',
+});
 
 const DelegadosForm = () => {
     const { id, fedId } = useParams();
@@ -17,10 +32,14 @@ const DelegadosForm = () => {
     const { user } = useAuth();
     const clubLoginAllowed = canAccessDashboardClub(extractPlanFromUser(user) || user?.plan);
     const [loading, setLoading] = useState(false);
+    const [searching, setSearching] = useState(false);
+    const [personaFound, setPersonaFound] = useState(false);
+    const [participanteId, setParticipanteId] = useState(null);
     const [clubes, setClubes] = useState([]);
     const [federacionNombre, setFederacionNombre] = useState('');
+    const searchTimer = useRef(null);
+    const lastSearchedDoc = useRef('');
 
-    // Helper de navegación: vuelve a la grilla de delegados
     const goBack = () => {
         if (location.state?.returnPath) {
             navigate(location.state.returnPath);
@@ -33,22 +52,18 @@ const DelegadosForm = () => {
         navigate('/dashboard/delegados');
     };
 
-    // Estado del formulario unificado (Persona + Delegado)
     const [formData, setFormData] = useState({
-        // Datos Persona
         nombre: '',
         apellido: '',
         documento: '',
-        sexo: 1, // Por defecto Masculino
+        sexo: 1,
         fechaNacimiento: '',
         email: '',
         telefono: '',
         direccion: '',
-
-        // Datos Delegado
-        idRol: 3, // Delegado Club
-        idClub: '', // Vacío implica Agente Libre
-        idFederacion: user?.idFederacion || 1
+        idRol: 3,
+        idClub: '',
+        idFederacion: user?.idFederacion || 1,
     });
 
     const [modalConfig, setModalConfig] = useState({
@@ -56,54 +71,49 @@ const DelegadosForm = () => {
         title: '',
         message: '',
         type: 'info',
-        shouldNavigate: false
+        shouldNavigate: false,
     });
 
     useEffect(() => {
         loadClubes();
         loadFederacion();
-        if (id) {
-            loadDelegado();
-        }
+        if (id) loadDelegado();
     }, [id, fedId]);
+
+    useEffect(() => {
+        if (location.state?.clubId) {
+            setFormData((prev) => ({ ...prev, idClub: location.state.clubId }));
+        }
+    }, [location.state]);
+
+    useEffect(() => () => {
+        if (searchTimer.current) clearTimeout(searchTimer.current);
+    }, []);
 
     const loadDelegado = async () => {
         setLoading(true);
         try {
             const data = await api.get('/Auth/usuarios');
-            const user = data.find(u => (u.id || u.idPersona || u.IdPersona).toString() === id);
-
-            if (user) {
-                setFormData(prev => ({
+            const found = data.find((u) => String(u.id || u.idPersona || u.IdPersona) === String(id));
+            if (found) {
+                setFormData((prev) => ({
                     ...prev,
-                    nombre: user.nombre || user.nombrePersona || '',
-                    apellido: user.apellido || user.apellidoPersona || '',
-                    documento: user.dni || user.documento || '',
-                    sexo: 1, // Default
-                    fechaNacimiento: '', // No birthdate in Auth/usuarios usually
-                    email: user.email || '',
-                    telefono: user.telefono || '',
-                    direccion: '',
-
-                    // Datos Delegado
-                    idRol: 3,
-                    idClub: user.clubId || '',
-                    idFederacion: user.federacionId || 1
+                    nombre: found.nombre || found.nombrePersona || '',
+                    apellido: found.apellido || found.apellidoPersona || '',
+                    documento: found.dni || found.documento || '',
+                    email: found.email || '',
+                    telefono: found.telefono || '',
+                    idClub: found.clubId || found.idClub || '',
+                    idFederacion: found.federacionId || found.idFederacion || prev.idFederacion,
                 }));
+                setParticipanteId(found.participanteId || found.ParticipanteId || null);
             }
         } catch (error) {
-            console.error('Error cargando datos del delegado:', error);
             showModal('Error', 'No se pudieron cargar los datos del delegado.', 'danger');
         } finally {
             setLoading(false);
         }
     };
-
-    useEffect(() => {
-        if (location.state?.clubId) {
-            setFormData(prev => ({ ...prev, idClub: location.state.clubId }));
-        }
-    }, [location.state]);
 
     const loadFederacion = async () => {
         try {
@@ -111,7 +121,7 @@ const DelegadosForm = () => {
             if (!effectiveFedId) return;
             const data = await api.get(`/Federaciones/${effectiveFedId}`);
             setFederacionNombre(data?.nombre || data?.Nombre || `Federación ID ${effectiveFedId}`);
-            setFormData(prev => ({ ...prev, idFederacion: parseInt(effectiveFedId, 10) }));
+            setFormData((prev) => ({ ...prev, idFederacion: parseInt(effectiveFedId, 10) }));
         } catch (error) {
             console.error('Error cargando federación:', error);
         }
@@ -123,17 +133,8 @@ const DelegadosForm = () => {
             const data = await api.get(withFederationScope('/Clubes', effectiveFedId));
             setClubes(data || []);
         } catch (error) {
-            console.error('Error cargando clubes:', error);
             showModal('Error', 'No se pudieron cargar los clubes.', 'danger');
         }
-    };
-
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
     };
 
     const showModal = (title, message, type = 'info', shouldNavigate = false) => {
@@ -143,14 +144,129 @@ const DelegadosForm = () => {
     const handleModalClose = () => {
         const shouldNav = modalConfig.shouldNavigate;
         setModalConfig((prev) => ({ ...prev, isOpen: false, shouldNavigate: false }));
-        if (shouldNav) {
-            goBack();
+        if (shouldNav) goBack();
+    };
+
+    const applyPersona = (persona, { notify = true } = {}) => {
+        const mapped = mapPersonaToForm(persona);
+        const pid = pickPersonaId(persona);
+        setFormData((prev) => ({
+            ...prev,
+            ...mapped,
+            documento: mapped.documento || prev.documento,
+            sexo: Number(mapped.sexo) || 1,
+        }));
+        setParticipanteId(pid);
+        setPersonaFound(true);
+        if (notify) {
+            showModal(
+                'Persona encontrada',
+                'Se autocompletaron los datos. Podés asignarla como delegado aunque ya sea entrenador.',
+                'success'
+            );
         }
     };
 
-    const buscarPersonaPorDni = async () => {
-        // Feature not supported natively with Auth/usuarios unless we call an external service
-        console.log('Búsqueda por DNI no disponible en este contexto.');
+    const clearPersonaLink = () => {
+        setPersonaFound(false);
+        setParticipanteId(null);
+    };
+
+    const buscarPersonaPorDni = async (docOverride, { notify = true } = {}) => {
+        const documento = String(docOverride ?? formData.documento ?? '').trim();
+        if (documento.length < 7) {
+            if (notify) showModal('DNI incompleto', 'Ingresá al menos 7 dígitos del DNI.', 'info');
+            return null;
+        }
+        if (documento === lastSearchedDoc.current && personaFound) return participanteId;
+
+        setSearching(true);
+        try {
+            const persona = await api.get(`/Persona/documento/${encodeURIComponent(documento)}`, {
+                silentErrors: true,
+            });
+            if (persona) {
+                lastSearchedDoc.current = documento;
+                applyPersona(persona, { notify });
+                return pickPersonaId(persona);
+            }
+            clearPersonaLink();
+            lastSearchedDoc.current = documento;
+            if (notify) {
+                showModal(
+                    'Persona nueva',
+                    'No hay persona con ese DNI. Completá los datos para crearla como delegado.',
+                    'info'
+                );
+            }
+            return null;
+        } catch {
+            clearPersonaLink();
+            lastSearchedDoc.current = documento;
+            if (notify) {
+                showModal(
+                    'Persona nueva',
+                    'No hay persona con ese DNI. Completá los datos para crearla como delegado.',
+                    'info'
+                );
+            }
+            return null;
+        } finally {
+            setSearching(false);
+        }
+    };
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({ ...prev, [name]: value }));
+
+        if (name === 'documento') {
+            clearPersonaLink();
+            lastSearchedDoc.current = '';
+            if (searchTimer.current) clearTimeout(searchTimer.current);
+            const digits = String(value || '').replace(/\D/g, '');
+            if (digits.length >= 7) {
+                searchTimer.current = setTimeout(() => {
+                    buscarPersonaPorDni(digits, { notify: false });
+                }, 450);
+            }
+        }
+    };
+
+    const ensurePersona = async () => {
+        let pid = participanteId;
+        if (!pid) {
+            pid = await buscarPersonaPorDni(formData.documento, { notify: false });
+        }
+
+        const personaPayload = {
+            nombre: formData.nombre,
+            apellido: formData.apellido,
+            documento: formData.documento,
+            fechaNacimiento: formData.fechaNacimiento
+                ? new Date(formData.fechaNacimiento).toISOString()
+                : new Date('2000-01-01T00:00:00.000Z').toISOString(),
+            email: formData.email || null,
+            telefono: formData.telefono || null,
+            direccion: formData.direccion || null,
+            sexoId: parseInt(formData.sexo, 10) || 1,
+        };
+
+        if (pid) {
+            try {
+                await api.put(`/Persona/${pid}`, personaPayload);
+            } catch {
+                // Si falla el update, seguimos con el id conocido
+            }
+            return pid;
+        }
+
+        const created = await api.post('/Persona', personaPayload);
+        pid = pickPersonaId(created);
+        if (!pid) throw new Error('No se pudo crear la persona.');
+        setParticipanteId(pid);
+        setPersonaFound(true);
+        return pid;
     };
 
     const handleSubmit = async (e) => {
@@ -163,20 +279,34 @@ const DelegadosForm = () => {
             );
             return;
         }
-        setLoading(true);
 
+        if (!formData.idClub) {
+            showModal(
+                'Club requerido',
+                'Para crear el login de delegado tenés que seleccionar un club.',
+                'danger'
+            );
+            return;
+        }
+
+        setLoading(true);
         try {
+            // 1) Persona (reutiliza entrenador u otra ficha existente por DNI)
+            const pid = await ensurePersona();
+
+            // 2) Login Club (reutiliza usuario si el DNI/username ya existe)
             const userPayload = {
-                username: formData.documento, // DNI as username
-                password: formData.documento, // DNI as password for initial creation
-                email: formData.email || `${formData.documento}@sigdef.com`,
+                username: formData.documento,
+                password: formData.documento,
+                email: formData.email || `${formData.documento}@sigdef.local`,
                 rol: 'Club',
                 rolFederacion: 'Club',
-                clubId: formData.idClub ? parseInt(formData.idClub) : null,
+                clubId: parseInt(formData.idClub, 10),
+                federacionId: parseInt(formData.idFederacion, 10) || undefined,
                 nombre: formData.nombre,
                 apellido: formData.apellido,
                 dni: formData.documento,
-                telefono: formData.telefono
+                telefono: formData.telefono,
             };
 
             if (id) {
@@ -184,17 +314,43 @@ const DelegadosForm = () => {
                     nombre: formData.nombre,
                     apellido: formData.apellido,
                     telefono: formData.telefono,
-                    dni: formData.documento
+                    dni: formData.documento,
+                    email: formData.email || undefined,
                 });
             } else {
                 await api.post('/Auth/register', userPayload);
             }
 
-            showModal('Éxito', 'Delegado guardado correctamente.', 'success', true);
+            // 3) Ficha DelegadoClub (permite coexistir con Entrenador)
+            try {
+                await api.post('/DelegadoClub', {
+                    participanteId: pid,
+                    ParticipanteId: pid,
+                    idRol: parseInt(formData.idRol, 10) || 3,
+                    idFederacion: parseInt(formData.idFederacion, 10) || null,
+                    idClub: parseInt(formData.idClub, 10) || null,
+                });
+            } catch (err) {
+                const msg = String(err?.message || '').toLowerCase();
+                if (!msg.includes('ya figura como delegado') && !msg.includes('ya es delegado')) {
+                    // No bloquear si el login ya quedó: avisar
+                    console.warn('DelegadoClub:', err);
+                }
+            }
 
+            showModal(
+                'Éxito',
+                personaFound || pid
+                    ? 'Delegado guardado. La persona puede ser entrenador y delegado a la vez.'
+                    : 'Delegado guardado correctamente.',
+                'success',
+                true
+            );
         } catch (error) {
             console.error('Error guardando delegado:', error);
-            showModal('Error', error.message || 'Error al guardar el delegado.', 'danger');
+            showModal('Error', toFriendlyErrorMessage(error, {
+                fallback: 'No se pudo guardar el delegado. Revisá los datos e intentá nuevamente.',
+            }), 'danger');
         } finally {
             setLoading(false);
         }
@@ -232,14 +388,28 @@ const DelegadosForm = () => {
                                     name="documento"
                                     value={formData.documento}
                                     onChange={handleChange}
-                                    onBlur={buscarPersonaPorDni}
+                                    onBlur={() => buscarPersonaPorDni(undefined, { notify: !personaFound })}
                                     className="form-input"
                                     required
+                                    autoComplete="off"
+                                    placeholder="Al escribir se busca automáticamente"
                                 />
-                                <Button type="button" variant="secondary" size="sm" onClick={buscarPersonaPorDni} title="Buscar existencia">
-                                    <Search size={16} />
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => buscarPersonaPorDni()}
+                                    title="Buscar por DNI"
+                                    disabled={searching}
+                                >
+                                    {searching ? <Loader2 size={16} className="spin" /> : <Search size={16} />}
                                 </Button>
                             </div>
+                            {personaFound && (
+                                <small className="form-hint" style={{ color: 'var(--primary, #3b82f6)' }}>
+                                    Persona existente encontrada (puede ser entrenador y también delegado).
+                                </small>
+                            )}
                         </div>
 
                         <div className="form-group">
@@ -326,21 +496,22 @@ const DelegadosForm = () => {
                         <h3 className="form-section-title">Datos del Delegado</h3>
 
                         <div className="form-group">
-                            <label>Club (Opcional - Agente Libre)</label>
+                            <label>Club *</label>
                             <select
                                 name="idClub"
                                 value={formData.idClub}
                                 onChange={handleChange}
                                 className="form-input"
+                                required
                             >
-                                <option value="">-- Agente Libre (Sin Club) --</option>
+                                <option value="">-- Seleccionar club --</option>
                                 {clubes.map((club) => (
                                     <option key={club.idClub} value={club.idClub}>
                                         {club.nombre} ({club.siglas})
                                     </option>
                                 ))}
                             </select>
-                            <small className="form-hint">Si no selecciona un club, el delegado quedará como agente libre.</small>
+                            <small className="form-hint">Obligatorio para el login del panel del club.</small>
                         </div>
 
                         <div className="form-group">
@@ -360,12 +531,11 @@ const DelegadosForm = () => {
                                 value={formData.idRol}
                                 onChange={handleChange}
                                 className="form-input"
-                                disabled // Por ahora fijo en Delegado
+                                disabled
                             >
                                 <option value={3}>Delegado Club</option>
                             </select>
                         </div>
-
                     </div>
 
                     <div className="form-actions">
@@ -378,8 +548,9 @@ const DelegadosForm = () => {
                             size="sm"
                             isLoading={loading}
                             disabled={!id && !clubLoginAllowed}
+                            icon={Save}
                         >
-                            <Save size={16} className="mr-2" /> Guardar Delegado
+                            Guardar Delegado
                         </Button>
                     </div>
                 </form>
@@ -391,7 +562,7 @@ const DelegadosForm = () => {
                 onConfirm={handleModalClose}
                 title={modalConfig.title}
                 message={modalConfig.message}
-                confirmText={modalConfig.type === 'danger' ? 'Entendido' : 'Aceptar'}
+                confirmText="Entendido"
                 showCancel={false}
                 type={modalConfig.type}
             />
