@@ -135,8 +135,15 @@ const ClubDelegadosForm = () => {
             if (notify) {
                 showModal('Persona encontrada', 'Datos autocompletados. Puede ser entrenador y también delegado.', 'success');
             }
-        } catch {
-            if (notify) showModal('Persona nueva', 'No hay persona con ese DNI. Completá los datos.', 'info');
+        } catch (err) {
+            const msg = err?.message || '';
+            if (notify) {
+                if (/no está disponible|no esta disponible/i.test(msg)) {
+                    showModal('DNI no disponible', msg, 'warning');
+                } else {
+                    showModal('Persona nueva', 'No hay persona con ese DNI. Completá los datos.', 'info');
+                }
+            }
         }
     };
 

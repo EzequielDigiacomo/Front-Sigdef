@@ -62,8 +62,11 @@ const mapKnownCases = (text, status) => {
             : 'Tu sesión expiró. Volvé a iniciar sesión.';
     }
     if (status === 403) return 'No tenés permisos para realizar esta acción.';
-    if (status === 404) return 'No encontramos lo que buscabas.';
-
+    // 404: respetar mensajes de negocio del backend (p.ej. DNI no disponible)
+    if (status === 404) {
+        if (isBusinessSpanish(text)) return String(text).trim();
+        return 'No encontramos lo que buscabas.';
+    }
     if (lower.includes('email') && (lower.includes('unique') || lower.includes('ya existe') || lower.includes('duplicate'))) {
         return 'Ese email ya está en uso. Probá con otro.';
     }

@@ -183,16 +183,21 @@ const DelegadosForm = () => {
         setSearching(true);
         try {
             let persona = null;
+            let blockedMsg = null;
             try {
                 persona = await api.get(`/Persona/documento/${encodeURIComponent(documento)}`, {
                     silentErrors: true,
                 });
-            } catch {
+            } catch (err) {
+                const msg = err?.message || '';
+                if (/no está disponible|no esta disponible/i.test(msg)) {
+                    blockedMsg = msg;
+                }
                 persona = null;
             }
 
             // Fallback: buscar en entrenadores (misma persona, otro rol)
-            if (!persona) {
+            if (!persona && !blockedMsg) {
                 try {
                     const entrenadores = await api.get('/Entrenador', { silentErrors: true });
                     const list = Array.isArray(entrenadores) ? entrenadores : [];
@@ -233,11 +238,15 @@ const DelegadosForm = () => {
             clearPersonaLink();
             lastSearchedDoc.current = documento;
             if (notify) {
-                showModal(
-                    'Persona nueva',
-                    'No hay persona con ese DNI. Completá los datos para crearla como delegado.',
-                    'info'
-                );
+                if (blockedMsg) {
+                    showModal('DNI no disponible', blockedMsg, 'warning');
+                } else {
+                    showModal(
+                        'Persona nueva',
+                        'No hay persona con ese DNI. Completá los datos para crearla como delegado.',
+                        'info'
+                    );
+                }
             }
             return null;
         } finally {
