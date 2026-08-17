@@ -8,7 +8,10 @@ const PAGE_SIZE = 10;
 const getLoginRole = (u) => u?.rol || u?.rolFederacion || u?.RolFederacion || '';
 
 const ROL_LABEL = {
+    SUPERADMIN: { label: 'SuperAdmin', color: '#3b82f6' },
+    SuperAdmin: { label: 'SuperAdmin', color: '#3b82f6' },
     Admin: { label: 'Admin', color: '#ef4444' },
+    Federacion: { label: 'Federación', color: '#ef4444' },
     Club: { label: 'Club', color: '#22c55e' },
     Entrenador: { label: 'Entrenador', color: '#f59e0b' },
     Delegado: { label: 'Delegado', color: '#06b6d4' },
@@ -41,7 +44,7 @@ const EstadoBadge = ({ activo }) => (
     </span>
 );
 
-const LoginGrid = ({ usuarios, onEditPassword, onEditProfile, onToggleActivo }) => {
+const LoginGrid = ({ usuarios, onEditPassword, onEditProfile, onToggleActivo, showFederation = false }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const totalPages = Math.max(1, Math.ceil((usuarios?.length || 0) / PAGE_SIZE));
 
@@ -87,6 +90,11 @@ const LoginGrid = ({ usuarios, onEditPassword, onEditProfile, onToggleActivo }) 
                             <Building2 size={14} />
                             {u.clubNombre || '(Sin institución)'}
                         </p>
+                        {showFederation && (
+                            <p className="login-fed-line">
+                                Federación: {u.federacionNombre || '—'}
+                            </p>
+                        )}
                         {u.telefono && <p><Phone size={14} /> {u.telefono}</p>}
                         <div className="login-actions-row">
                             <button type="button" className="login-action-btn" onClick={() => onEditProfile(u)} title="Editar perfil">
@@ -114,6 +122,7 @@ const LoginGrid = ({ usuarios, onEditPassword, onEditProfile, onToggleActivo }) 
                         <tr>
                             <th>Estado</th>
                             <th>Usuario</th>
+                            {showFederation && <th>Federación</th>}
                             <th>Institución</th>
                             <th>Email</th>
                             <th>Rol</th>
@@ -125,6 +134,11 @@ const LoginGrid = ({ usuarios, onEditPassword, onEditProfile, onToggleActivo }) 
                             <tr key={u.id} style={{ opacity: u.activo === false ? 0.55 : 1 }}>
                                 <td><EstadoBadge activo={u.activo} /></td>
                                 <td><strong>{u.username}</strong></td>
+                                {showFederation && (
+                                    <td>
+                                        <span className="login-fed-chip">{u.federacionNombre || '—'}</span>
+                                    </td>
+                                )}
                                 <td>
                                     {u.clubNombre || (
                                         <span className="login-muted">(Sin institución)</span>

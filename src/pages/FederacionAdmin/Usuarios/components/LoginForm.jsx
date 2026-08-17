@@ -17,25 +17,47 @@ const DEFAULT_ROL = 'Admin';
 const LoginForm = ({
     initialData,
     clubes = [],
+    federaciones = [],
+    effectiveFedId = null,
     onCancel,
     onSubmit,
     onChange,
     saving,
     isEditing,
     isEditingProfile,
+    showFederationSelect = false,
     showClubSelect = false,
 }) => {
     const { user } = useAuth();
+    const isSuper = user?.role === 'SUPERADMIN';
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-    const planForGates = useMemo(
-        () => normalizePlan(extractPlanFromUser(user) || user?.plan),
-        [user]
-    );
+    const targetFedId = initialData.federacionId || effectiveFedId || '';
 
-    const judgeRolesEnabled = canAccessControlesLive(planForGates);
-    const clubRoleEnabled = canAccessDashboardClub(planForGates);
+    const federationPlan = useMemo(() => {
+        if (targetFedId) {
+            const fed = federaciones.find((f) => String(f.id) === String(targetFedId));
+            if (fed?.plan) return normalizePlan(fed.plan);
+            if (fed?.planSaaSId || fed?.planNombre) {
+                return normalizePlan({
+                    id: fed.planSaaSId,
+                    nombre: fed.planNombre,
+                });
+            }
+        }
+        if (!isSuper) return normalizePlan(extractPlanFromUser(user) || user?.plan);
+        return null;
+    }, [targetFedId, federaciones, isSuper, user]);
+
+    const planForGates = federationPlan ?? (!isSuper ? normalizePlan(extractPlanFromUser(user) || user?.plan) : null);
+
+    const judgeRolesEnabled = isSuper
+        ? (targetFedId ? canAccessControlesLive(federationPlan) : false)
+        : canAccessControlesLive(planForGates);
+    const clubRoleEnabled = isSuper
+        ? (targetFedId ? canAccessDashboardClub(federationPlan) : false)
+        : canAccessDashboardClub(planForGates);
 
     const isJuezRole = ROLES_JUEZ.includes(initialData.rol);
     const isClubRole = initialData.rol === 'Club';
@@ -52,8 +74,13 @@ const LoginForm = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [judgeRolesEnabled, clubRoleEnabled, isJuezRole, isClubRole, isEditing, isEditingProfile]);
 
-    const judgeLabel = '(Exclusivo Ecosistema / Pack Dúo)';
-    const clubLabel = '(Desde plan Profesional)';
+    const needsFedFirst = !targetFedId && showFederationSelect;
+    const judgeLabel = needsFedFirst
+        ? '(Seleccioná federación primero)'
+        : '(Exclusivo Ecosistema / Pack Dúo)';
+    const clubLabel = needsFedFirst
+        ? '(Seleccioná federación primero)'
+        : '(Desde plan Profesional)';
 
     return (
         <div className="glass-panel login-form-panel fade-in">
@@ -62,6 +89,32 @@ const LoginForm = ({
                     <>
                         <section className="login-form-section">
                             <h4>Rol y permisos</h4>
+                            {showFederationSelect && (
+                                <div className="form-group fade-in">
+                                    <label htmlFor="login-federacion">Federación *</label>
+                                    <select
+                                        id="login-federacion"
+                                        className="form-input"
+                                        name="federacionId"
+                                        value={initialData.federacionId || ''}
+                                        onChange={(e) => onChange('federacionId', e.target.value)}
+                                        required
+                                    >
+                                        <option value="">Seleccionar federación...</option>
+                                        {federaciones.map((f) => (
+                                            <option key={f.id} value={f.id}>
+                                                {f.planNombre ? `${f.nombre} — ${f.planNombre}` : f.nombre}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {targetFedId && federationPlan && (
+                                        <small className="login-muted">
+                                            Plan: <strong>{federationPlan.nombre || 'Sin plan'}</strong>
+                                            {clubRoleEnabled ? ' · Login Club OK' : ' · Sin login Club'}
+                                        </small>
+                                    )}
+                                </div>
+                            )}
                             <div className="form-group">
                                 <label htmlFor="login-rol">Tipo de usuario / Rol *</label>
                                 <select

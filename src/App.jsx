@@ -297,6 +297,7 @@ function App() {
               <Route path="planes" element={<SuperAdminPlanes />} />
               <Route path="modulos/:moduleKey" element={<SuperAdminModulePicker />} />
               <Route path="mensajes" element={<MensajesPage modo="super" />} />
+              <Route path="logins" element={<UserManagement />} />
 
               {/* Vista SuperAdmin dentro de una federación específica */}
               <Route path="federacion/:fedId" element={<FederacionView />} />
@@ -326,6 +327,7 @@ function App() {
               <Route path="federacion/:fedId/traspasos" element={<TraspasosBandeja />} />
               <Route path="federacion/:fedId/traspasos/periodos" element={<PeriodosTraspaso />} />
               <Route path="federacion/:fedId/traspasos/:id" element={<TraspasoDetalle />} />
+              <Route path="federacion/:fedId/usuarios" element={<UserManagement />} />
             </Route>
 
             { }

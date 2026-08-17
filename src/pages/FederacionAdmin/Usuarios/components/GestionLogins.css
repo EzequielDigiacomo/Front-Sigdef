@@ -181,6 +181,40 @@
     font-style: italic;
 }
 
+.login-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin-bottom: 0.85rem;
+    align-items: center;
+}
+
+.login-toolbar .search-input-wrapper {
+    flex: 1;
+    min-width: 220px;
+}
+
+.login-filter-select {
+    min-width: 220px;
+    height: 38px;
+}
+
+.login-fed-chip {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(59, 130, 246, 0.12);
+    color: var(--primary);
+    border: 1px solid rgba(59, 130, 246, 0.28);
+}
+
+.login-fed-line {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
 .login-form-panel {
     padding: 1rem;
 }

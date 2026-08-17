@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../services/api';
 import {
     ArrowLeft, Users, Shield, DollarSign, Award, Briefcase,
-    UserCheck, Lock, Eye, AlertCircle, Building2, ClipboardList, ArrowRightLeft,
+    UserCheck, Lock, Eye, AlertCircle, Building2, ClipboardList, ArrowRightLeft, Key,
 } from 'lucide-react';
 import { withFederationScope, getClubFederationId } from '../../utils/apiHelpers';
 
@@ -207,6 +207,7 @@ const FederacionView = () => {
         { label: 'Pagos', icon: DollarSign, color: '#06b6d4', description: 'Control de cuotas y transacciones', section: 'pagos' },
         { label: 'Traspasos', icon: ArrowRightLeft, color: '#a855f7', description: 'Solicitudes y aprobación de traspasos', section: 'traspasos' },
         { label: 'Registro Inscripciones', icon: ClipboardList, color: '#0ea5e9', description: 'Atletas inscriptos por evento y prueba', section: 'registro-inscripciones' },
+        { label: 'Logins', icon: Key, color: '#10b981', description: 'Credenciales y contraseñas de acceso', section: 'usuarios' },
     ];
 
     if (loading) {

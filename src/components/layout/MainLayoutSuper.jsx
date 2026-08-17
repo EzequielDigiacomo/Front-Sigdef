@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
     LayoutDashboard, Globe, DollarSign, Activity, LogOut, User, Menu, ShieldAlert,
-    Building2, Users, Award, Shield, Cloud, Mail, Database,
+    Building2, Users, Award, Shield, Cloud, Mail, Database, Key,
 } from 'lucide-react';
 import Button from '../common/Button';
 import ThemeToggle from '../common/ThemeToggle';
@@ -21,6 +21,7 @@ const NAV_SECTIONS = [
             { icon: Activity, label: 'Auditoría', path: '/superadmin/auditoria' },
             { icon: Database, label: 'Backups DB', path: '/superadmin/backups' },
             { icon: Mail, label: 'Mensajes', path: '/superadmin/mensajes', showBadge: true },
+            { icon: Key, label: 'Logins', path: '/superadmin/logins' },
         ],
     },
     {

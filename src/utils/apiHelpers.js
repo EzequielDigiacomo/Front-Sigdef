@@ -5,11 +5,6 @@ export function withFederationScope(endpoint, fedId) {
     return endpoint.includes('?') ? `${endpoint}&idFederacion=${id}` : `${endpoint}?idFederacion=${id}`;
 }
 
-/** Normaliza id de federación en objetos club */
-export function getClubFederationId(club) {
-    return club?.idFederacion ?? club?.federacionId ?? club?.FederacionId ?? null;
-}
-
 /** Lee un campo con soporte camelCase / PascalCase */
 export const pick = (obj, ...keys) => {
     if (!obj) return undefined;
@@ -18,6 +13,52 @@ export const pick = (obj, ...keys) => {
     }
     return undefined;
 };
+
+/** Normaliza id de federación en objetos club */
+export function getClubFederationId(club) {
+    return club?.idFederacion ?? club?.federacionId ?? club?.FederacionId ?? null;
+}
+
+export function clubBelongsToFederation(club, fedId) {
+    if (fedId == null || fedId === '') return true;
+    return String(getClubFederationId(club) ?? '') === String(fedId);
+}
+
+export function filterClubesByFederation(clubes, fedId) {
+    if (fedId == null || fedId === '') return clubes || [];
+    return (clubes || []).filter((c) => clubBelongsToFederation(c, fedId));
+}
+
+export function getFederationNameById(federaciones, fedId) {
+    if (fedId == null || fedId === '') return null;
+    const fed = (federaciones || []).find((f) =>
+        String(pick(f, 'id', 'idFederacion', 'IdFederacion') ?? '') === String(fedId)
+    );
+    return pick(fed, 'nombre', 'Nombre') || null;
+}
+
+export function getUsuarioFederationName(usuario, clubes = [], federaciones = []) {
+    const direct = pick(usuario, 'federacionNombre', 'FederacionNombre');
+    if (direct) return direct;
+
+    const fedId = pick(usuario, 'federacionId', 'FederacionId', 'idFederacion', 'IdFederacion');
+    if (fedId != null && fedId !== '') {
+        return getFederationNameById(federaciones, fedId) || `ID ${fedId}`;
+    }
+
+    const clubId = pick(usuario, 'clubId', 'ClubId', 'idClub', 'IdClub');
+    if (clubId != null && clubId !== '') {
+        const club = (clubes || []).find((c) =>
+            String(pick(c, 'idClub', 'IdClub', 'id', 'Id') ?? '') === String(clubId)
+        );
+        const clubFedId = getClubFederationId(club);
+        if (clubFedId != null) return getFederationNameById(federaciones, clubFedId) || `ID ${clubFedId}`;
+    }
+
+    const rol = String(pick(usuario, 'rol', 'Rol', 'rolFederacion', 'RolFederacion') || '').toLowerCase();
+    if (rol === 'superadmin') return 'SIGDEF (global)';
+    return '—';
+}
 
 export const getSiglaFromNombre = (nombre) => {
     if (!nombre) return 'FED';
