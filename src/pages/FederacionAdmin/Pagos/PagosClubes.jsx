@@ -19,6 +19,7 @@ import { matchesSearch } from '../../../utils/searchUtils';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
+import { useDevice } from '../../../hooks/useDevice';
 import PageHeader from '../../../components/common/PageHeader';
 import RegistrarPagoModal from './RegistrarPagoModal';
 import './PagosClubes.css';
@@ -153,6 +154,8 @@ const getDebeLabel = (estadoPago) => {
 };
 
 const PagosClubes = () => {
+    const { isNative, isMobile } = useDevice();
+    const isMobileView = isMobile || isNative;
     const { fedId } = useParams();
     const isSuperAdminView = Boolean(fedId);
     const backTo = isSuperAdminView ? `/superadmin/federacion/${fedId}` : '/dashboard';
@@ -515,7 +518,7 @@ const PagosClubes = () => {
     };
 
     return (
-        <div className="page-container pagos-page">
+        <div className={`page-container pagos-page ${isMobileView ? 'mobile-view' : ''}`}>
             {isSuperAdminView && (
                 <div
                     style={{
@@ -671,7 +674,7 @@ const PagosClubes = () => {
                 </div>
             )}
 
-            <Card>
+            <Card className="pagos-content-card">
                 <div className="pagos-toolbar">
                     <div className="pagos-search">
                         <Search size={18} />
@@ -783,28 +786,28 @@ const PagosClubes = () => {
                             </thead>
                             <tbody>
                                 {filteredClubes.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={5}>
+                                    <tr className="pagos-empty-row">
+                                        <td colSpan={5} data-label="">
                                             <div className="pagos-empty">No se encontraron clubes.</div>
                                         </td>
                                     </tr>
                                 ) : (
                                     filteredClubes.map((club) => (
                                         <tr key={club.idClub}>
-                                            <td>
+                                            <td data-label="Club">
                                                 <div className="pagos-club-name">
                                                     <strong>{club.nombre}</strong>
                                                     <span>{club.siglas || 'SIN SIGLA'}</span>
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td data-label="Federación">
                                                 {club.federacionNombre || (
                                                     <span style={{ color: '#f59e0b', fontWeight: 600 }}>
                                                         Sin federación
                                                     </span>
                                                 )}
                                             </td>
-                                            <td>
+                                            <td data-label="Estado">
                                                 <span
                                                     className={`pagos-badge ${
                                                         club.pagoAfiliacionAlDia
@@ -822,7 +825,7 @@ const PagosClubes = () => {
                                                         : 'Deudor'}
                                                 </span>
                                             </td>
-                                            <td>
+                                            <td data-label="Al día">
                                                 <label className="pagos-toggle" title="Cambiar estado de afiliación">
                                                     <input
                                                         type="checkbox"
@@ -833,7 +836,7 @@ const PagosClubes = () => {
                                                     <span className="pagos-toggle-slider" />
                                                 </label>
                                             </td>
-                                            <td style={{ textAlign: 'center' }}>
+                                            <td data-label="Cobro">
                                                 <button
                                                     type="button"
                                                     className="pagos-btn-recibo"
@@ -863,8 +866,8 @@ const PagosClubes = () => {
                             </thead>
                             <tbody>
                                 {filteredAtletas.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={6}>
+                                    <tr className="pagos-empty-row">
+                                        <td colSpan={6} data-label="">
                                             <div className="pagos-empty">
                                                 {atletaFilter === 'deudores'
                                                     ? 'No hay atletas con deuda de afiliación.'
@@ -880,26 +883,26 @@ const PagosClubes = () => {
                                         ).length;
                                         return (
                                             <tr key={atleta.participanteId}>
-                                                <td>
+                                                <td data-label="Atleta">
                                                     <div className="pagos-club-name">
                                                         <strong>{atleta.nombrePersona}</strong>
                                                         <span>DNI {atleta.documento}</span>
                                                     </div>
                                                 </td>
-                                                <td>{atleta.nombreClub}</td>
-                                                <td>
+                                                <td data-label="Club">{atleta.nombreClub}</td>
+                                                <td data-label="Debe">
                                                     <span className={`pagos-debe pagos-debe-${debe.tone}`}>
                                                         {debe.text}
                                                     </span>
                                                 </td>
-                                                <td>
+                                                <td data-label="Estado">
                                                     <span
                                                         className={`pagos-badge pagos-badge-${getEstadoPagoColor(atleta.estadoPago)}`}
                                                     >
                                                         {getEstadoPagoLabel(atleta.estadoPago)}
                                                     </span>
                                                 </td>
-                                                <td>
+                                                <td data-label="Marcar pago">
                                                     <label
                                                         className="pagos-toggle"
                                                         title={
@@ -917,7 +920,7 @@ const PagosClubes = () => {
                                                         <span className="pagos-toggle-slider" />
                                                     </label>
                                                 </td>
-                                                <td>
+                                                <td data-label="Acciones">
                                                     <div className="pagos-actions">
                                                         <button
                                                             type="button"
@@ -971,8 +974,8 @@ const PagosClubes = () => {
                             </thead>
                             <tbody>
                                 {filteredRecibos.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={9}>
+                                    <tr className="pagos-empty-row">
+                                        <td colSpan={9} data-label="">
                                             <div className="pagos-empty">
                                                 {reciboAtletaId != null
                                                     ? 'Este atleta aún no tiene recibos registrados.'
@@ -990,7 +993,7 @@ const PagosClubes = () => {
                                                 key={recibo.id}
                                                 className={isSelected ? 'pagos-row-selected' : undefined}
                                             >
-                                                <td>
+                                                <td data-label="Seleccionar">
                                                     <input
                                                         type="checkbox"
                                                         className="pagos-check"
@@ -999,8 +1002,8 @@ const PagosClubes = () => {
                                                         aria-label={`Seleccionar recibo ${recibo.id}`}
                                                     />
                                                 </td>
-                                                <td>{formatFecha(recibo.fechaPago)}</td>
-                                                <td>
+                                                <td data-label="Fecha">{formatFecha(recibo.fechaPago)}</td>
+                                                <td data-label="Beneficiario">
                                                     {esAtleta && recibo.participanteId != null ? (
                                                         <button
                                                             type="button"
@@ -1016,7 +1019,7 @@ const PagosClubes = () => {
                                                         <strong>{beneficiario}</strong>
                                                     )}
                                                 </td>
-                                                <td>
+                                                <td data-label="Concepto">
                                                     <span
                                                         className={`pagos-badge ${
                                                             recibo.tipoPago === 'ClubAfiliacion'
@@ -1029,19 +1032,19 @@ const PagosClubes = () => {
                                                         {tipoPagoLabel(recibo.tipoPago)}
                                                     </span>
                                                 </td>
-                                                <td>
+                                                <td data-label="Monto">
                                                     <strong className="pagos-monto">
                                                         {formatMonto(recibo.monto)}
                                                     </strong>
                                                 </td>
-                                                <td>{recibo.referencia}</td>
-                                                <td>{recibo.registradoPor}</td>
-                                                <td>
+                                                <td data-label="Referencia">{recibo.referencia}</td>
+                                                <td data-label="Registrado por">{recibo.registradoPor}</td>
+                                                <td data-label="Notas">
                                                     <span className="pagos-notas" title={recibo.notas || undefined}>
                                                         {recibo.notas || '—'}
                                                     </span>
                                                 </td>
-                                                <td style={{ textAlign: 'center' }}>
+                                                <td data-label="Borrar">
                                                     <button
                                                         type="button"
                                                         className="pagos-btn-delete"

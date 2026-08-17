@@ -1,15 +1,15 @@
 .navbar {
     height: auto;
     min-height: 80px;
-    width: 100vw;
-    
+    width: 100%;
     max-width: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0.5rem 1rem;
-    margin-bottom: 1.5rem;
+    margin: 0 0 1.5rem;
     border-radius: 0 !important;
+    box-shadow: none;
     
     border-bottom: var(--glass-border);
     border-top: none;
@@ -22,6 +22,11 @@
     background: var(--glass-bg);
     backdrop-filter: blur(12px);
     box-sizing: border-box;
+}
+
+.navbar.glass-panel {
+    border-radius: 0 !important;
+    box-shadow: none;
 }
 
 .navbar-left {
@@ -183,6 +188,18 @@
 }
 
 @media (max-width: 768px) {
+    .navbar {
+        position: sticky;
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        margin: 0 0 0.5rem;
+        z-index: 200;
+        min-height: 3.25rem;
+        padding: env(safe-area-inset-top, 0) 0.75rem 0.45rem;
+    }
+
     .menu-toggle {
         display: block;
     }
@@ -194,5 +211,17 @@
     .navbar-center {
         display: none;
         
+    }
+
+    .brand-logo-img {
+        height: 36px;
+    }
+
+    .navbar-left {
+        gap: 0.35rem;
+    }
+
+    .navbar-right {
+        gap: 0.45rem;
     }
 }

@@ -76,16 +76,6 @@ body {
     align-items: center;
 }
 
-#root {
-    max-width: 100%;
-
-    margin: 0 auto;
-    padding: 2rem;
-    text-align: center;
-    background-color: var(--bg-primary);
-    color: var(--text-primary);
-}
-
 .logo {
     height: 6em;
     padding: 1.5em;
@@ -271,7 +261,7 @@ body {
 }
 
 .mobile-list-container {
-    padding: 0 15px 100px 15px; /* Extra bottom padding for MobileNavBar */
+    padding: 0 0 100px 0; /* Extra bottom padding for MobileNavBar */
 }
 
 .mobile-search {

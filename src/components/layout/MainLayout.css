@@ -42,6 +42,36 @@
     padding-top: 2rem;
 }
 
+@media (max-width: 768px) {
+    .main-content,
+    .main-content.full-width {
+        padding-top: 0;
+    }
+
+    .container,
+    .page-content.container {
+        padding: 0 var(--mobile-page-gutter, 1.15rem) !important;
+        max-width: 100%;
+    }
+
+    .page-content {
+        padding-bottom: 1.25rem;
+    }
+
+    /* Páginas con padding propio: no duplicar márgenes laterales */
+    .dashboard-compact,
+    .page-container,
+    .page-container.mobile-view {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .page-container.mobile-view .mobile-list-container {
+        padding-left: 0;
+        padding-right: 0;
+    }
+}
+
 .app-container.no-nav .container {
     max-width: 1200px;
 }
@@ -77,25 +107,22 @@
     background: var(--danger, #ef4444);
 }
 
-@media (max-width: 768px) {
-    .container {
-        padding: 0 1rem !important;
-    }
-}
-
 /* App Mobile specific tweaks */
 .app-container.is-mobile .main-content {
+    padding-top: 0;
     padding-bottom: 70px; /* Space for MobileNavBar */
 }
 
 .app-container.is-mobile .container {
-    padding: 0 1rem;
+    padding: 0 var(--mobile-page-gutter, 1.15rem);
     max-width: 100%;
 }
 
 .app-container.is-mobile .navbar {
+    margin-top: 0;
     border-radius: 0;
     border-top: none;
     border-left: none;
     border-right: none;
+    padding-top: env(safe-area-inset-top, 0);
 }

@@ -22,6 +22,7 @@ import {
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import PageHeader from '../../../components/common/PageHeader';
+import { useDevice } from '../../../hooks/useDevice';
 import '../../Shared/Traspasos/Traspasos.css';
 
 const FILTROS = [
@@ -34,6 +35,8 @@ const FILTROS = [
 ];
 
 const TraspasosBandeja = () => {
+    const { isNative, isMobile } = useDevice();
+    const isMobileView = isMobile || isNative;
     const { fedId } = useParams();
     const basePath = fedId ? `/superadmin/federacion/${fedId}/traspasos` : '/dashboard/traspasos';
     const backTo = fedId ? `/superadmin/federacion/${fedId}` : '/dashboard';
@@ -143,7 +146,7 @@ const TraspasosBandeja = () => {
     });
 
     return (
-        <div className="page-content container traspasos-page">
+        <div className={`page-container traspasos-page ${isMobileView ? 'mobile-view' : ''}`}>
             <PageHeader
                 title="Traspasos"
                 subtitle="Bandeja de solicitudes de traspaso entre clubes"
@@ -151,17 +154,11 @@ const TraspasosBandeja = () => {
                 backTo={backTo}
                 backLabel={fedId ? 'Dashboard federación' : 'Dashboard'}
                 actions={(
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <div className="traspasos-header-actions">
                     <select
+                        className="traspasos-export-select"
                         value={exportPeriodoId}
                         onChange={(e) => setExportPeriodoId(e.target.value)}
-                        style={{
-                            padding: '0.45rem 0.65rem',
-                            borderRadius: 8,
-                            border: '1px solid var(--border-color)',
-                            background: 'var(--bg-card)',
-                            color: 'var(--text-primary)',
-                        }}
                     >
                         <option value="">Exportar: todos los periodos</option>
                         {periodos.map((p) => (
@@ -176,7 +173,7 @@ const TraspasosBandeja = () => {
                     <Button variant="secondary" icon={RefreshCw} onClick={handleRefresh} isLoading={refreshing}>
                         Actualizar
                     </Button>
-                    <Link to={`${basePath}/periodos`}>
+                    <Link to={`${basePath}/periodos`} style={{ display: 'flex' }}>
                         <Button variant="primary" icon={Calendar}>Periodos</Button>
                     </Link>
                 </div>
@@ -190,7 +187,7 @@ const TraspasosBandeja = () => {
                 </div>
             )}
 
-            <Card>
+            <Card className="traspasos-content-card">
                 <div className="traspasos-filters" style={{ marginBottom: '1rem' }}>
                     {FILTROS.map((f) => (
                         <button
@@ -238,19 +235,19 @@ const TraspasosBandeja = () => {
                                             className="traspasos-row-click"
                                             onClick={() => navigate(`${basePath}/${s.id}`)}
                                         >
-                                            <td>
+                                            <td data-label="Atleta">
                                                 <strong>{s.participanteNombre}</strong>
                                                 <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                                                     {s.participanteDocumento}
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td data-label="Origen → Destino">
                                                 {s.clubOrigenNombre} → {s.clubDestinoNombre}
                                             </td>
-                                            <td>
+                                            <td data-label="Estado">
                                                 <span className={`badge badge-${meta.color}`}>{meta.label}</span>
                                             </td>
-                                            <td>{formatFecha(s.fechaSolicitud)}</td>
+                                            <td data-label="Solicitud">{formatFecha(s.fechaSolicitud)}</td>
                                         </tr>
                                     );
                                 })}
@@ -260,7 +257,7 @@ const TraspasosBandeja = () => {
                 )}
             </Card>
 
-            <Card title="Historial de auditoría">
+            <Card title="Historial de auditoría" className="traspasos-content-card">
                 <p style={{ margin: '0 0 1rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
                     <History size={16} style={{ verticalAlign: 'middle', marginRight: 6 }} />
                     Acciones registradas del módulo de traspasos
@@ -283,10 +280,10 @@ const TraspasosBandeja = () => {
                             <tbody>
                                 {auditoria.map((row) => (
                                     <tr key={row.id}>
-                                        <td>{formatFecha(row.fecha)}</td>
-                                        <td>{row.accion}</td>
-                                        <td>{row.detalle}</td>
-                                        <td>{row.usuario}</td>
+                                        <td data-label="Fecha">{formatFecha(row.fecha)}</td>
+                                        <td data-label="Acción">{row.accion}</td>
+                                        <td data-label="Detalle">{row.detalle}</td>
+                                        <td data-label="Usuario">{row.usuario}</td>
                                     </tr>
                                 ))}
                             </tbody>

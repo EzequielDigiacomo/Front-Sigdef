@@ -84,9 +84,47 @@
     padding: 0.15rem 0 0;
 }
 
-.page-container.mobile-view .module-page-header {
+.page-container.mobile-view .module-page-header:not(:has(.pagos-stats)):not(:has(.traspasos-header-actions)):not(:has(.inscripciones-header-actions)) {
     margin-bottom: 0.65rem;
-    padding: 0 0.15rem;
+    padding: 0;
+    flex-wrap: nowrap;
+    align-items: center;
+}
+
+.page-container.mobile-view .module-page-header:has(.pagos-stats),
+.page-container.mobile-view .module-page-header:has(.traspasos-header-actions),
+.page-container.mobile-view .module-page-header:has(.inscripciones-header-actions) {
+    margin-bottom: 0.65rem;
+    padding: 0;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.65rem;
+}
+
+.page-container.mobile-view .module-page-header-left {
+    align-items: center;
+    min-width: 0;
+}
+
+.page-container.mobile-view .module-page-header-actions {
+    width: auto;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.page-container.mobile-view .module-page-header:has(.pagos-stats) .module-page-header-actions,
+.page-container.mobile-view .module-page-header:has(.traspasos-header-actions) .module-page-header-actions,
+.page-container.mobile-view .module-page-header:has(.inscripciones-header-actions) .module-page-header-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+}
+
+.page-container.mobile-view .module-page-header:has(.pagos-stats) .module-page-header-left,
+.page-container.mobile-view .module-page-header:has(.traspasos-header-actions) .module-page-header-left,
+.page-container.mobile-view .module-page-header:has(.inscripciones-header-actions) .module-page-header-left {
+    width: 100%;
+    align-items: flex-start;
 }
 
 .page-container.mobile-view .module-page-title {
@@ -98,7 +136,7 @@
 }
 
 .page-container.mobile-view .mobile-list-container {
-    padding: 0 0.15rem 5.5rem;
+    padding: 0 0 5.5rem;
 }
 
 .page-container.mobile-view .mobile-search {
@@ -107,9 +145,41 @@
 }
 
 @media (max-width: 768px) {
+    .module-page-header:not(:has(.pagos-stats)):not(:has(.traspasos-header-actions)):not(:has(.inscripciones-header-actions)) {
+        flex-wrap: nowrap;
+        align-items: center;
+    }
+
+    .module-page-header:has(.pagos-stats),
+    .module-page-header:has(.traspasos-header-actions),
+    .module-page-header:has(.inscripciones-header-actions) {
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 0.65rem;
+    }
+
+    .module-page-header:has(.pagos-stats) .module-page-header-left,
+    .module-page-header:has(.traspasos-header-actions) .module-page-header-left,
+    .module-page-header:has(.inscripciones-header-actions) .module-page-header-left {
+        width: 100%;
+        align-items: flex-start;
+    }
+
     .module-page-header {
         margin-bottom: 0.7rem;
         gap: 0.55rem;
+    }
+
+    .module-page-header:not(:has(.pagos-stats)):not(:has(.traspasos-header-actions)):not(:has(.inscripciones-header-actions)) .module-page-header-left {
+        align-items: center;
+        min-width: 0;
+    }
+
+    .module-page-header:has(.pagos-stats) .module-page-subtitle,
+    .module-page-header:has(.traspasos-header-actions) .module-page-subtitle,
+    .module-page-header:has(.inscripciones-header-actions) .module-page-subtitle {
+        line-height: 1.4;
+        max-width: 100%;
     }
 
     .module-page-title {
@@ -124,15 +194,28 @@
         width: 34px;
         height: 34px;
         border-radius: 9px;
+        margin-top: 0;
     }
 
     .module-page-header-actions {
-        width: 100%;
+        width: auto;
+        margin-left: auto;
+        flex-shrink: 0;
         justify-content: flex-end;
+    }
+
+    .module-page-header:has(.pagos-stats) .module-page-header-actions,
+    .module-page-header:has(.traspasos-header-actions) .module-page-header-actions,
+    .module-page-header:has(.inscripciones-header-actions) .module-page-header-actions {
+        width: 100%;
+        margin-left: 0;
+        justify-content: flex-start;
     }
 
     .module-page-header-actions .btn,
     .module-page-header-actions button {
         font-size: 0.82rem;
+        white-space: nowrap;
+        margin: 0;
     }
 }

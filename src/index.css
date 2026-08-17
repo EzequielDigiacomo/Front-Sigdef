@@ -10,6 +10,8 @@
 
   --warning: #f59e0b;
 
+  --mobile-page-gutter: 1.15rem;
+
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
@@ -30,6 +32,8 @@
 
   --bg-card: rgba(30, 41, 59, 0.7);
 
+  --glass-bg: rgba(15, 23, 42, 0.92);
+
   --text-primary: #f8fafc;
 
   --text-secondary: #94a3b8;
@@ -48,6 +52,8 @@
   --bg-secondary: #ffffff;
 
   --bg-card: rgba(255, 255, 255, 0.8);
+
+  --glass-bg: rgba(255, 255, 255, 0.92);
 
   --text-primary: #0f172a;
 
@@ -77,6 +83,20 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+#root {
+  min-height: 100vh;
+  text-align: initial;
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -92,6 +112,12 @@ button {
 .container {
   width: 100%;
   padding: 0 1rem;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 var(--mobile-page-gutter, 1.15rem);
+  }
 }
 
 .glass-panel {

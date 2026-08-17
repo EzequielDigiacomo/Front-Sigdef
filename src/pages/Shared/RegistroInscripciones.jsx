@@ -5,8 +5,9 @@ import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import FormField from '../../components/forms/FormField';
 import PageHeader from '../../components/common/PageHeader';
+import { useDevice } from '../../hooks/useDevice';
 import { Search, ClipboardList, Trash2, Download, RefreshCw } from 'lucide-react';
-import '../FederacionAdmin/Atletas/Atletas.css';
+import './RegistroInscripciones.css';
 
 const normalizeRegistro = (item) => ({
     id: item.id ?? item.Id ?? item.idInscripcion ?? item.IdInscripcion,
@@ -46,6 +47,8 @@ const formatPrueba = (row) => {
  */
 const RegistroInscripciones = ({ modo = 'admin' }) => {
     const { user } = useAuth();
+    const { isNative, isMobile } = useDevice();
+    const isMobileView = isMobile || isNative;
     const esAdmin = modo === 'admin';
 
     const [inscripciones, setInscripciones] = useState([]);
@@ -150,14 +153,14 @@ const RegistroInscripciones = ({ modo = 'admin' }) => {
         : 'Consulta de inscripciones de atletas de tu club';
 
     return (
-        <div className="page-container">
+        <div className={`page-container inscripciones-page ${isMobileView ? 'mobile-view' : ''}`}>
             <PageHeader
                 title={titulo}
                 subtitle={subtitulo}
                 icon={ClipboardList}
                 backTo="/dashboard"
                 actions={(
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <div className="inscripciones-header-actions">
                     <Button variant="secondary" onClick={loadInscripciones} disabled={loading}>
                         <RefreshCw size={18} /> Actualizar
                     </Button>
@@ -170,9 +173,9 @@ const RegistroInscripciones = ({ modo = 'admin' }) => {
                 )}
             />
 
-            <Card>
-                <div className="filters-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
-                    <div style={{ flex: '1 1 220px' }}>
+            <Card className="inscripciones-content-card">
+                <div className="inscripciones-filters">
+                    <div className="inscripciones-filter-search">
                         <FormField
                             icon={Search}
                             placeholder="Buscar atleta, documento, evento o club..."
@@ -180,7 +183,7 @@ const RegistroInscripciones = ({ modo = 'admin' }) => {
                             onChange={(e) => setFiltroBusqueda(e.target.value)}
                         />
                     </div>
-                    <div style={{ flex: '0 1 200px' }}>
+                    <div className="inscripciones-filter-select">
                         <select
                             className="form-input"
                             value={filtroEventoId}
@@ -197,7 +200,7 @@ const RegistroInscripciones = ({ modo = 'admin' }) => {
                         </select>
                     </div>
                     {esAdmin && (
-                        <div style={{ flex: '0 1 200px' }}>
+                        <div className="inscripciones-filter-select">
                             <select
                                 className="form-input"
                                 value={filtroClubId}
@@ -233,22 +236,26 @@ const RegistroInscripciones = ({ modo = 'admin' }) => {
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan={esAdmin ? 9 : 7} className="text-center">Cargando...</td></tr>
+                                <tr className="inscripciones-empty-row">
+                                    <td colSpan={esAdmin ? 9 : 7} data-label="" className="text-center">Cargando...</td>
+                                </tr>
                             ) : inscripciones.length === 0 ? (
-                                <tr><td colSpan={esAdmin ? 9 : 7} className="text-center">No hay inscripciones registradas</td></tr>
+                                <tr className="inscripciones-empty-row">
+                                    <td colSpan={esAdmin ? 9 : 7} data-label="" className="text-center">No hay inscripciones registradas</td>
+                                </tr>
                             ) : (
                                 inscripciones.map((row) => (
                                     <tr key={row.id}>
-                                        <td>{row.participanteNombre || '-'}</td>
-                                        <td>{row.participanteDocumento || '-'}</td>
-                                        {esAdmin && <td>{row.clubNombre || '-'}</td>}
-                                        <td>{row.eventoNombre || '-'}</td>
-                                        <td>{formatPrueba(row)}</td>
-                                        <td>{formatFecha(row.fechaInscripcion)}</td>
-                                        <td>{row.estado || '-'}</td>
-                                        <td>{row.pagado ? 'Sí' : 'No'}</td>
+                                        <td data-label="Atleta">{row.participanteNombre || '-'}</td>
+                                        <td data-label="Documento">{row.participanteDocumento || '-'}</td>
+                                        {esAdmin && <td data-label="Club">{row.clubNombre || '-'}</td>}
+                                        <td data-label="Evento">{row.eventoNombre || '-'}</td>
+                                        <td data-label="Prueba">{formatPrueba(row)}</td>
+                                        <td data-label="Fecha inscripción">{formatFecha(row.fechaInscripcion)}</td>
+                                        <td data-label="Estado">{row.estado || '-'}</td>
+                                        <td data-label="Pagado">{row.pagado ? 'Sí' : 'No'}</td>
                                         {esAdmin && (
-                                            <td>
+                                            <td data-label="Acciones">
                                                 <div className="actions-cell">
                                                     <Button
                                                         variant="ghost"
@@ -270,7 +277,7 @@ const RegistroInscripciones = ({ modo = 'admin' }) => {
                 </div>
 
                 {!loading && inscripciones.length > 0 && (
-                    <p style={{ marginTop: '1rem', opacity: 0.7, fontSize: '0.85rem' }}>
+                    <p className="inscripciones-count">
                         {inscripciones.length} inscripción{inscripciones.length !== 1 ? 'es' : ''} encontrada{inscripciones.length !== 1 ? 's' : ''}
                         {!esAdmin && user?.clubId ? ` · Club ID ${user.clubId}` : ''}
                     </p>
