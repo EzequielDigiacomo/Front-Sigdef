@@ -38,6 +38,121 @@ const FederacionesManagement = ({ planesOnly = false }) => {
         }
     };
 
+    /** Compara solo la fecha (YYYY-MM-DD), igual que el backend en login. */
+    const toDateOnly = (dateStr) => {
+        if (!dateStr) return null;
+        const raw = String(dateStr).split('T')[0];
+        const parts = raw.split('-').map(Number);
+        if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return null;
+        return new Date(parts[0], parts[1] - 1, parts[2]);
+    };
+
+    const isSubscriptionExpired = (fed) => {
+        const venc = toDateOnly(fed?.fechaVencimientoPlan);
+        if (!venc) return false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return venc < today;
+    };
+
+    /** Estado efectivo de acceso (lo que realmente bloquea el login). */
+    const getAccessState = (fed) => {
+        if (!fed) return { key: 'unknown', label: 'Sin datos', color: '#94a3b8', canLogin: false };
+        if (!fed.activo) {
+            return {
+                key: 'manual',
+                label: 'ACCESO SUSPENDIDO (manual)',
+                color: '#EF4444',
+                canLogin: false,
+                hint: 'La federación fue suspendida manualmente desde este panel.',
+            };
+        }
+        if (fed.bloqueadaPorFaltaDePago) {
+            return {
+                key: 'payment',
+                label: 'ACCESO BLOQUEADO POR PAGO',
+                color: '#EF4444',
+                canLogin: false,
+                hint: 'El acceso está bloqueado por falta de pago.',
+            };
+        }
+        if (isSubscriptionExpired(fed)) {
+            return {
+                key: 'expired',
+                label: 'ACCESO SUSPENDIDO (suscripción vencida)',
+                color: '#EF4444',
+                canLogin: false,
+                hint: 'La suscripción venció. Renová el plan para que los logins puedan ingresar.',
+            };
+        }
+        return {
+            key: 'ok',
+            label: 'ACCESO PERMITIDO',
+            color: '#10B981',
+            canLogin: true,
+            hint: null,
+        };
+    };
+
+    const handleRenovarPlan = async (fed) => {
+        if (!fed?.idFederacion) return;
+
+        const freq = fed.frecuenciaPago || 'Mensual';
+        let baseDate = new Date();
+        baseDate.setHours(0, 0, 0, 0);
+
+        const currentVenc = toDateOnly(fed.fechaVencimientoPlan);
+        if (currentVenc && currentVenc > baseDate) {
+            baseDate = currentVenc;
+        }
+
+        const nextDate = new Date(baseDate);
+        if (freq === 'Anual') {
+            nextDate.setFullYear(nextDate.getFullYear() + 1);
+        } else {
+            nextDate.setMonth(nextDate.getMonth() + 1);
+        }
+
+        const yyyy = nextDate.getFullYear();
+        const mm = String(nextDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(nextDate.getDate()).padStart(2, '0');
+        const newVencimiento = `${yyyy}-${mm}-${dd}`;
+
+        const ok = window.confirm(
+            `¿Renovar el plan ${fed.planNombre || ''} (${freq}) de "${fed.nombre}"?\n\nNuevo vencimiento: ${formatDate(newVencimiento)}`
+        );
+        if (!ok) return;
+
+        setUpdatingSaaS(true);
+        try {
+            const updatePayload = {
+                nombre: fed.nombre,
+                cuit: fed.cuit,
+                email: fed.email,
+                telefono: fed.telefono,
+                direccion: fed.pais,
+                bancoNombre: fed.bancoNombre,
+                tipoCuenta: fed.tipoCuenta,
+                numeroCuenta: fed.numeroCuenta,
+                titularCuenta: fed.titularCuenta,
+                emailCobro: fed.emailCobro,
+                planSaaSId: fed.planSaaSId,
+                fechaAltaPlan: new Date().toISOString(),
+                fechaVencimientoPlan: new Date(`${newVencimiento}T12:00:00`).toISOString(),
+                frecuenciaPago: freq,
+                bloqueadaPorFaltaDePago: false,
+            };
+            await api.put(`/Federaciones/${fed.idFederacion}`, updatePayload);
+            await loadFederaciones();
+            alert(`Plan renovado. Nuevo vencimiento: ${formatDate(newVencimiento)}`);
+        } catch (err) {
+            console.error('Error al renovar plan:', err);
+            alert(err?.message || 'No se pudo renovar el plan.');
+        } finally {
+            setUpdatingSaaS(false);
+        }
+    };
+
     useEffect(() => {
         loadPlanes();
         loadFederaciones();
@@ -134,6 +249,12 @@ const FederacionesManagement = ({ planesOnly = false }) => {
                 }
             }
 
+            const toNoonIso = (value) => {
+                if (!value) return null;
+                const day = String(value).split('T')[0];
+                return new Date(`${day}T12:00:00`).toISOString();
+            };
+
             const updatePayload = {
                 nombre: updatedFed.nombre,
                 cuit: updatedFed.cuit,
@@ -146,8 +267,8 @@ const FederacionesManagement = ({ planesOnly = false }) => {
                 titularCuenta: updatedFed.titularCuenta,
                 emailCobro: updatedFed.emailCobro,
                 planSaaSId: updatedFed.planSaaSId,
-                fechaAltaPlan: updatedFed.fechaAltaPlan ? new Date(updatedFed.fechaAltaPlan).toISOString() : null,
-                fechaVencimientoPlan: updatedFed.fechaVencimientoPlan ? new Date(updatedFed.fechaVencimientoPlan).toISOString() : null,
+                fechaAltaPlan: toNoonIso(updatedFed.fechaAltaPlan),
+                fechaVencimientoPlan: toNoonIso(updatedFed.fechaVencimientoPlan),
                 frecuenciaPago: updatedFed.frecuenciaPago,
                 bloqueadaPorFaltaDePago: updatedFed.bloqueadaPorFaltaDePago
             };
@@ -542,6 +663,9 @@ const FederacionesManagement = ({ planesOnly = false }) => {
                             </div>
 
                             {/* Control de Acceso Panel */}
+                            {(() => {
+                                const access = getAccessState(selectedFedConfig);
+                                return (
                             <div style={{ 
                                 background: 'rgba(255, 255, 255, 0.02)', 
                                 padding: '12px', 
@@ -558,66 +682,108 @@ const FederacionesManagement = ({ planesOnly = false }) => {
                                         Estado Actual:
                                     </span>
                                     <span style={{ 
-                                        fontSize: '0.85rem', 
+                                        fontSize: '0.8rem', 
                                         fontWeight: 'bold', 
-                                        color: selectedFedConfig.activo ? '#10B981' : '#EF4444',
+                                        color: access.color,
                                         display: 'flex',
                                         alignItems: 'center',
-                                        gap: '6px'
+                                        gap: '6px',
+                                        textAlign: 'right',
+                                        maxWidth: '62%',
                                     }}>
                                         <span style={{ 
                                             width: '8px', 
                                             height: '8px', 
                                             borderRadius: '50%', 
-                                            backgroundColor: selectedFedConfig.activo ? '#10B981' : '#EF4444',
+                                            backgroundColor: access.color,
                                             display: 'inline-block',
-                                            boxShadow: selectedFedConfig.activo ? '0 0 8px #10B981' : '0 0 8px #EF4444'
+                                            flexShrink: 0,
+                                            boxShadow: `0 0 8px ${access.color}`
                                         }} />
-                                        {selectedFedConfig.activo ? 'ACCESO PERMITIDO' : 'ACCESO SUSPENDIDO'}
+                                        {access.label}
                                     </span>
                                 </div>
 
-                                <button 
-                                    onClick={() => handleToggleActivo(selectedFedConfig.idFederacion)}
-                                    disabled={updatingSaaS}
-                                    style={{
-                                        width: '100%',
-                                        padding: '10px',
-                                        borderRadius: '6px',
-                                        border: '1px solid',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '8px',
-                                        fontWeight: 'bold',
-                                        fontSize: '0.8rem',
-                                        transition: 'all 0.2s ease',
-                                        backgroundColor: selectedFedConfig.activo ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-                                        color: selectedFedConfig.activo ? '#EF4444' : '#10B981',
-                                        borderColor: selectedFedConfig.activo ? '#EF444444' : '#10B98144',
-                                    }}
-                                >
-                                    {selectedFedConfig.activo ? (
-                                        <>
-                                            <XCircle size={16} />
-                                            <span>SUSPENDER ACCESO</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Check size={16} />
-                                            <span>HABILITAR ACCESO</span>
-                                        </>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {(access.key === 'expired' || access.key === 'payment') && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRenovarPlan(selectedFedConfig)}
+                                            disabled={updatingSaaS}
+                                            style={{
+                                                width: '100%',
+                                                padding: '10px',
+                                                borderRadius: '6px',
+                                                border: '1px solid rgba(59,130,246,0.45)',
+                                                cursor: updatingSaaS ? 'wait' : 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '8px',
+                                                fontWeight: 'bold',
+                                                fontSize: '0.8rem',
+                                                backgroundColor: 'rgba(59,130,246,0.12)',
+                                                color: '#60a5fa',
+                                            }}
+                                        >
+                                            <Calendar size={16} />
+                                            <span>RENOVAR SUSCRIPCIÓN</span>
+                                        </button>
                                     )}
-                                </button>
+
+                                    <button 
+                                        type="button"
+                                        onClick={() => handleToggleActivo(selectedFedConfig.idFederacion)}
+                                        disabled={updatingSaaS}
+                                        style={{
+                                            width: '100%',
+                                            padding: '10px',
+                                            borderRadius: '6px',
+                                            border: '1px solid',
+                                            cursor: updatingSaaS ? 'wait' : 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '8px',
+                                            fontWeight: 'bold',
+                                            fontSize: '0.8rem',
+                                            transition: 'all 0.2s ease',
+                                            backgroundColor: selectedFedConfig.activo ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                                            color: selectedFedConfig.activo ? '#EF4444' : '#10B981',
+                                            borderColor: selectedFedConfig.activo ? '#EF444444' : '#10B98144',
+                                        }}
+                                    >
+                                        {selectedFedConfig.activo ? (
+                                            <>
+                                                <XCircle size={16} />
+                                                <span>SUSPENDER ACCESO</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Check size={16} />
+                                                <span>HABILITAR ACCESO</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+
+                                <p style={{
+                                    margin: '10px 0 0',
+                                    fontSize: '0.7rem',
+                                    color: 'var(--text-secondary, #94a3b8)',
+                                    lineHeight: 1.35,
+                                }}>
+                                    Este control es de la federación (SaaS). El bloqueo de un login por contraseñas incorrectas se gestiona en Logins (habilitar cuenta), no acá.
+                                </p>
                             </div>
+                                );
+                            })()}
 
                             {/* Alerta de expiración / bloqueo */}
                             {(() => {
-                                const isExpired = selectedFedConfig.fechaVencimientoPlan && new Date(selectedFedConfig.fechaVencimientoPlan) < new Date();
-                                const isBlocked = selectedFedConfig.bloqueadaPorFaltaDePago;
-                                if (selectedFedConfig.activo && (isExpired || isBlocked)) {
-                                    return (
+                                const access = getAccessState(selectedFedConfig);
+                                if (access.canLogin || !access.hint) return null;
+                                return (
                                         <div style={{
                                             padding: '10px',
                                             borderRadius: '8px',
@@ -631,15 +797,9 @@ const FederacionesManagement = ({ planesOnly = false }) => {
                                             fontWeight: '500'
                                         }}>
                                             <XCircle size={14} style={{ flexShrink: 0 }} />
-                                            <span>
-                                                {isBlocked 
-                                                    ? "El acceso está bloqueado manualmente por falta de pago." 
-                                                    : "El acceso está suspendido automáticamente porque la suscripción ha vencido."}
-                                            </span>
+                                            <span>{access.hint}</span>
                                         </div>
-                                    );
-                                }
-                                return null;
+                                );
                             })()}
                         </div>
 
