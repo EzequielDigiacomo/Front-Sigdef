@@ -15,10 +15,19 @@ Frontend React del **Sistema de Gestión Deportiva Federativa**.
 
 ```bash
 npm install
+cp .env.example .env
 npm run dev
 ```
 
 App: `http://localhost:5173`
+
+## Variables de entorno
+
+```env
+VITE_API_URL=http://localhost:5029/api
+```
+
+Los `.env*` no se versionan (solo `.env.example`). En Vercel: **Settings → Environment Variables**.
 
 ## Backend
 
