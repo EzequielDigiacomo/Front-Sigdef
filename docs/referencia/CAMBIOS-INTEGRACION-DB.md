@@ -1,5 +1,7 @@
 # 🔄 Integración con Base de Datos - Resumen de Cambios
 
+> ⚠️ **Documento histórico (material de archivo).** Las referencias a `https://localhost:7112` y al backend en .NET 8 están desactualizadas: la API real es `https://sporttrack-sigdef.onrender.com/api` sobre **`.NET 10`**. La referencia vigente es el [Pack de Entrega](../Entrega/README.md) (actualizado 2026-09-27).
+
 ## Fecha: 25 de Noviembre, 2025
 
 ## Cambios Realizados

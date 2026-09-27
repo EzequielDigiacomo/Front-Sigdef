@@ -1,5 +1,7 @@
 # 🔌 Guía de Integración con API
 
+> ⚠️ **Documento histórico (material de archivo).** Contradice el código actual: se usa **`fetch` nativo** mediante el wrapper `src/services/api.js` (no `axios`) y la API es `https://sporttrack-sigdef.onrender.com/api` (no `https://localhost:7112`). La referencia vigente es el [Pack de Entrega](../Entrega/README.md) (actualizado 2026-09-27).
+
 ## Estado Actual de la Integración
 
 ### ✅ Componentes Conectados a la API

@@ -1,5 +1,7 @@
 # 01 — Diagramas globales (arquitectura)
 
+> ⚠️ **Documento histórico (material de archivo).** El backend real es **`.NET 10`** (`net10.0`), no .NET 8. Los diagramas vigentes, alineados al código, están en el [Pack de Entrega](../../Entrega/03-Diagramas-de-Flujo.md) y en el [Manual Técnico](../../Entrega/05-Manual-Tecnico.md) (actualizado 2026-09-27).
+
 ## 1. Contexto
 
 ```mermaid

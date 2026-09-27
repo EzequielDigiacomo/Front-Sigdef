@@ -1,5 +1,7 @@
 # 👨‍💻 Guía para Desarrolladores (SIGDEF)
 
+> ⚠️ **Documento histórico (material de archivo).** El backend real es **`.NET 10`** (`net10.0`), no .NET 8. Para instalar y ejecutar el frontend usá el [Manual de Instalación y Despliegue](../Entrega/06-Manual-Instalacion-Despliegue.md) vigente (actualizado 2026-09-27).
+
 Esta guía detalla el flujo de trabajo para configurar, desarrollar y desplegar el sistema SIGDEF.
 
 ---

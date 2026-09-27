@@ -1,5 +1,7 @@
 # Contexto del Proyecto SportTrack / SIGDEF
 
+> ⚠️ **Documento histórico (julio 2026).** Contradice el código actual: el backend real es **`.NET 10`** (`net10.0`), no .NET 8; no existe login mock `admin/admin` (el auth es **JWT real**); las rutas son `/dashboard`, `/club` y `/superadmin` (no `/atletas` ni `/clubes`). La referencia vigente es el [Pack de Entrega](../Entrega/README.md) (actualizado 2026-09-27).
+
 > Documento de referencia compartido entre los **3 repositorios**.  
 > Copias: `SportTrack-Front/docs/`, `SportTrack-Sigdef/docs/`, `FrontSigdef/docs/`  
 > Última actualización: julio 2026.

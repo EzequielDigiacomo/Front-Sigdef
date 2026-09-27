@@ -1,5 +1,7 @@
 # 🏗️ Arquitectura del Sistema SIGDEF
 
+> ⚠️ **Documento histórico (material de archivo).** Contradice el código actual: el backend real es **`.NET 10`** (`net10.0`), no .NET 8; el frontend usa **React 19 + Router 7 + CSS plano** y `fetch` nativo. La referencia vigente es el [Pack de Entrega](../Entrega/README.md) (actualizado 2026-09-27).
+
 ## Visión General
 
 SIGDEF es una aplicación web de gestión deportiva integral. Utiliza una arquitectura **Single Page Application (SPA)** para el frontend y una **Web API** robusta para el backend, comunicándose de forma segura mediante **JSON** y tokens **JWT**.

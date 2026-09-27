@@ -1,5 +1,7 @@
 # 📡 Documentación de API Backend (SIGDEF)
 
+> ⚠️ **Documento histórico (material de archivo).** El backend real es **`.NET 10`** (`net10.0`), no .NET 8, y la API de producción vive en `https://sporttrack-sigdef.onrender.com/api`. La referencia vigente es el [Pack de Entrega](../Entrega/README.md) (actualizado 2026-09-27).
+
 Esta documentación describe la arquitectura técnica, los endpoints y los flujos de integración del backend de SIGDEF, desarrollado en **ASP.NET Core 8**.
 
 ## Arquitectura Técnica
