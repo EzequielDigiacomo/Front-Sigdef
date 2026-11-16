@@ -10,7 +10,7 @@ import DocumentViewerModal from '../../../components/common/DocumentViewerModal'
 import { Plus, Edit, Trash2, Search, FileText, Eye, ChevronUp, ChevronDown, ChevronsUpDown, AlertCircle } from 'lucide-react';
 import { useSort } from '../../../hooks/useSort';
 import { withFederationScope } from '../../../utils/apiHelpers';
-import { getCategoriaLabel, getEstadoPagoLabel, getEstadoPagoColor, TIPO_DOCUMENTO_MAP } from '../../../utils/enums';
+import { getCategoriaLabel, getEstadoPagoLabel, getEstadoPagoColor, TIPO_DOCUMENTO_MAP, getEstadoFichajeLabel, getEstadoFichajeColor, getEstadoAptoLabel, getEstadoAptoColor } from '../../../utils/enums';
 import { TutorStatusCell, calcEdad } from '../../../components/common/TutorStatusCell';
 import './Atletas.css';
 import Modal from '../../../components/common/Modal';
@@ -82,6 +82,9 @@ const normalizeAtleta = (a) => {
         categoriaNombre: a.categoriaNombre ?? a.CategoriaNombre ?? null,
         perteneceSeleccion: a.perteneceSeleccion ?? a.PerteneceSeleccion ?? false,
         estadoPago: a.estadoPago ?? a.EstadoPago,
+        estadoFichaje: a.estadoFichaje ?? a.EstadoFichaje ?? 0,
+        estadoApto: a.estadoApto ?? a.EstadoApto ?? 'Faltante',
+        estaHabilitado: !!(a.estaHabilitado ?? a.EstaHabilitado),
         fechaCreacion: a.fechaCreacion ?? a.FechaCreacion,
         tutorInfo,
         fechaNacimiento,
@@ -660,6 +663,15 @@ const AtletasList = () => {
                                             <td className="text-center">
                                                 <span className={`badge badge-${getEstadoPagoColor(atleta.estadoPago)}`}>
                                                     {getEstadoPagoLabel(atleta.estadoPago)}
+                                                </span>
+                                                <span className={`badge badge-${getEstadoFichajeColor(atleta.estadoFichaje)}`} style={{ marginLeft: 6 }}>
+                                                    {getEstadoFichajeLabel(atleta.estadoFichaje)}
+                                                </span>
+                                                <span className={`badge badge-${getEstadoAptoColor(atleta.estadoApto)}`} style={{ marginLeft: 6 }}>
+                                                    {getEstadoAptoLabel(atleta.estadoApto)}
+                                                </span>
+                                                <span className={`badge badge-${atleta.estaHabilitado ? 'success' : 'secondary'}`} style={{ marginLeft: 6 }}>
+                                                    {atleta.estaHabilitado ? 'Habilitado' : 'No habilitado'}
                                                 </span>
                                             </td>
                                             <td className="docs-col">

@@ -45,6 +45,8 @@ import FederacionDetalles from './pages/FederacionAdmin/Federacion/FederacionDet
 import PagosClubes from './pages/FederacionAdmin/Pagos/PagosClubes';
 import MensajesPage from './pages/Shared/MensajesPage';
 import RegistroInscripciones from './pages/Shared/RegistroInscripciones';
+import FichajesBandeja from './pages/FederacionAdmin/Fichajes/FichajesBandeja';
+import PadronHabilitados from './pages/FederacionAdmin/Fichajes/PadronHabilitados';
 
 import ClubInfo from './pages/ClubAdmin/Info/ClubInfo';
 import ClubAtletas from './pages/ClubAdmin/Atletas/ClubAtletas';
@@ -239,6 +241,8 @@ function App() {
               <Route path="traspasos" element={<TraspasosBandeja />} />
               <Route path="traspasos/periodos" element={<PeriodosTraspaso />} />
               <Route path="traspasos/:id" element={<TraspasoDetalle />} />
+              <Route path="fichajes" element={<FichajesBandeja />} />
+              <Route path="padron" element={<PadronHabilitados modo="admin" />} />
             </Route>
 
             { }
@@ -252,6 +256,7 @@ function App() {
               <Route path="atletas" element={<ClubAtletas />} />
               <Route path="atletas/nuevo" element={<ClubAtletasForm />} />
               <Route path="atletas/editar/:id" element={<ClubAtletasForm />} />
+              <Route path="padron" element={<PadronHabilitados modo="club" />} />
               <Route path="tutores" element={<ClubTutores />} />
               <Route path="tutores/nuevo" element={<ClubTutoresForm />} />
               <Route path="tutores/editar/:id" element={<ClubTutoresForm />} />

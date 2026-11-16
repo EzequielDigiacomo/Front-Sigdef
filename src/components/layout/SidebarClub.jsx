@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
     LayoutDashboard, Users, Trophy, UserCheck, Award, Shield, Mail,
-    ChevronLeft, ChevronRight, ClipboardList, ArrowRightLeft,
+    ChevronLeft, ChevronRight, ClipboardList, ArrowRightLeft, ShieldCheck,
 } from 'lucide-react';
 import useUnreadMessages from '../../hooks/useUnreadMessages';
 import usePendingTraspasos from '../../hooks/usePendingTraspasos';
@@ -14,6 +14,7 @@ const SidebarClub = ({ isOpen, closeMobile, isCollapsed, toggleSidebar }) => {
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/club' },
         { icon: Users, label: 'Mis Atletas', path: '/club/atletas' },
+        { icon: ShieldCheck, label: 'Padrón', path: '/club/padron' },
         { icon: ArrowRightLeft, label: 'Traspasos', path: '/club/traspasos', showBadge: true, badgeCount: pendingCount, hasBadge: hasPending },
         { icon: UserCheck, label: 'Mis Tutores', path: '/club/tutores' },
         { icon: Award, label: 'Mis Entrenadores', path: '/club/entrenadores' },

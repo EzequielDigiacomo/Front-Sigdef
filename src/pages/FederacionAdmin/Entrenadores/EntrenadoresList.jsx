@@ -174,14 +174,25 @@ const EntrenadoresList = () => {
         });
     };
 
-    const handleDelete = () => {
+    const handleDelete = (row) => {
+        const id = row?.idPersona ?? row?.id ?? row;
+        const nombre = row?.nombrePersona || 'este entrenador';
         setConfirmationConfig({
-            type: 'info',
-            title: 'Funcionalidad Pendiente',
-            message: 'La funcionalidad de eliminar entrenador está pendiente en el backend.',
-            onConfirm: () => setShowConfirmation(false),
-            showCancel: false,
-            confirmText: 'Entendido',
+            type: 'danger',
+            title: 'Baja de entrenador',
+            message: `¿Confirmás la baja de ${nombre}? Quedará inactivo (baja lógica).`,
+            showCancel: true,
+            confirmText: 'Dar de baja',
+            onConfirm: async () => {
+                setShowConfirmation(false);
+                try {
+                    await api.delete(`/Entrenador/${id}`);
+                    setEntrenadores((list) => list.filter((e) => String(e.idPersona) !== String(id)));
+                } catch (err) {
+                    console.error(err);
+                    alert(err.message || 'No se pudo dar de baja el entrenador.');
+                }
+            },
         });
         setShowConfirmation(true);
     };
@@ -376,9 +387,9 @@ const EntrenadoresList = () => {
                         className="text-danger"
                         onClick={(e) => {
                             e.stopPropagation();
-                            handleDelete();
+                            handleDelete(row);
                         }}
-                        title="Eliminar"
+                        title="Dar de baja"
                     >
                         <Trash2 size={18} />
                     </Button>

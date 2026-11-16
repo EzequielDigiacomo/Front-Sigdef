@@ -181,5 +181,45 @@ export const TIPO_DOCUMENTO_MAP = {
     99: 'Otro'
 };
 
+export const ESTADO_FICHAJE_MAP = {
+    0: 'Pendiente revisión',
+    1: 'Observado',
+    2: 'Aprobado',
+    3: 'Rechazado',
+    4: 'Baja',
+};
+
+export const ESTADO_APTO_MAP = {
+    Vigente: 'Vigente',
+    PorVencer: 'Por vencer',
+    Vencido: 'Vencido',
+    Faltante: 'Faltante',
+    SinVencimientoInformado: 'Sin vencimiento',
+};
+
 export const getTipoDocumentoLabel = (value) => TIPO_DOCUMENTO_MAP[value] ?? 'Documento';
 export const getTipoBoteLabel = (value) => TIPO_BOTE_MAP[value] ?? '-';
+export const getEstadoFichajeLabel = (value) => ESTADO_FICHAJE_MAP[value] ?? ESTADO_FICHAJE_MAP[Number(value)] ?? 'Desconocido';
+export const getEstadoAptoLabel = (value) => ESTADO_APTO_MAP[value] ?? value ?? 'Desconocido';
+
+export const getEstadoFichajeColor = (value) => {
+    switch (Number(value)) {
+        case 0: return 'warning';
+        case 1: return 'warning';
+        case 2: return 'success';
+        case 3: return 'danger';
+        case 4: return 'secondary';
+        default: return 'secondary';
+    }
+};
+
+export const getEstadoAptoColor = (value) => {
+    switch (value) {
+        case 'Vigente': return 'success';
+        case 'PorVencer': return 'warning';
+        case 'Vencido': return 'danger';
+        case 'Faltante': return 'danger';
+        case 'SinVencimientoInformado': return 'secondary';
+        default: return 'secondary';
+    }
+};

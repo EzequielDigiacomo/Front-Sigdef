@@ -16,6 +16,7 @@ const DocumentUploadModal = ({ isOpen, onClose, onSuccess, personId, personName 
     const [selectedFile, setSelectedFile] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
     const [tipoDocumento, setTipoDocumento] = useState('0');
+    const [fechaVencimiento, setFechaVencimiento] = useState('');
     const [loading, setLoading] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showErrorModal, setShowErrorModal] = useState(false);
@@ -94,6 +95,9 @@ const DocumentUploadModal = ({ isOpen, onClose, onSuccess, personId, personName 
             formData.append('File', selectedFile); // 'File' con F mayúscula
             formData.append('PersonaId', personId.toString()); // 'PersonaId' con P mayúscula
             formData.append('TipoDocumento', tipoDocumento.toString()); // 'TipoDocumento' con T mayúscula
+            if (fechaVencimiento) {
+                formData.append('FechaVencimiento', fechaVencimiento);
+            }
 
             console.log('📤 Subiendo documento:', {
                 tipo: tipoDocumento,
@@ -169,6 +173,7 @@ const DocumentUploadModal = ({ isOpen, onClose, onSuccess, personId, personName 
         setSelectedFile(null);
         setPreviewUrl(null);
         setTipoDocumento('0');
+        setFechaVencimiento('');
         setLoading(false);
         setErrorMessage('');
         if (fileInputRef.current) fileInputRef.current.value = '';
@@ -218,6 +223,19 @@ const DocumentUploadModal = ({ isOpen, onClose, onSuccess, personId, personName 
                             ))}
                         </select>
                     </div>
+
+                    {(tipoDocumento === '3' || tipoDocumento === 3) && (
+                        <div className="mb-4">
+                            <label className="form-group-label">Fecha de vencimiento del apto</label>
+                            <input
+                                type="date"
+                                className="form-input"
+                                value={fechaVencimiento}
+                                onChange={(e) => setFechaVencimiento(e.target.value)}
+                                disabled={loading}
+                            />
+                        </div>
+                    )}
 
                     {!selectedFile ? (
                         <div

@@ -37,6 +37,7 @@ const AtletasForm = () => {
         becadoSdn: false,
         montoBeca: 0,
         presentoAptoMedico: false,
+        fechaVencimientoApto: '',
         estadoPago: 0,
         perteneceSeleccion: false
     });
@@ -195,6 +196,9 @@ const AtletasForm = () => {
                 becadoSdn: data.becadoSdn ?? data.BecadoSdn ?? false,
                 montoBeca: data.montoBeca ?? data.MontoBeca ?? 0,
                 presentoAptoMedico: data.presentoAptoMedico ?? data.PresentoAptoMedico ?? false,
+                fechaVencimientoApto: (data.fechaVencimientoApto ?? data.FechaVencimientoApto)
+                    ? String(data.fechaVencimientoApto ?? data.FechaVencimientoApto).slice(0, 10)
+                    : '',
                 estadoPago: data.estadoPago ?? data.EstadoPago ?? 0,
                 perteneceSeleccion: data.perteneceSeleccion ?? data.PerteneceSeleccion ?? false,
             });
@@ -319,6 +323,7 @@ const AtletasForm = () => {
                 BecadoSdn: formData.becadoSdn,
                 MontoBeca: parseFloat(formData.montoBeca) || 0,
                 PresentoAptoMedico: formData.presentoAptoMedico,
+                FechaVencimientoApto: formData.fechaVencimientoApto || null,
                 EstadoPago: parseInt(formData.estadoPago),
                 PerteneceSeleccion: formData.perteneceSeleccion,
                 FechaAptoMedico: null
@@ -647,6 +652,16 @@ const AtletasForm = () => {
                         <div className="form-group checkbox-group">
                             <input type="checkbox" name="presentoAptoMedico" checked={formData.presentoAptoMedico} onChange={handleChange} id="apto" />
                             <label htmlFor="apto">Presentó Apto Médico</label>
+                        </div>
+                        <div className="form-group">
+                            <label>Vencimiento apto médico</label>
+                            <input
+                                type="date"
+                                name="fechaVencimientoApto"
+                                value={formData.fechaVencimientoApto}
+                                onChange={handleChange}
+                                className="form-input"
+                            />
                         </div>
 
                         <div className="form-group checkbox-group">

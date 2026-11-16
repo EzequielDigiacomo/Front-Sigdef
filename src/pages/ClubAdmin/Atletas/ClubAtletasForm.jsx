@@ -318,7 +318,7 @@ const ClubAtletasForm = () => {
             setModalConfig({
                 isOpen: true,
                 title: 'Éxito',
-                message: 'Atleta y tutor procesados exitosamente!',
+                message: 'Atleta enviado a revisión federativa. Quedará pendiente hasta que la federación lo apruebe.',
                 type: 'success',
                 shouldNavigate: true
             });

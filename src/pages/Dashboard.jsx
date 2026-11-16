@@ -5,9 +5,10 @@ import Card from '../components/common/Card';
 import {
     Users, Shield, DollarSign, Award, Trophy, Briefcase, UserCheck,
     ChevronLeft, ChevronRight, Activity, AlertTriangle, KeyRound, UserPlus, ClipboardList,
-    ArrowRightLeft,
+    ArrowRightLeft, ClipboardCheck, ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import FichajeService from '../services/fichajeService';
 import './Dashboard.css';
 
 const ACTIVITY_PAGE_SIZE = 4;
@@ -102,6 +103,27 @@ const Dashboard = () => {
             color: 'var(--danger)',
             route: '/dashboard/atletas?filter=deuda',
         },
+        {
+            label: 'Fichajes pendientes',
+            value: '...',
+            icon: ClipboardCheck,
+            color: 'var(--warning)',
+            route: '/dashboard/fichajes',
+        },
+        {
+            label: 'Habilitados',
+            value: '...',
+            icon: ShieldCheck,
+            color: '#0ea5e9',
+            route: '/dashboard/padron',
+        },
+        {
+            label: 'Aptos por vencer',
+            value: '...',
+            icon: AlertTriangle,
+            color: '#f59e0b',
+            route: '/dashboard/padron',
+        },
     ]);
     const [loading, setLoading] = useState(true);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -123,19 +145,26 @@ const Dashboard = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const [atletasData, clubesData] = await Promise.all([
+                const [atletasData, clubesData, resumen] = await Promise.all([
                     api.get('/Atleta').catch(() => []),
                     api.get('/Club').catch(() => []),
+                    FichajeService.getResumen().catch(() => null),
                 ]);
 
                 const totalAtletas = atletasData.length;
                 const totalClubes = clubesData.length;
                 const atletasConDeuda = atletasData.filter((a) => (a.estadoPago || a.EstadoPago) === 2).length;
+                const pendientes = resumen?.pendientesFichaje ?? resumen?.PendientesFichaje ?? '...';
+                const habilitados = resumen?.habilitados ?? resumen?.Habilitados ?? '...';
+                const aptosPorVencer = resumen?.aptosPorVencer ?? resumen?.AptosPorVencer ?? '...';
 
                 setStats([
                     { label: 'Total Atletas', value: totalAtletas, icon: Users, color: 'var(--primary)', route: '/dashboard/atletas' },
                     { label: 'Clubes Registrados', value: totalClubes, icon: Shield, color: 'var(--success)', route: '/dashboard/clubes' },
                     { label: 'Atletas con Deuda', value: atletasConDeuda, icon: DollarSign, color: 'var(--danger)', route: '/dashboard/atletas?filter=deuda' },
+                    { label: 'Fichajes pendientes', value: pendientes, icon: ClipboardCheck, color: 'var(--warning)', route: '/dashboard/fichajes' },
+                    { label: 'Habilitados', value: habilitados, icon: ShieldCheck, color: '#0ea5e9', route: '/dashboard/padron' },
+                    { label: 'Aptos por vencer', value: aptosPorVencer, icon: AlertTriangle, color: '#f59e0b', route: '/dashboard/padron' },
                 ]);
             } catch (error) {
                 console.error('Error general en dashboard:', error);
@@ -187,6 +216,8 @@ const Dashboard = () => {
     const navCards = [
         { label: 'Clubes', icon: Shield, path: '/dashboard/clubes', color: '#3b82f6', description: 'Gestión de clubes y sedes' },
         { label: 'Atletas', icon: Users, path: '/dashboard/atletas', color: '#10b981', description: 'Listado y registro de atletas' },
+        { label: 'Fichajes', icon: ClipboardCheck, path: '/dashboard/fichajes', color: '#f97316', description: 'Revisión y aprobación de fichas' },
+        { label: 'Padrón', icon: ShieldCheck, path: '/dashboard/padron', color: '#0ea5e9', description: 'Atletas habilitados para la federación' },
         { label: 'Entrenadores', icon: Award, path: '/dashboard/entrenadores', color: '#f59e0b', description: 'Técnicos de club y selección' },
         { label: 'Selecciones', icon: Trophy, path: '/dashboard/selecciones', color: '#8b5cf6', description: 'Selecciones nacionales por categoría' },
         { label: 'Delegados', icon: Briefcase, path: '/dashboard/delegados', color: '#ef4444', description: 'Representantes de clubes' },

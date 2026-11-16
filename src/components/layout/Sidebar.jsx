@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
     LayoutDashboard, Users, Trophy, Shield, UserCheck, Award,
     ChevronLeft, ChevronRight, KeyRound, Briefcase, Mail, ClipboardList,
-    ArrowRightLeft,
+    ArrowRightLeft, ClipboardCheck, ShieldCheck,
 } from 'lucide-react';
 import useUnreadMessages from '../../hooks/useUnreadMessages';
 import usePendingTraspasos from '../../hooks/usePendingTraspasos';
@@ -19,6 +19,8 @@ const Sidebar = ({ isOpen, closeMobile, isCollapsed, toggleSidebar }) => {
         { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
         { icon: Shield, label: 'Clubes', path: '/dashboard/clubes' },
         { icon: Users, label: 'Atletas', path: '/dashboard/atletas' },
+        { icon: ClipboardCheck, label: 'Fichajes', path: '/dashboard/fichajes' },
+        { icon: ShieldCheck, label: 'Padrón', path: '/dashboard/padron' },
         { icon: ArrowRightLeft, label: 'Traspasos', path: '/dashboard/traspasos', showBadge: true, badgeCount: pendingCount, hasBadge: hasPending },
         { icon: Award, label: 'Entrenadores', path: '/dashboard/entrenadores' },
         { icon: Briefcase, label: 'Delegados Club', path: '/dashboard/delegados' },

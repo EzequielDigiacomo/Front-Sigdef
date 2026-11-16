@@ -13,7 +13,7 @@ import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
 import DocumentUploadModal from '../../../components/common/DocumentUploadModal';
 import DocumentViewerModal from '../../../components/common/DocumentViewerModal';
-import { getEstadoPagoLabel, getEstadoPagoColor, getCategoriaLabel, PARENTESCO_MAP } from '../../../utils/enums';
+import { getEstadoPagoLabel, getEstadoPagoColor, getCategoriaLabel, PARENTESCO_MAP, getEstadoFichajeLabel, getEstadoFichajeColor, getEstadoAptoLabel, getEstadoAptoColor } from '../../../utils/enums';
 import { TutorStatusCell, calcEdad } from '../../../components/common/TutorStatusCell';
 import { buildAtletaUpdatePayload, getParticipanteId } from '../../../utils/atletaUtils';
 import { matchesSearch } from '../../../utils/searchUtils';
@@ -650,6 +650,30 @@ const ClubAtletas = () => {
                             {
                                 key: 'estadoPago', label: 'Estado Pago',
                                 render: (_value, row) => renderEstadoPagoCell(row)
+                            },
+                            {
+                                key: 'estadoFichaje',
+                                label: 'Fichaje',
+                                render: (_value, row) => {
+                                    const estado = row.estadoFichaje ?? row.EstadoFichaje ?? 0;
+                                    return (
+                                        <span className={`badge badge-${getEstadoFichajeColor(estado)}`}>
+                                            {getEstadoFichajeLabel(estado)}
+                                        </span>
+                                    );
+                                },
+                            },
+                            {
+                                key: 'estadoApto',
+                                label: 'Apto',
+                                render: (_value, row) => {
+                                    const estado = row.estadoApto ?? row.EstadoApto ?? (row.presentoAptoMedico ? 'SinVencimientoInformado' : 'Faltante');
+                                    return (
+                                        <span className={`badge badge-${getEstadoAptoColor(estado)}`}>
+                                            {getEstadoAptoLabel(estado)}
+                                        </span>
+                                    );
+                                },
                             },
                             { key: 'perteneceSeleccion', label: 'Selección', render: (value) => value ? '⭐ Sí' : 'No' },
                             {
