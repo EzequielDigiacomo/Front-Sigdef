@@ -138,7 +138,7 @@ const FichajesBandeja = () => {
             />
 
             {alert && (
-                <div className={`traspasos-alert traspasos-alert--${alert.type ===}`}>
+                <div className={`traspasos-alert traspasos-alert--${alert.type}`}>
                     {alert.message}
                 </div>
             )}
