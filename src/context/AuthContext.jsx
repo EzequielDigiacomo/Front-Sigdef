@@ -12,20 +12,54 @@ const isTokenValid = (token) => {
     try {
         const decoded = jwtDecode(token);
         const currentTime = Date.now() / 1000;
-
         if (decoded.exp && decoded.exp < currentTime) {
             console.log('Token expirado');
             return false;
         }
-
         return true;
     } catch (error) {
         console.error('Error validando token:', error);
         return false;
     }
 };
-// En tu AuthContext, busca dónde se setea el usuario
 
+/** Acepta id válido (>0); trata 0/null/undefined/'' como ausente. */
+const pickPositiveId = (...values) => {
+    for (const value of values) {
+        if (value == null || value === '') continue;
+        const n = Number(value);
+        if (Number.isFinite(n) && n > 0) return n;
+    }
+    return null;
+};
+
+const decodeTokenSafe = (token) => {
+    try {
+        return jwtDecode(token);
+    } catch {
+        return null;
+    }
+};
+
+const resolveClubId = (sources = {}, decoded = null) =>
+    pickPositiveId(
+        sources.idClub,
+        sources.IdClub,
+        sources.clubId,
+        sources.ClubId,
+        decoded?.ClubId,
+        decoded?.clubId
+    );
+
+const resolveFederacionId = (sources = {}, decoded = null) =>
+    pickPositiveId(
+        sources.idFederacion,
+        sources.IdFederacion,
+        sources.federacionId,
+        sources.FederacionId,
+        decoded?.FederacionId,
+        decoded?.federacionId
+    );
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
@@ -49,18 +83,29 @@ export const AuthProvider = ({ children }) => {
                     return;
                 }
 
+                const decoded = decodeTokenSafe(parsedUser.token);
                 let plan = normalizePlan(parsedUser.plan || parsedUser.Plan);
+                let me = null;
 
                 try {
-                    const me = await api.get('/auth/me');
+                    me = await api.get('/auth/me');
                     plan = normalizePlan(me?.plan || me?.Plan) || plan;
                 } catch {
                     /* usar plan de localStorage si /me falla */
                 }
 
+                const idClub = resolveClubId({ ...parsedUser, ...(me || {}) }, decoded);
+                const idFederacion = resolveFederacionId({ ...parsedUser, ...(me || {}) }, decoded);
+                const clubNombre =
+                    me?.clubNombre || me?.ClubNombre || parsedUser.clubNombre || parsedUser.ClubNombre || null;
+
                 const restoredUser = {
                     ...parsedUser,
                     plan,
+                    idClub,
+                    clubId: idClub,
+                    idFederacion,
+                    clubNombre,
                 };
 
                 if (restoredUser.role !== 'SUPERADMIN' && plan && !canAccessSigdef(plan)) {
@@ -94,12 +139,11 @@ export const AuthProvider = ({ children }) => {
                 email,
                 rol,
                 rolFederacion,
-                idClub,
-                idFederacion,
-                clubId,
                 nombre,
                 apellido,
                 nombreCompleto,
+                clubNombre,
+                ClubNombre,
             } = response;
 
             const token = responseToken || responseTokenPascal;
@@ -107,21 +151,22 @@ export const AuthProvider = ({ children }) => {
                 throw new Error('El servidor no devolvió token de autenticación');
             }
 
-            const decoded = jwtDecode(token);
-            const jwtRoleClaim = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decoded['role'];
-            const jwtFederacionId = decoded['FederacionId'];
+            const decoded = decodeTokenSafe(token);
+            const jwtRoleClaim =
+                decoded?.['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decoded?.role;
+            const roleClaim = jwtRoleClaim || rol || rolFederacion || response.RolFederacion;
 
-            const roleClaim = jwtRoleClaim || rol || rolFederacion;
+            const finalClubId = resolveClubId(response, decoded);
+            const finalFederacionId = resolveFederacionId(response, decoded);
 
             let mappedRole = 'FEDERACION';
-
             if (roleClaim === 'SUPERADMIN' || roleClaim === 'SuperAdmin') {
                 mappedRole = 'SUPERADMIN';
             } else if (roleClaim === 'Club') {
                 mappedRole = 'CLUB';
             } else if (roleClaim === 'Federacion' || roleClaim === 'Admin') {
                 mappedRole = 'FEDERACION';
-            } else if (roleClaim === 'Usuario' && (idClub || clubId)) {
+            } else if (roleClaim === 'Usuario' && finalClubId) {
                 mappedRole = 'CLUB';
             } else if (roleClaim === 'Usuario') {
                 mappedRole = 'FEDERACION';
@@ -137,19 +182,26 @@ export const AuthProvider = ({ children }) => {
                 );
             }
 
-            const finalFederacionId = idFederacion || response.IdFederacion || response.federacionId || jwtFederacionId;
-            const finalClubId = idClub || clubId || response.ClubId || response.clubId;
-            const finalNombreCompleto = nombreCompleto || (nombre && apellido ? `${nombre} ${apellido}` : nombre || '');
+            if (mappedRole === 'CLUB' && !finalClubId) {
+                throw new Error(
+                    'La cuenta de club no tiene un club asociado (IdClub vacío). Pedile al administrador que vincule el usuario al club.'
+                );
+            }
+
+            const finalNombreCompleto =
+                nombreCompleto || (nombre && apellido ? `${nombre} ${apellido}` : nombre || '');
 
             const loggedUser = {
-                username: responseUsername || decoded.unique_name || decoded.name,
+                username: responseUsername || decoded?.unique_name || decoded?.name,
                 token,
                 idPersona: idPersona || 0,
                 nombreCompleto: finalNombreCompleto,
                 email: email || '',
                 role: mappedRole,
                 idClub: finalClubId,
-                idFederacion: finalFederacionId ? parseInt(finalFederacionId, 10) : null,
+                clubId: finalClubId,
+                idFederacion: finalFederacionId,
+                clubNombre: clubNombre || ClubNombre || null,
                 plan,
             };
 
@@ -163,7 +215,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const logout = (response) => {
+    const logout = () => {
         console.log('Cerrando sesión...');
         setUser(null);
         localStorage.removeItem('user');
@@ -175,12 +227,8 @@ export const AuthProvider = ({ children }) => {
         login,
         logout,
         isAuthenticated: !!user,
-        loading
+        loading,
     };
 
-    return (
-        <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>
-    );
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

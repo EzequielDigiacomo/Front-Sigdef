@@ -265,11 +265,17 @@ const ClubAtletasForm = () => {
         }
     };
 
+    const clubId = user?.idClub ?? user?.clubId ?? user?.IdClub ?? null;
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
 
         try {
+            if (!clubId) {
+                throw new Error('No se pudo determinar el club de la sesión. Cerrá sesión y volvé a ingresar.');
+            }
+
             // Preparar el payload atómico
             const payload = {
                 personaAtleta: {
@@ -283,8 +289,8 @@ const ClubAtletasForm = () => {
                     direccion: formData.direccion || ""
                 },
                 datosDeportivos: {
-                    idPersona: id ? parseInt(id) : 0,
-                    idClub: user.clubId,
+                    participanteId: id ? parseInt(id, 10) : 0,
+                    idClub: Number(clubId),
                     categoria: parseInt(formData.categoria) || 0,
                     becadoEnard: formData.becadoEnard,
                     becadoSdn: formData.becadoSdn,
@@ -295,7 +301,7 @@ const ClubAtletasForm = () => {
                     fechaAptoMedico: null
                 },
                 esMenor: esMenor,
-                tutor: esMenor && tutorData.documento ? {
+                tutorFederacion: esMenor && tutorData.documento ? {
                     idPersonaTutor: tutorData.idPersona,
                     personaTutor: !tutorData.existe ? {
                         nombre: tutorData.nombre,
@@ -459,11 +465,15 @@ const ClubAtletasForm = () => {
                         <div className="form-group">
                             <label>Club</label>
                             <input
-                                value={user.clubNombre || `Club ID: ${user.clubId}`}
+                                value={user?.clubNombre || (clubId ? `Club ID: ${clubId}` : 'Club no detectado en la sesión')}
                                 className="form-input"
                                 disabled
                             />
-                            <small className="form-hint">El atleta se registrará automáticamente en tu club</small>
+                            <small className="form-hint">
+                                {clubId
+                                    ? 'El atleta se registrará automáticamente en tu club'
+                                    : 'Error: reiniciá sesión; no hay club asociado al usuario'}
+                            </small>
                         </div>
                         <div className="form-group">
                             <label>Categoría</label>
