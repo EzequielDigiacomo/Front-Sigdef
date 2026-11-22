@@ -142,6 +142,7 @@ export const trackApiError = ({
         accion: 'API_ERROR',
         modulo: 'Frontend',
         detalle: {
+            resultado: 'ERROR',
             message: message || 'Error de API',
             method: method || null,
             endpoint,
@@ -152,6 +153,68 @@ export const trackApiError = ({
             path: typeof window !== 'undefined' ? window.location.pathname : null,
             lastClick,
             online: typeof navigator !== 'undefined' ? navigator.onLine : null,
+        },
+    });
+};
+
+const ENTITY_ACCION = {
+    Delegado: 'DELEGADO',
+    Atleta: 'ATHLETE',
+    Documento: 'DOCUMENT',
+};
+
+/**
+ * Resultado de un formulario: intento, OK, validación o error de API.
+ * Ej: SAVE_DELEGADO_VALIDATION con "DNI: El DNI es obligatorio."
+ */
+export const trackFormOutcome = ({
+    entity = 'Form',
+    outcome = 'error', // attempt | ok | validation_error | error
+    message,
+    errors,
+    fieldLabels = {},
+    context = {},
+    modulo,
+} = {}) => {
+    const key = ENTITY_ACCION[entity] || String(entity).toUpperCase().replace(/\s+/g, '_');
+    const accionByOutcome = {
+        attempt: `CLICK_SAVE_${key}`,
+        ok: `SAVE_${key}_OK`,
+        validation_error: `SAVE_${key}_VALIDATION`,
+        error: `SAVE_${key}_FAILED`,
+    };
+    const resultadoByOutcome = {
+        attempt: 'INTENTO',
+        ok: 'OK',
+        validation_error: 'VALIDACION',
+        error: 'ERROR',
+    };
+
+    const validationErrors = errors && typeof errors === 'object'
+        ? Object.entries(errors).map(([field, msg]) => {
+            const label = fieldLabels[field] || field;
+            return `${label}: ${msg}`;
+        })
+        : [];
+
+    const defaultMessage =
+        outcome === 'ok'
+            ? `${entity} guardado correctamente`
+            : outcome === 'validation_error'
+                ? (validationErrors[0] || 'Faltan datos obligatorios')
+                : outcome === 'attempt'
+                    ? `Intento de guardar ${entity}`
+                    : (message || `Error al guardar ${entity}`);
+
+    trackClientAction({
+        accion: accionByOutcome[outcome] || `SAVE_${key}_FAILED`,
+        modulo: modulo || entity,
+        detalle: {
+            resultado: resultadoByOutcome[outcome] || 'ERROR',
+            message: message || defaultMessage,
+            validationErrors,
+            entity,
+            ...context,
         },
     });
 };

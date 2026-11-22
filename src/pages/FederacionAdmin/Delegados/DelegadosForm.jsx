@@ -13,6 +13,12 @@ import { validateRequiredFields } from '../../../utils/formFieldErrors';
 import useFormFieldErrors from '../../../hooks/useFormFieldErrors';
 import FieldError from '../../../components/forms/FieldError';
 import FormErrorsBanner from '../../../components/forms/FormErrorsBanner';
+import {
+    mapPersonaToDelegadoForm as mapPersonaToForm,
+    pickPersonaId,
+    resolveDocumentoFromUser,
+} from '../../../utils/delegadoHelpers';
+import { trackFormOutcome } from '../../../services/auditClient';
 import '../../../styles/CompactForm.css';
 
 const FIELD_LABELS = {
@@ -26,20 +32,6 @@ const FIELD_LABELS = {
     direccion: 'Dirección',
     idClub: 'Club',
 };
-
-const pickPersonaId = (p) =>
-    p?.participanteId ?? p?.ParticipanteId ?? p?.idPersona ?? p?.IdPersona ?? p?.id ?? p?.Id ?? null;
-
-const mapPersonaToForm = (persona) => ({
-    nombre: persona.nombre || persona.Nombre || '',
-    apellido: persona.apellido || persona.Apellido || '',
-    documento: persona.documento || persona.Documento || persona.dni || persona.Dni || '',
-    sexo: persona.sexoId ?? persona.SexoId ?? persona.sexo?.id ?? persona.Sexo?.Id ?? persona.sexo ?? persona.Sexo ?? 1,
-    fechaNacimiento: String(persona.fechaNacimiento || persona.FechaNacimiento || '').split('T')[0],
-    email: persona.email || persona.Email || '',
-    telefono: persona.telefono || persona.Telefono || '',
-    direccion: persona.direccion || persona.Direccion || '',
-});
 
 const DelegadosForm = () => {
     const { id, fedId } = useParams();
@@ -118,31 +110,54 @@ const DelegadosForm = () => {
         setLoading(true);
         try {
             const data = await api.get('/Auth/usuarios');
-            const found = data.find((u) => String(u.id || u.idPersona || u.IdPersona) === String(id));
+            const list = Array.isArray(data) ? data : [];
+            const found = list.find((u) =>
+                String(u.id || u.Id || u.idPersona || u.IdPersona) === String(id)
+            );
             if (found) {
-                const pid = found.participanteId || found.ParticipanteId || null;
+                let pid = found.participanteId || found.ParticipanteId || null;
+                let documento = resolveDocumentoFromUser(found);
                 let personaExtra = {};
+
                 if (pid) {
                     try {
                         const persona = await api.get(`/Persona/${pid}`, { silentErrors: true });
                         personaExtra = mapPersonaToForm(persona || {});
+                        if (personaExtra.documento) documento = personaExtra.documento;
                     } catch {
                         /* seguir con datos del usuario */
                     }
                 }
+
+                if (!personaExtra.documento && documento) {
+                    try {
+                        const persona = await api.get(
+                            `/Persona/documento/${encodeURIComponent(documento)}`,
+                            { silentErrors: true }
+                        );
+                        if (persona) {
+                            personaExtra = mapPersonaToForm(persona);
+                            pid = pickPersonaId(persona) || pid;
+                            if (personaExtra.documento) documento = personaExtra.documento;
+                        }
+                    } catch {
+                        /* seguir */
+                    }
+                }
+
                 setFormData((prev) => ({
                     ...prev,
                     ...personaExtra,
-                    nombre: personaExtra.nombre || found.nombre || found.nombrePersona || '',
-                    apellido: personaExtra.apellido || found.apellido || found.apellidoPersona || '',
-                    documento: personaExtra.documento || found.dni || found.documento || '',
-                    email: personaExtra.email || found.email || '',
-                    telefono: personaExtra.telefono || found.telefono || '',
-                    idClub: found.clubId || found.idClub || '',
+                    nombre: personaExtra.nombre || found.nombre || found.Nombre || found.nombrePersona || '',
+                    apellido: personaExtra.apellido || found.apellido || found.Apellido || found.apellidoPersona || '',
+                    documento: personaExtra.documento || documento || '',
+                    email: personaExtra.email || found.email || found.Email || '',
+                    telefono: personaExtra.telefono || found.telefono || found.Telefono || '',
+                    idClub: found.clubId || found.ClubId || found.idClub || found.IdClub || '',
                     idFederacion: found.federacionId || found.idFederacion || prev.idFederacion,
                 }));
                 setParticipanteId(pid);
-                if (personaExtra.documento || found.dni || found.documento) {
+                if (personaExtra.documento || documento) {
                     setPersonaFound(true);
                 }
             }
@@ -350,7 +365,22 @@ const DelegadosForm = () => {
         e.preventDefault();
         clearFieldErrors();
 
+        const auditCtx = {
+            esEdicion: Boolean(id),
+            delegadoUserId: id || null,
+            nombre: formData.nombre || null,
+            apellido: formData.apellido || null,
+            documento: formData.documento || null,
+            idClub: formData.idClub || null,
+        };
+
         if (!id && !clubLoginAllowed) {
+            trackFormOutcome({
+                entity: 'Delegado',
+                outcome: 'error',
+                message: 'Plan insuficiente para crear delegados/login Club',
+                context: auditCtx,
+            });
             showModal(
                 'Plan insuficiente',
                 'Tu plan no incluye login Club / delegados. Actualizá a Profesional o superior.',
@@ -358,6 +388,13 @@ const DelegadosForm = () => {
             );
             return;
         }
+
+        trackFormOutcome({
+            entity: 'Delegado',
+            outcome: 'attempt',
+            message: id ? 'Federación intenta actualizar delegado' : 'Federación intenta crear delegado',
+            context: auditCtx,
+        });
 
         const clientErrors = validateRequiredFields(
             formData,
@@ -381,6 +418,13 @@ const DelegadosForm = () => {
 
         if (Object.keys(clientErrors).length) {
             applyErrors(clientErrors);
+            trackFormOutcome({
+                entity: 'Delegado',
+                outcome: 'validation_error',
+                errors: clientErrors,
+                fieldLabels: FIELD_LABELS,
+                context: auditCtx,
+            });
             return;
         }
 
@@ -432,16 +476,28 @@ const DelegadosForm = () => {
                 }
             }
 
-            showModal(
-                'Éxito',
-                personaFound || pid
-                    ? 'Delegado guardado. La persona puede ser entrenador y delegado a la vez.'
-                    : 'Delegado guardado correctamente.',
-                'success',
-                true
-            );
+            const okMsg = personaFound || pid
+                ? 'Delegado guardado. La persona puede ser entrenador y delegado a la vez.'
+                : 'Delegado guardado correctamente.';
+            trackFormOutcome({
+                entity: 'Delegado',
+                outcome: 'ok',
+                message: okMsg,
+                context: auditCtx,
+            });
+            showModal('Éxito', okMsg, 'success', true);
         } catch (error) {
             console.error('Error guardando delegado:', error);
+            trackFormOutcome({
+                entity: 'Delegado',
+                outcome: 'error',
+                message: error.message || 'No se pudo guardar el delegado',
+                context: {
+                    ...auditCtx,
+                    endpoint: error.endpoint || null,
+                    httpStatus: error.status ?? null,
+                },
+            });
             const mapped = applyApiError(error);
             if (!Object.keys(mapped).length) {
                 showModal('Error', toFriendlyErrorMessage(error, {

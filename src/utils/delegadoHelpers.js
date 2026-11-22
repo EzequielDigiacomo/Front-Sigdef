@@ -65,8 +65,45 @@ export const mapAuthUserToDelegado = (u) => ({
     nombreCompleto: getUsuarioNombre(u),
     nombrePersona: getUsuarioNombre(u),
     username: getUsuarioUsername(u) || u.username || u.Username || '',
-    dni: u.dni || u.Dni || u.documento || u.Documento || '',
+    dni: resolveDocumentoFromUser(u),
     email: u.email || u.Email || '',
     telefono: u.telefono || u.Telefono || '',
     clubNombre: u.clubNombre || u.ClubNombre || u.nombreClub || u.NombreClub || '',
+    participanteId: u.participanteId ?? u.ParticipanteId ?? null,
+});
+
+/** DNI del usuario Auth; si no está en Dni, usa username numérico (alta con DNI como user). */
+export const resolveDocumentoFromUser = (u) => {
+    const direct = String(u?.dni || u?.Dni || u?.documento || u?.Documento || '').trim();
+    if (direct) return direct.replace(/[\s.]/g, '');
+
+    const username = String(u?.username || u?.Username || '').trim();
+    const digits = username.replace(/\D/g, '');
+    if (digits.length >= 7 && digits === username.replace(/[\s.-]/g, '')) {
+        return digits;
+    }
+    return '';
+};
+
+export const pickPersonaId = (p) =>
+    p?.participanteId ?? p?.ParticipanteId ?? p?.idPersona ?? p?.IdPersona ?? p?.id ?? p?.Id ?? null;
+
+export const mapPersonaToDelegadoForm = (persona) => ({
+    nombre: persona?.nombre || persona?.Nombre || '',
+    apellido: persona?.apellido || persona?.Apellido || '',
+    documento: String(
+        persona?.documento || persona?.Documento || persona?.dni || persona?.Dni || ''
+    ).replace(/[\s.]/g, ''),
+    sexo:
+        persona?.sexoId
+        ?? persona?.SexoId
+        ?? persona?.sexo?.id
+        ?? persona?.Sexo?.Id
+        ?? persona?.sexo
+        ?? persona?.Sexo
+        ?? 1,
+    fechaNacimiento: String(persona?.fechaNacimiento || persona?.FechaNacimiento || '').split('T')[0],
+    email: persona?.email || persona?.Email || '',
+    telefono: persona?.telefono || persona?.Telefono || '',
+    direccion: persona?.direccion || persona?.Direccion || '',
 });

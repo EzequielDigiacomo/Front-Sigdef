@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { api } from '../../../services/api';
-import { trackClientAction } from '../../../services/auditClient';
+import { trackFormOutcome } from '../../../services/auditClient';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import Modal from '../../../components/common/Modal';
@@ -352,20 +352,34 @@ const AtletasForm = () => {
         }
         if (Object.keys(clientErrors).length) {
             applyErrors(clientErrors);
+            trackFormOutcome({
+                entity: 'Atleta',
+                outcome: 'validation_error',
+                errors: clientErrors,
+                fieldLabels: {
+                    nombre: 'Nombre',
+                    apellido: 'Apellido',
+                    documento: 'DNI',
+                    fechaNacimiento: 'Fecha de nacimiento',
+                    sexo: 'Sexo',
+                    tutorDocumento: 'DNI tutor',
+                    tutorNombre: 'Nombre tutor',
+                    tutorApellido: 'Apellido tutor',
+                },
+                context: { documento: formData.documento || null, atletaId: id || null, federacionScope: fedId || null },
+                modulo: 'Atletas',
+            });
             return;
         }
 
         setLoading(true);
 
-        trackClientAction({
-            accion: 'CLICK_SAVE_ATHLETE',
+        trackFormOutcome({
+            entity: 'Atleta',
+            outcome: 'attempt',
+            message: id ? 'Federación edita atleta' : 'Federación crea/carga atleta',
+            context: { documento: formData.documento || null, atletaId: id || null, federacionScope: fedId || null },
             modulo: 'Atletas',
-            detalle: {
-                message: id ? 'Federación edita atleta' : 'Federación crea/carga atleta',
-                documento: formData.documento || null,
-                atletaId: id || null,
-                federacionScope: fedId || null,
-            },
         });
 
         try {
@@ -512,6 +526,13 @@ const AtletasForm = () => {
                 }
             }
 
+            trackFormOutcome({
+                entity: 'Atleta',
+                outcome: 'ok',
+                message: 'El atleta ha sido guardado correctamente.',
+                context: { documento: formData.documento || null, atletaId: id || null, federacionScope: fedId || null },
+                modulo: 'Atletas',
+            });
             setResultModal({
                 open: true,
                 type: 'success',
@@ -520,16 +541,17 @@ const AtletasForm = () => {
             });
         } catch (error) {
             console.error('Error guardando:', error);
-            trackClientAction({
-                accion: 'SAVE_ATHLETE_FAILED',
-                modulo: 'Atletas',
-                detalle: {
-                    message: error.message || 'Error al guardar atleta',
+            trackFormOutcome({
+                entity: 'Atleta',
+                outcome: 'error',
+                message: error.message || 'Error al guardar atleta',
+                context: {
                     documento: formData.documento || null,
                     atletaId: id || null,
                     endpoint: error.endpoint || (id ? `/Atleta/${id}` : '/Atleta/full'),
                     httpStatus: error.status ?? null,
                 },
+                modulo: 'Atletas',
             });
             const mapped = mapApiFieldErrorsWithTutor(error);
             if (Object.keys(mapped).length) {
