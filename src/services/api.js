@@ -1,5 +1,6 @@
 import { PARENTESCO_MAP } from '../utils/enums';
 import { toFriendlyErrorMessage } from '../utils/friendlyError';
+import { isAuditEndpoint, trackApiError } from './auditClient';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5029/api';
 const CLIENT_APP = 'sigdef';
@@ -10,6 +11,15 @@ const MAX_RETRIES = 2;
 
 const defaultHeaders = {
     'Content-Type': 'application/json',
+};
+
+const attachErrorMeta = (error, { status, endpoint, method, raw } = {}) => {
+    if (!error || typeof error !== 'object') return error;
+    if (status != null) error.status = status;
+    if (endpoint) error.endpoint = endpoint;
+    if (method) error.method = method;
+    if (raw) error.rawMessage = raw;
+    return error;
 };
 
 const getAuthToken = () => {
@@ -26,8 +36,9 @@ const getAuthToken = () => {
     return localStorage.getItem('token') || null;
 };
 
-const throwFriendly = (raw, status, fallback) => {
-    throw new Error(toFriendlyErrorMessage(raw, { status, fallback }));
+const throwFriendly = (raw, status, fallback, meta = {}) => {
+    const error = new Error(toFriendlyErrorMessage(raw, { status, fallback }));
+    throw attachErrorMeta(error, { status, raw, ...meta });
 };
 
 const handleResponse = async (response, options = {}) => {
@@ -139,9 +150,10 @@ const normalizeEndpoint = (endpoint) => {
 };
 
 const request = async (endpoint, options = {}, retries = MAX_RETRIES) => {
-    const { silentErrors = false, timeout, ...fetchOptions } = options;
+    const { silentErrors = false, skipAudit = false, timeout, ...fetchOptions } = options;
     const finalEndpoint = normalizeEndpoint(endpoint);
     const url = `${API_URL}${finalEndpoint}`;
+    const method = (fetchOptions.method || 'GET').toUpperCase();
 
     const token = getAuthToken();
     const headers = {
@@ -166,7 +178,17 @@ const request = async (endpoint, options = {}, retries = MAX_RETRIES) => {
             return request(endpoint, options, retries - 1);
         }
 
-        let data = await handleResponse(response, { silentErrors });
+        let data;
+        try {
+            data = await handleResponse(response, { silentErrors });
+        } catch (responseError) {
+            attachErrorMeta(responseError, {
+                status: responseError.status ?? response.status,
+                endpoint: finalEndpoint,
+                method,
+            });
+            throw responseError;
+        }
 
         if (finalEndpoint.startsWith('/Clubes')) {
             if (Array.isArray(data)) {
@@ -190,12 +212,40 @@ const request = async (endpoint, options = {}, retries = MAX_RETRIES) => {
 
         // TypeError "Failed to fetch" = red, CORS, API dormida o URL incorrecta
         if (error?.message === 'Failed to fetch' || error?.name === 'TypeError') {
-            throw new Error(
+            const netError = new Error(
                 'No se pudo conectar con el servidor (Failed to fetch). ' +
                 'Si el API en Render estaba dormido, esperá ~1 min y reintentá. ' +
                 'Si usás un dominio distinto a https://sigdef.pro, hay que agregarlo a CORS (AllowedOrigins).'
             );
+            attachErrorMeta(netError, { endpoint: finalEndpoint, method, raw: error.message });
+
+            if (!silentErrors && !skipAudit && !isAuditEndpoint(finalEndpoint)) {
+                trackApiError({
+                    method,
+                    endpoint: finalEndpoint,
+                    message: netError.message,
+                    status: null,
+                    rawMessage: error.message,
+                });
+            }
+            throw netError;
         }
+
+        if (!silentErrors && !skipAudit && !isAuditEndpoint(finalEndpoint)) {
+            const shouldAudit =
+                method !== 'GET'
+                || (error.status != null && error.status >= 500);
+            if (shouldAudit) {
+                trackApiError({
+                    method,
+                    endpoint: finalEndpoint,
+                    message: error.message,
+                    status: error.status ?? null,
+                    rawMessage: error.rawMessage || null,
+                });
+            }
+        }
+
         throw error;
     }
 };

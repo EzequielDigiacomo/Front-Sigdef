@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { NavLink } from 'react-router-dom';
-import { LogOut, User, Menu, LayoutDashboard, Shield, Users, Award, UserCheck, DollarSign, Trophy, KeyRound, Briefcase, Mail, ArrowRightLeft, ClipboardCheck, ShieldCheck } from 'lucide-react';
+import { LogOut, User, Menu, LayoutDashboard, Shield, Users, Award, UserCheck, DollarSign, Trophy, KeyRound, Briefcase, Mail, ArrowRightLeft, ShieldCheck, ClipboardList } from 'lucide-react';
 import Button from '../common/Button';
 import ThemeToggle from '../common/ThemeToggle';
 import useUnreadMessages from '../../hooks/useUnreadMessages';
@@ -17,7 +17,7 @@ const Navbar = ({ toggleSidebar, hideSidebarToggle }) => {
         { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
         { icon: Shield, label: 'Clubes', path: '/dashboard/clubes' },
         { icon: Users, label: 'Atletas', path: '/dashboard/atletas' },
-        { icon: ClipboardCheck, label: 'Fichajes', path: '/dashboard/fichajes' },
+        { icon: ClipboardList, label: 'Solicitudes', path: '/dashboard/solicitudes' },
         { icon: ShieldCheck, label: 'Padrón', path: '/dashboard/padron' },
         { icon: ArrowRightLeft, label: 'Traspasos', path: '/dashboard/traspasos', showBadge: true, badgeCount: pendingCount, hasBadge: hasPending },
         { icon: Award, label: 'Entrenadores', path: '/dashboard/entrenadores' },

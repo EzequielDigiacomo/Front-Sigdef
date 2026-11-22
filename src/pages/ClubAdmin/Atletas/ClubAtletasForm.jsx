@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { api } from '../../../services/api';
+import { trackClientAction } from '../../../services/auditClient';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
@@ -271,6 +272,17 @@ const ClubAtletasForm = () => {
         e.preventDefault();
         setLoading(true);
 
+        trackClientAction({
+            accion: 'CLICK_SAVE_ATHLETE',
+            modulo: 'Atletas',
+            detalle: {
+                message: 'Club intenta guardar/cargar atleta',
+                documento: formData.documento || null,
+                clubId,
+                esEdicion: Boolean(id),
+            },
+        });
+
         try {
             if (!clubId) {
                 throw new Error('No se pudo determinar el club de la sesión. Cerrá sesión y volvé a ingresar.');
@@ -330,6 +342,17 @@ const ClubAtletasForm = () => {
             });
         } catch (error) {
             console.error('Error guardando:', error);
+            trackClientAction({
+                accion: 'SAVE_ATHLETE_FAILED',
+                modulo: 'Atletas',
+                detalle: {
+                    message: error.message || 'Error al guardar atleta',
+                    documento: formData.documento || null,
+                    clubId,
+                    endpoint: error.endpoint || '/Atleta/full',
+                    httpStatus: error.status ?? null,
+                },
+            });
             setModalConfig({
                 isOpen: true,
                 title: 'Error al guardar',

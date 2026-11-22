@@ -104,11 +104,11 @@ const Dashboard = () => {
             route: '/dashboard/atletas?filter=deuda',
         },
         {
-            label: 'Fichajes pendientes',
+            label: 'Altas pendientes',
             value: '...',
             icon: ClipboardCheck,
             color: 'var(--warning)',
-            route: '/dashboard/fichajes',
+            route: '/dashboard/solicitudes',
         },
         {
             label: 'Habilitados',
@@ -162,7 +162,7 @@ const Dashboard = () => {
                     { label: 'Total Atletas', value: totalAtletas, icon: Users, color: 'var(--primary)', route: '/dashboard/atletas' },
                     { label: 'Clubes Registrados', value: totalClubes, icon: Shield, color: 'var(--success)', route: '/dashboard/clubes' },
                     { label: 'Atletas con Deuda', value: atletasConDeuda, icon: DollarSign, color: 'var(--danger)', route: '/dashboard/atletas?filter=deuda' },
-                    { label: 'Fichajes pendientes', value: pendientes, icon: ClipboardCheck, color: 'var(--warning)', route: '/dashboard/fichajes' },
+                    { label: 'Altas pendientes', value: pendientes, icon: ClipboardCheck, color: 'var(--warning)', route: '/dashboard/solicitudes' },
                     { label: 'Habilitados', value: habilitados, icon: ShieldCheck, color: '#0ea5e9', route: '/dashboard/padron' },
                     { label: 'Aptos por vencer', value: aptosPorVencer, icon: AlertTriangle, color: '#f59e0b', route: '/dashboard/padron' },
                 ]);
@@ -216,7 +216,7 @@ const Dashboard = () => {
     const navCards = [
         { label: 'Clubes', icon: Shield, path: '/dashboard/clubes', color: '#3b82f6', description: 'Gestión de clubes y sedes' },
         { label: 'Atletas', icon: Users, path: '/dashboard/atletas', color: '#10b981', description: 'Listado y registro de atletas' },
-        { label: 'Fichajes', icon: ClipboardCheck, path: '/dashboard/fichajes', color: '#f97316', description: 'Revisión y aprobación de fichas' },
+        { label: 'Solicitudes', icon: ClipboardCheck, path: '/dashboard/solicitudes', color: '#f97316', description: 'Aprobar o rechazar altas de clubes' },
         { label: 'Padrón', icon: ShieldCheck, path: '/dashboard/padron', color: '#0ea5e9', description: 'Atletas habilitados para la federación' },
         { label: 'Entrenadores', icon: Award, path: '/dashboard/entrenadores', color: '#f59e0b', description: 'Técnicos de club y selección' },
         { label: 'Selecciones', icon: Trophy, path: '/dashboard/selecciones', color: '#8b5cf6', description: 'Selecciones nacionales por categoría' },

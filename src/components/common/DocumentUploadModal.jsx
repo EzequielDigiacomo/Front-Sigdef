@@ -4,6 +4,7 @@ import Modal from './Modal';
 import Button from './Button';
 import ConfirmationModal from './ConfirmationModal';
 import { api } from '../../services/api';
+import { trackClientAction } from '../../services/auditClient';
 import { TIPO_DOCUMENTO_MAP } from '../../utils/enums';
 import { useAuth } from '../../context/AuthContext';
 import { extractPlanFromUser } from '../../utils/planHelpers';
@@ -89,6 +90,20 @@ const DocumentUploadModal = ({ isOpen, onClose, onSuccess, personId, personName 
         setLoading(true);
         setErrorMessage('');
 
+        trackClientAction({
+            accion: 'CLICK_UPLOAD_DOCUMENT',
+            modulo: 'Documentacion',
+            detalle: {
+                message: 'Usuario intenta cargar documento',
+                personaId: personId,
+                personName: personName || null,
+                tipoDocumento,
+                tipoLabel: TIPO_DOCUMENTO_MAP[tipoDocumento] || null,
+                fileName: selectedFile?.name || null,
+                fileSize: selectedFile?.size || null,
+            },
+        });
+
         try {
             // Crear FormData con las claves EXACTAS que espera el backend
             const formData = new FormData();
@@ -128,6 +143,16 @@ const DocumentUploadModal = ({ isOpen, onClose, onSuccess, personId, personName 
                 }, 2000);
             } else {
                 const errorMsg = response?.error || 'Error al subir el documento';
+                trackClientAction({
+                    accion: 'UPLOAD_DOCUMENT_FAILED',
+                    modulo: 'Documentacion',
+                    detalle: {
+                        message: errorMsg,
+                        personaId: personId,
+                        tipoDocumento,
+                        endpoint: '/Documentacion/upload',
+                    },
+                });
                 setErrorMessage(errorMsg);
                 setShowErrorModal(true);
             }
@@ -146,6 +171,18 @@ const DocumentUploadModal = ({ isOpen, onClose, onSuccess, personId, personName 
                     errorMsg = error.message;
                 }
             }
+
+            trackClientAction({
+                accion: 'UPLOAD_DOCUMENT_FAILED',
+                modulo: 'Documentacion',
+                detalle: {
+                    message: errorMsg,
+                    personaId: personId,
+                    tipoDocumento,
+                    endpoint: error.endpoint || '/Documentacion/upload',
+                    httpStatus: error.status ?? null,
+                },
+            });
 
             setErrorMessage(errorMsg);
             setShowErrorModal(true);

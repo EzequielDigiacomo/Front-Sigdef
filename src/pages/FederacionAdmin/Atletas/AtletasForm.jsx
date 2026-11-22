@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { api } from '../../../services/api';
+import { trackClientAction } from '../../../services/auditClient';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import Modal from '../../../components/common/Modal';
@@ -292,6 +293,17 @@ const AtletasForm = () => {
         e.preventDefault();
         setLoading(true);
 
+        trackClientAction({
+            accion: 'CLICK_SAVE_ATHLETE',
+            modulo: 'Atletas',
+            detalle: {
+                message: id ? 'Federación edita atleta' : 'Federación crea/carga atleta',
+                documento: formData.documento || null,
+                atletaId: id || null,
+                federacionScope: fedId || null,
+            },
+        });
+
         try {
             let idPersona;
 
@@ -444,6 +456,17 @@ const AtletasForm = () => {
             });
         } catch (error) {
             console.error('Error guardando:', error);
+            trackClientAction({
+                accion: 'SAVE_ATHLETE_FAILED',
+                modulo: 'Atletas',
+                detalle: {
+                    message: error.message || 'Error al guardar atleta',
+                    documento: formData.documento || null,
+                    atletaId: id || null,
+                    endpoint: error.endpoint || (id ? `/Atleta/${id}` : '/Atleta/full'),
+                    httpStatus: error.status ?? null,
+                },
+            });
             setResultModal({
                 open: true,
                 type: 'error',

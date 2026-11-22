@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
@@ -7,13 +7,12 @@ import FormField from '../../../components/forms/FormField';
 import Pagination from '../../../components/common/Pagination';
 import DocumentUploadModal from '../../../components/common/DocumentUploadModal';
 import DocumentViewerModal from '../../../components/common/DocumentViewerModal';
-import { Plus, Edit, Trash2, Search, FileText, Eye, ChevronUp, ChevronDown, ChevronsUpDown, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, FileText, Eye, ChevronUp, ChevronDown, ChevronsUpDown, ClipboardList } from 'lucide-react';
 import { useSort } from '../../../hooks/useSort';
 import { withFederationScope } from '../../../utils/apiHelpers';
-import { getCategoriaLabel, getEstadoPagoLabel, getEstadoPagoColor, TIPO_DOCUMENTO_MAP, getEstadoFichajeLabel, getEstadoFichajeColor, getEstadoAptoLabel, getEstadoAptoColor } from '../../../utils/enums';
+import { getCategoriaLabel, getEstadoPagoLabel, getEstadoPagoColor, TIPO_DOCUMENTO_MAP, getEstadoFichajeColor, getEstadoAptoColor } from '../../../utils/enums';
 import { TutorStatusCell, calcEdad } from '../../../components/common/TutorStatusCell';
 import './Atletas.css';
-import Modal from '../../../components/common/Modal';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import AtletaDetailModal from './components/AtletaDetailModal';
 import { buildAtletaUpdatePayload, getParticipanteId } from '../../../utils/atletaUtils';
@@ -21,6 +20,16 @@ import * as XLSX from 'xlsx';
 import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
 import PageHeader from '../../../components/common/PageHeader';
+
+const shortFichaje = (v) => ({ 0: 'Pend. rev.', 1: 'Observado', 2: 'Aprobado', 3: 'Rechazado', 4: 'Baja' }[Number(v)] ?? '—');
+const shortApto = (v) => ({
+    Vigente: 'Apto OK',
+    PorVencer: 'Apto x vencer',
+    Vencido: 'Apto venc.',
+    Faltante: 'Sin apto',
+    SinVencimientoInformado: 'Sin venc.',
+}[v] ?? 'Apto');
+const shortHab = (ok) => (ok ? 'Habilitado' : 'No hab.');
 
 /** Misma fuente que SportTrack: nombre de catálogo; fallback al enum SIGDEF. */
 const formatCategoria = (atleta) => {
@@ -121,7 +130,6 @@ const AtletasList = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10);
     const navigate = useNavigate();
-    const location = useLocation();
     
     const [totalPages, setTotalPages] = useState(1);
     const [totalRecords, setTotalRecords] = useState(0);
@@ -224,7 +232,7 @@ const AtletasList = () => {
     const loadAtletas = async () => {
         try {
             setLoading(true);
-            
+
             // Intentar endpoint paginado primero
             try {
                 const response = await api.get(withFederationScope(
@@ -414,7 +422,12 @@ const AtletasList = () => {
                 backTo={backTo}
                 backLabel={isSuperAdminView ? 'Dashboard federación' : 'Dashboard'}
                 actions={(
-                    <div style={{ display: 'flex', gap: '10px' }}>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        {!isSuperAdminView && (
+                            <Button variant="secondary" onClick={() => navigate('/dashboard/solicitudes')}>
+                                <ClipboardList size={18} /> Solicitudes
+                            </Button>
+                        )}
                         {!isMobileView && (
                             <Button variant="secondary" onClick={exportToExcel}>
                                 <FileText size={20} /> Exportar Excel
@@ -464,11 +477,16 @@ const AtletasList = () => {
                                             />
                                         ),
                                     },
-                                    { label: 'Pago', value: (
-                                        <span className={`badge badge-${getEstadoPagoColor(atleta.estadoPago)}`} style={{ fontSize: '10px', padding: '1px 6px' }}>
-                                            {getEstadoPagoLabel(atleta.estadoPago)}
-                                        </span>
-                                    )}
+                                    { label: 'Estado', value: (
+                                        <div className="status-stack">
+                                            <span className={`badge badge-sm badge-${getEstadoPagoColor(atleta.estadoPago)}`}>
+                                                {getEstadoPagoLabel(atleta.estadoPago)}
+                                            </span>
+                                            <span className={`badge badge-sm badge-${getEstadoFichajeColor(atleta.estadoFichaje)}`}>
+                                                {shortFichaje(atleta.estadoFichaje)}
+                                            </span>
+                                        </div>
+                                    )},
                                 ]}
                                 actions={
                                     <div className="flex gap-2">
@@ -606,7 +624,7 @@ const AtletasList = () => {
                                     </th>
                                     <th>Tutor</th>
                                     <th>Selección</th>
-                                    <th>Estado Pago</th>
+                                    <th>Estado</th>
                                     <th>Documentación</th>
                                     <th>Acciones</th>
                                 </tr>
@@ -660,19 +678,21 @@ const AtletasList = () => {
                                                     <span className="badge badge-secondary">No</span>
                                                 )}
                                             </td>
-                                            <td className="text-center">
-                                                <span className={`badge badge-${getEstadoPagoColor(atleta.estadoPago)}`}>
-                                                    {getEstadoPagoLabel(atleta.estadoPago)}
-                                                </span>
-                                                <span className={`badge badge-${getEstadoFichajeColor(atleta.estadoFichaje)}`} style={{ marginLeft: 6 }}>
-                                                    {getEstadoFichajeLabel(atleta.estadoFichaje)}
-                                                </span>
-                                                <span className={`badge badge-${getEstadoAptoColor(atleta.estadoApto)}`} style={{ marginLeft: 6 }}>
-                                                    {getEstadoAptoLabel(atleta.estadoApto)}
-                                                </span>
-                                                <span className={`badge badge-${atleta.estaHabilitado ? 'success' : 'secondary'}`} style={{ marginLeft: 6 }}>
-                                                    {atleta.estaHabilitado ? 'Habilitado' : 'No habilitado'}
-                                                </span>
+                                            <td>
+                                                <div className="status-stack">
+                                                    <span className={`badge badge-sm badge-${getEstadoPagoColor(atleta.estadoPago)}`}>
+                                                        {getEstadoPagoLabel(atleta.estadoPago)}
+                                                    </span>
+                                                    <span className={`badge badge-sm badge-${getEstadoFichajeColor(atleta.estadoFichaje)}`}>
+                                                        {shortFichaje(atleta.estadoFichaje)}
+                                                    </span>
+                                                    <span className={`badge badge-sm badge-${getEstadoAptoColor(atleta.estadoApto)}`}>
+                                                        {shortApto(atleta.estadoApto)}
+                                                    </span>
+                                                    <span className={`badge badge-sm badge-${atleta.estaHabilitado ? 'success' : 'secondary'}`}>
+                                                        {shortHab(atleta.estaHabilitado)}
+                                                    </span>
+                                                </div>
                                             </td>
                                             <td className="docs-col">
                                                 <div

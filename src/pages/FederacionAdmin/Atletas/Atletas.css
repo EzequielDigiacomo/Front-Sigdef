@@ -353,3 +353,22 @@ body {
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.02em;
 }
+
+.status-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+}
+
+.badge.badge-sm {
+    padding: 0.1rem 0.45rem;
+    font-size: 0.62rem;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: 0.01em;
+    border-radius: 9999px;
+    box-shadow: none !important;
+    white-space: nowrap;
+    text-transform: none;
+}

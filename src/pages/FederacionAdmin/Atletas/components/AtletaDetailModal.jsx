@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Edit, Plus, FileText, XCircle, Eye } from 'lucide-react';
+import { Edit, Plus, FileText, XCircle, Eye, CheckCircle2, AlertCircle } from 'lucide-react';
 import { api } from '../../../../services/api';
 import Modal from '../../../../components/common/Modal';
 import Button from '../../../../components/common/Button';
 import ConfirmationModal from '../../../../components/common/ConfirmationModal';
 import DocumentUploadModal from '../../../../components/common/DocumentUploadModal';
 import DocumentViewerModal from '../../../../components/common/DocumentViewerModal';
-import { CATEGORIA_MAP, getCategoriaLabel, getEstadoPagoColor } from '../../../../utils/enums';
+import { CATEGORIA_MAP, getCategoriaLabel, getEstadoPagoColor, getEstadoFichajeLabel, getEstadoFichajeColor } from '../../../../utils/enums';
 import AssignTutorModal from './AssignTutorModal';
 import { buildAtletaUpdatePayload, getParticipanteId } from '../../../../utils/atletaUtils';
+import FichajeService from '../../../../services/fichajeService';
 import './AtletaDetailModal.css';
 
 const selectBadgeStyle = {
@@ -43,6 +44,9 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
         onConfirm: null,
         type: 'danger',
     });
+    const [fichajeLoading, setFichajeLoading] = useState(false);
+    const [fichajeMotivoModal, setFichajeMotivoModal] = useState(null); // 'observar' | 'rechazar'
+    const [motivoFichaje, setMotivoFichaje] = useState('');
 
     useEffect(() => {
         if (isOpen && athlete) {
@@ -245,6 +249,61 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
         }
     };
 
+    const participanteId = athlete?.idPersona ?? athlete?.participanteId;
+
+    const handleAprobarFichaje = async () => {
+        if (!participanteId) return;
+        setFichajeLoading(true);
+        try {
+            await FichajeService.aprobar(participanteId);
+            setLocalAthlete((prev) => (prev ? { ...prev, estadoFichaje: 2 } : prev));
+            if (onRefresh) onRefresh();
+            setConfirmModal({
+                isOpen: true,
+                title: 'Alta aprobada',
+                message: 'El fichaje del atleta quedó aprobado.',
+                type: 'success',
+                showCancel: false,
+                onConfirm: () => setConfirmModal((prev) => ({ ...prev, isOpen: false })),
+            });
+        } catch (error) {
+            setConfirmModal({
+                isOpen: true,
+                title: 'No se pudo aprobar',
+                message: error.message || 'Revisá documentación y apto médico.',
+                type: 'danger',
+                showCancel: false,
+                onConfirm: () => setConfirmModal((prev) => ({ ...prev, isOpen: false })),
+            });
+        } finally {
+            setFichajeLoading(false);
+        }
+    };
+
+    const submitFichajeMotivo = async () => {
+        if (!participanteId || !fichajeMotivoModal || !motivoFichaje.trim()) {
+            alert('Indicá un motivo.');
+            return;
+        }
+        setFichajeLoading(true);
+        try {
+            if (fichajeMotivoModal === 'observar') {
+                await FichajeService.observar(participanteId, motivoFichaje.trim());
+                setLocalAthlete((prev) => (prev ? { ...prev, estadoFichaje: 1 } : prev));
+            } else {
+                await FichajeService.rechazar(participanteId, motivoFichaje.trim());
+                setLocalAthlete((prev) => (prev ? { ...prev, estadoFichaje: 3 } : prev));
+            }
+            setFichajeMotivoModal(null);
+            setMotivoFichaje('');
+            if (onRefresh) onRefresh();
+        } catch (error) {
+            alert(error.message || 'No se pudo completar la acción.');
+        } finally {
+            setFichajeLoading(false);
+        }
+    };
+
     if (!athlete) return null;
 
     const view = localAthlete || athlete;
@@ -252,6 +311,8 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
     const categoriaValue = view.categoria ?? view.Categoria ?? '';
     const edadNum = Number(view.edad);
     const hasEdad = Number.isFinite(edadNum) && edadNum >= 0 && edadNum <= 120;
+    const estadoFichaje = view.estadoFichaje ?? view.EstadoFichaje ?? 0;
+    const puedeRevisarFichaje = estadoFichaje === 0 || estadoFichaje === 1;
 
     const handleAssignSuccess = () => {
         fetchTutorInfo();
@@ -374,6 +435,28 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
                                 <option value={2} style={{ backgroundColor: '#dc2626', color: 'white' }}>Vencido</option>
                                 <option value={3} style={{ backgroundColor: '#d97706', color: 'white' }}>Parcial</option>
                             </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="detail-label">Estado de alta (fichaje)</label>
+                        <div className="detail-value" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <span className={`badge badge-${getEstadoFichajeColor(estadoFichaje)}`}>
+                                {getEstadoFichajeLabel(estadoFichaje)}
+                            </span>
+                            {puedeRevisarFichaje && (
+                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                    <Button size="sm" disabled={fichajeLoading} onClick={handleAprobarFichaje} icon={CheckCircle2}>
+                                        Aprobar alta
+                                    </Button>
+                                    <Button size="sm" variant="secondary" disabled={fichajeLoading} onClick={() => { setMotivoFichaje(''); setFichajeMotivoModal('observar'); }} icon={AlertCircle}>
+                                        Observar
+                                    </Button>
+                                    <Button size="sm" variant="ghost" disabled={fichajeLoading} onClick={() => { setMotivoFichaje(''); setFichajeMotivoModal('rechazar'); }} icon={XCircle}>
+                                        Rechazar
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -515,6 +598,33 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
                 onConfirm={confirmModal.onConfirm}
                 onClose={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
             />
+
+            {fichajeMotivoModal && (
+                <Modal
+                    isOpen={!!fichajeMotivoModal}
+                    onClose={() => !fichajeLoading && setFichajeMotivoModal(null)}
+                    title={fichajeMotivoModal === 'observar' ? 'Observar alta' : 'Rechazar alta'}
+                    size="small"
+                    footer={
+                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                            <Button variant="ghost" onClick={() => setFichajeMotivoModal(null)} disabled={fichajeLoading}>Cancelar</Button>
+                            <Button onClick={submitFichajeMotivo} disabled={fichajeLoading}>Confirmar</Button>
+                        </div>
+                    }
+                >
+                    <p style={{ marginTop: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                        El motivo queda visible para el club.
+                    </p>
+                    <textarea
+                        className="form-input"
+                        rows={4}
+                        value={motivoFichaje}
+                        onChange={(e) => setMotivoFichaje(e.target.value)}
+                        placeholder="Motivo..."
+                        style={{ width: '100%' }}
+                    />
+                </Modal>
+            )}
         </>
     );
 };
