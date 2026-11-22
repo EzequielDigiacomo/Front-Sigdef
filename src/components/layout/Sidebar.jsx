@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
     LayoutDashboard, Users, Trophy, Shield, UserCheck, Award,
     ChevronLeft, ChevronRight, KeyRound, Briefcase, Mail, ClipboardList,
-    ArrowRightLeft, ShieldCheck, ClipboardList,
+    ArrowRightLeft, ShieldCheck,
 } from 'lucide-react';
 import useUnreadMessages from '../../hooks/useUnreadMessages';
 import usePendingTraspasos from '../../hooks/usePendingTraspasos';
