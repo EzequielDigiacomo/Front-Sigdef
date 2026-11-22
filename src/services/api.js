@@ -1,5 +1,6 @@
 import { PARENTESCO_MAP } from '../utils/enums';
 import { toFriendlyErrorMessage } from '../utils/friendlyError';
+import { normalizeAspNetFieldErrors } from '../utils/formFieldErrors';
 import { isAuditEndpoint, trackApiError } from './auditClient';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5029/api';
@@ -13,13 +14,21 @@ const defaultHeaders = {
     'Content-Type': 'application/json',
 };
 
-const attachErrorMeta = (error, { status, endpoint, method, raw } = {}) => {
+const attachErrorMeta = (error, { status, endpoint, method, raw, fieldErrors, body } = {}) => {
     if (!error || typeof error !== 'object') return error;
     if (status != null) error.status = status;
     if (endpoint) error.endpoint = endpoint;
     if (method) error.method = method;
     if (raw) error.rawMessage = raw;
+    if (fieldErrors && typeof fieldErrors === 'object') error.fieldErrors = fieldErrors;
+    if (body != null) error.body = body;
     return error;
+};
+
+const firstFieldErrorMessage = (fieldErrors) => {
+    if (!fieldErrors || typeof fieldErrors !== 'object') return '';
+    const values = Object.values(fieldErrors).filter(Boolean);
+    return values.length ? String(values[0]) : '';
 };
 
 const getAuthToken = () => {
@@ -89,18 +98,37 @@ const handleResponse = async (response, options = {}) => {
         }
 
         let raw = '';
+        let fieldErrors = {};
+        let body = null;
         try {
             const errorObj = JSON.parse(responseText || '{}');
-            raw = errorObj.message || errorObj.Message || errorObj.error || errorObj.Error || '';
+            body = errorObj;
+            fieldErrors = normalizeAspNetFieldErrors(errorObj.errors);
+            raw =
+                errorObj.message
+                || errorObj.Message
+                || errorObj.error
+                || errorObj.Error
+                || errorObj.detail
+                || errorObj.title
+                || firstFieldErrorMessage(fieldErrors)
+                || '';
         } catch {
             raw = '';
         }
 
-        throwFriendly(
+        const error = new Error(toFriendlyErrorMessage(raw, {
+            status: response.status,
+            fallback: Object.keys(fieldErrors).length
+                ? 'Revisá los campos marcados e intentá nuevamente.'
+                : 'No se pudo completar la operación. Revisá los datos e intentá nuevamente.',
+        }));
+        throw attachErrorMeta(error, {
+            status: response.status,
             raw,
-            response.status,
-            'No se pudo completar la operación. Revisá los datos e intentá nuevamente.'
-        );
+            fieldErrors,
+            body,
+        });
     }
 
     if (!responseText) return { success: true };

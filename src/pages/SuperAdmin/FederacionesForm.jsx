@@ -5,6 +5,38 @@ import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import FormField from '../../components/forms/FormField';
 import { Save, ArrowLeft, ShieldAlert } from 'lucide-react';
+import useFormFieldErrors from '../../hooks/useFormFieldErrors';
+import FieldError from '../../components/forms/FieldError';
+import FormErrorsBanner from '../../components/forms/FormErrorsBanner';
+import '../../styles/CompactForm.css';
+
+const FIELD_LABELS = {
+    nombre: 'Nombre de la federación',
+    sigla: 'Sigla',
+    cuit: 'CUIT',
+    direccion: 'Dirección',
+    email: 'Email institucional',
+    telefono: 'Teléfono',
+    adminUsername: 'Usuario administrador',
+    adminEmail: 'Email del administrador',
+    adminPassword: 'Contraseña',
+    confirmAdminPassword: 'Confirmar contraseña',
+};
+
+// Alias API -> clave del formulario
+const API_FIELD_MAP = {
+    siglas: 'sigla',
+    Siglas: 'sigla',
+    Sigla: 'sigla',
+    sigla: 'sigla',
+    Username: 'adminUsername',
+    username: 'adminUsername',
+    Password: 'adminPassword',
+    password: 'adminPassword',
+    AdminUsername: 'adminUsername',
+    AdminEmail: 'adminEmail',
+    AdminPassword: 'adminPassword',
+};
 
 const FederacionesForm = () => {
     const { id } = useParams();
@@ -27,7 +59,14 @@ const FederacionesForm = () => {
         confirmAdminPassword: ''
     });
 
-    const [errors, setErrors] = useState({});
+    const {
+        fieldErrors: errors,
+        clearFieldError,
+        clearFieldErrors,
+        applyApiError,
+        applyErrors,
+        hasFieldErrors,
+    } = useFormFieldErrors(FIELD_LABELS);
     const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
@@ -107,12 +146,13 @@ const FederacionesForm = () => {
             }
         }
 
-        setErrors(newErrors);
+        applyErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        clearFieldErrors();
         if (!validate()) return;
 
         setSubmitting(true);
@@ -144,7 +184,10 @@ const FederacionesForm = () => {
             navigate('/superadmin/federaciones');
         } catch (error) {
             console.error("Error guardando federación y usuario:", error);
-            alert(error.message || "Ocurrió un error al guardar la federación y su usuario. Intente nuevamente.");
+            const mapped = applyApiError(error, API_FIELD_MAP);
+            if (!Object.keys(mapped).length) {
+                alert(error.message || "Ocurrió un error al guardar la federación y su usuario. Intente nuevamente.");
+            }
         } finally {
             setSubmitting(false);
         }
@@ -167,20 +210,23 @@ const FederacionesForm = () => {
             </div>
 
             <Card>
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    {hasFieldErrors && (
+                        <FormErrorsBanner errors={errors} labels={FIELD_LABELS} />
+                    )}
                     <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
                         <div className="form-group">
                             <label htmlFor="nombre">Nombre de la Federación *</label>
                             <input
                                 type="text"
                                 id="nombre"
-                                className="form-input"
+                                className={`form-input ${errors.nombre ? 'error' : ''}`}
                                 value={form.nombre}
-                                onChange={(e) => setForm(prev => ({ ...prev, nombre: e.target.value }))}
+                                onChange={(e) => { setForm(prev => ({ ...prev, nombre: e.target.value })); clearFieldError('nombre'); }}
                                 placeholder="Ej. Federación Deportiva de Canotaje"
                                 required
                             />
-                            {errors.nombre && <span style={{ color: 'var(--danger)', fontSize: '0.8rem' }}>{errors.nombre}</span>}
+                            <FieldError message={errors.nombre} />
                         </div>
 
                         {isEditMode ? (
@@ -189,13 +235,13 @@ const FederacionesForm = () => {
                                 <input
                                     type="text"
                                     id="cuit"
-                                    className="form-input"
+                                    className={`form-input ${errors.cuit ? 'error' : ''}`}
                                     value={form.cuit}
-                                    onChange={(e) => setForm(prev => ({ ...prev, cuit: e.target.value }))}
+                                    onChange={(e) => { setForm(prev => ({ ...prev, cuit: e.target.value })); clearFieldError('cuit'); }}
                                     placeholder="Ej. 30-12345678-9"
                                     required={isEditMode}
                                 />
-                                {errors.cuit && <span style={{ color: 'var(--danger)', fontSize: '0.8rem' }}>{errors.cuit}</span>}
+                                <FieldError message={errors.cuit} />
                             </div>
                         ) : (
                             <div className="form-group">
@@ -203,12 +249,12 @@ const FederacionesForm = () => {
                                 <input
                                     type="text"
                                     id="sigla"
-                                    className="form-input"
+                                    className={`form-input ${errors.sigla ? 'error' : ''}`}
                                     value={form.sigla}
-                                    onChange={(e) => setForm(prev => ({ ...prev, sigla: e.target.value }))}
+                                    onChange={(e) => { setForm(prev => ({ ...prev, sigla: e.target.value })); clearFieldError('sigla'); }}
                                     placeholder="Ej. FAF"
                                 />
-                                {errors.sigla && <span style={{ color: 'var(--danger)', fontSize: '0.8rem' }}>{errors.sigla}</span>}
+                                <FieldError message={errors.sigla} />
                             </div>
                         )}
                     </div>
@@ -219,13 +265,13 @@ const FederacionesForm = () => {
                             <input
                                 type="email"
                                 id="email"
-                                className="form-input"
+                                className={`form-input ${errors.email ? 'error' : ''}`}
                                 value={form.email}
-                                onChange={(e) => setForm(prev => ({ ...prev, email: e.target.value }))}
+                                onChange={(e) => { setForm(prev => ({ ...prev, email: e.target.value })); clearFieldError('email'); }}
                                 placeholder="contacto@federacion.org"
                                 required
                             />
-                            {errors.email && <span style={{ color: 'var(--danger)', fontSize: '0.8rem' }}>{errors.email}</span>}
+                            <FieldError message={errors.email} />
                         </div>
 
                         <div className="form-group">
@@ -233,11 +279,12 @@ const FederacionesForm = () => {
                             <input
                                 type="text"
                                 id="telefono"
-                                className="form-input"
+                                className={`form-input ${errors.telefono ? 'error' : ''}`}
                                 value={form.telefono}
-                                onChange={(e) => setForm(prev => ({ ...prev, telefono: e.target.value }))}
+                                onChange={(e) => { setForm(prev => ({ ...prev, telefono: e.target.value })); clearFieldError('telefono'); }}
                                 placeholder="Ej. +54 11 4455 6677"
                             />
+                            <FieldError message={errors.telefono} />
                         </div>
                     </div>
 
@@ -247,11 +294,12 @@ const FederacionesForm = () => {
                             <input
                                 type="text"
                                 id="direccion"
-                                className="form-input"
+                                className={`form-input ${errors.direccion ? 'error' : ''}`}
                                 value={form.direccion}
-                                onChange={(e) => setForm(prev => ({ ...prev, direccion: e.target.value }))}
+                                onChange={(e) => { setForm(prev => ({ ...prev, direccion: e.target.value })); clearFieldError('direccion'); }}
                                 placeholder="Ej. Av. de Mayo 1234, CABA"
                             />
+                            <FieldError message={errors.direccion} />
                         </div>
                     </div>
 
@@ -279,13 +327,13 @@ const FederacionesForm = () => {
                                     <input
                                         type="text"
                                         id="adminUsername"
-                                        className="form-input"
+                                        className={`form-input ${errors.adminUsername ? 'error' : ''}`}
                                         value={form.adminUsername}
-                                        onChange={(e) => setForm(prev => ({ ...prev, adminUsername: e.target.value }))}
+                                        onChange={(e) => { setForm(prev => ({ ...prev, adminUsername: e.target.value })); clearFieldError('adminUsername'); }}
                                         placeholder="Ej. admin_fac"
                                         required
                                     />
-                                    {errors.adminUsername && <span style={{ color: 'var(--danger)', fontSize: '0.8rem' }}>{errors.adminUsername}</span>}
+                                    <FieldError message={errors.adminUsername} />
                                 </div>
 
                                 <div className="form-group">
@@ -293,13 +341,13 @@ const FederacionesForm = () => {
                                     <input
                                         type="email"
                                         id="adminEmail"
-                                        className="form-input"
+                                        className={`form-input ${errors.adminEmail ? 'error' : ''}`}
                                         value={form.adminEmail}
-                                        onChange={(e) => setForm(prev => ({ ...prev, adminEmail: e.target.value }))}
+                                        onChange={(e) => { setForm(prev => ({ ...prev, adminEmail: e.target.value })); clearFieldError('adminEmail'); }}
                                         placeholder="admin@federacion.org"
                                         required
                                     />
-                                    {errors.adminEmail && <span style={{ color: 'var(--danger)', fontSize: '0.8rem' }}>{errors.adminEmail}</span>}
+                                    <FieldError message={errors.adminEmail} />
                                 </div>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
@@ -308,13 +356,13 @@ const FederacionesForm = () => {
                                     <input
                                         type="password"
                                         id="adminPassword"
-                                        className="form-input"
+                                        className={`form-input ${errors.adminPassword ? 'error' : ''}`}
                                         value={form.adminPassword}
-                                        onChange={(e) => setForm(prev => ({ ...prev, adminPassword: e.target.value }))}
+                                        onChange={(e) => { setForm(prev => ({ ...prev, adminPassword: e.target.value })); clearFieldError('adminPassword'); }}
                                         placeholder="Mínimo 6 caracteres"
                                         required
                                     />
-                                    {errors.adminPassword && <span style={{ color: 'var(--danger)', fontSize: '0.8rem' }}>{errors.adminPassword}</span>}
+                                    <FieldError message={errors.adminPassword} />
                                 </div>
 
                                 <div className="form-group">
@@ -322,13 +370,13 @@ const FederacionesForm = () => {
                                     <input
                                         type="password"
                                         id="confirmAdminPassword"
-                                        className="form-input"
+                                        className={`form-input ${errors.confirmAdminPassword ? 'error' : ''}`}
                                         value={form.confirmAdminPassword}
-                                        onChange={(e) => setForm(prev => ({ ...prev, confirmAdminPassword: e.target.value }))}
+                                        onChange={(e) => { setForm(prev => ({ ...prev, confirmAdminPassword: e.target.value })); clearFieldError('confirmAdminPassword'); }}
                                         placeholder="Repetir contraseña"
                                         required
                                     />
-                                    {errors.confirmAdminPassword && <span style={{ color: 'var(--danger)', fontSize: '0.8rem' }}>{errors.confirmAdminPassword}</span>}
+                                    <FieldError message={errors.confirmAdminPassword} />
                                 </div>
                             </div>
                         </div>

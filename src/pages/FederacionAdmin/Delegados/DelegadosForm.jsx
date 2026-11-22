@@ -9,7 +9,23 @@ import { useAuth } from '../../../context/AuthContext';
 import { withFederationScope } from '../../../utils/apiHelpers';
 import { canAccessDashboardClub, extractPlanFromUser } from '../../../utils/planHelpers';
 import { toFriendlyErrorMessage } from '../../../utils/friendlyError';
+import { validateRequiredFields } from '../../../utils/formFieldErrors';
+import useFormFieldErrors from '../../../hooks/useFormFieldErrors';
+import FieldError from '../../../components/forms/FieldError';
+import FormErrorsBanner from '../../../components/forms/FormErrorsBanner';
 import '../../../styles/CompactForm.css';
+
+const FIELD_LABELS = {
+    documento: 'DNI',
+    nombre: 'Nombre',
+    apellido: 'Apellido',
+    sexo: 'Sexo',
+    fechaNacimiento: 'Fecha de nacimiento',
+    email: 'Email',
+    telefono: 'Teléfono',
+    direccion: 'Dirección',
+    idClub: 'Club',
+};
 
 const pickPersonaId = (p) =>
     p?.participanteId ?? p?.ParticipanteId ?? p?.idPersona ?? p?.IdPersona ?? p?.id ?? p?.Id ?? null;
@@ -73,6 +89,14 @@ const DelegadosForm = () => {
         type: 'info',
         shouldNavigate: false,
     });
+    const {
+        fieldErrors,
+        clearFieldError,
+        clearFieldErrors,
+        applyApiError,
+        applyErrors,
+        hasFieldErrors,
+    } = useFormFieldErrors(FIELD_LABELS);
 
     useEffect(() => {
         loadClubes();
@@ -96,17 +120,31 @@ const DelegadosForm = () => {
             const data = await api.get('/Auth/usuarios');
             const found = data.find((u) => String(u.id || u.idPersona || u.IdPersona) === String(id));
             if (found) {
+                const pid = found.participanteId || found.ParticipanteId || null;
+                let personaExtra = {};
+                if (pid) {
+                    try {
+                        const persona = await api.get(`/Persona/${pid}`, { silentErrors: true });
+                        personaExtra = mapPersonaToForm(persona || {});
+                    } catch {
+                        /* seguir con datos del usuario */
+                    }
+                }
                 setFormData((prev) => ({
                     ...prev,
-                    nombre: found.nombre || found.nombrePersona || '',
-                    apellido: found.apellido || found.apellidoPersona || '',
-                    documento: found.dni || found.documento || '',
-                    email: found.email || '',
-                    telefono: found.telefono || '',
+                    ...personaExtra,
+                    nombre: personaExtra.nombre || found.nombre || found.nombrePersona || '',
+                    apellido: personaExtra.apellido || found.apellido || found.apellidoPersona || '',
+                    documento: personaExtra.documento || found.dni || found.documento || '',
+                    email: personaExtra.email || found.email || '',
+                    telefono: personaExtra.telefono || found.telefono || '',
                     idClub: found.clubId || found.idClub || '',
                     idFederacion: found.federacionId || found.idFederacion || prev.idFederacion,
                 }));
-                setParticipanteId(found.participanteId || found.ParticipanteId || null);
+                setParticipanteId(pid);
+                if (personaExtra.documento || found.dni || found.documento) {
+                    setPersonaFound(true);
+                }
             }
         } catch (error) {
             showModal('Error', 'No se pudieron cargar los datos del delegado.', 'danger');
@@ -257,6 +295,7 @@ const DelegadosForm = () => {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
+        clearFieldError(name);
 
         if (name === 'documento') {
             clearPersonaLink();
@@ -309,6 +348,8 @@ const DelegadosForm = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        clearFieldErrors();
+
         if (!id && !clubLoginAllowed) {
             showModal(
                 'Plan insuficiente',
@@ -318,12 +359,28 @@ const DelegadosForm = () => {
             return;
         }
 
-        if (!formData.idClub) {
-            showModal(
-                'Club requerido',
-                'Para crear el login de delegado tenés que seleccionar un club.',
-                'danger'
-            );
+        const clientErrors = validateRequiredFields(
+            formData,
+            {
+                documento: 'El DNI es obligatorio.',
+                nombre: 'El nombre es obligatorio.',
+                apellido: 'El apellido es obligatorio.',
+                idClub: 'Seleccioná un club.',
+            },
+            {
+                normalize: {
+                    documento: (v) => String(v || '').replace(/\D/g, ''),
+                },
+            }
+        );
+
+        const docDigits = String(formData.documento || '').replace(/\D/g, '');
+        if (docDigits && docDigits.length < 7) {
+            clientErrors.documento = 'Ingresá al menos 7 dígitos del DNI.';
+        }
+
+        if (Object.keys(clientErrors).length) {
+            applyErrors(clientErrors);
             return;
         }
 
@@ -371,7 +428,6 @@ const DelegadosForm = () => {
             } catch (err) {
                 const msg = String(err?.message || '').toLowerCase();
                 if (!msg.includes('ya figura como delegado') && !msg.includes('ya es delegado')) {
-                    // No bloquear si el login ya quedó: avisar
                     console.warn('DelegadoClub:', err);
                 }
             }
@@ -386,9 +442,12 @@ const DelegadosForm = () => {
             );
         } catch (error) {
             console.error('Error guardando delegado:', error);
-            showModal('Error', toFriendlyErrorMessage(error, {
-                fallback: 'No se pudo guardar el delegado. Revisá los datos e intentá nuevamente.',
-            }), 'danger');
+            const mapped = applyApiError(error);
+            if (!Object.keys(mapped).length) {
+                showModal('Error', toFriendlyErrorMessage(error, {
+                    fallback: 'No se pudo guardar el delegado. Revisá los datos e intentá nuevamente.',
+                }), 'danger');
+            }
         } finally {
             setLoading(false);
         }
@@ -414,7 +473,10 @@ const DelegadosForm = () => {
             )}
 
             <Card className="compact-form-card">
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} noValidate>
+                    {hasFieldErrors && (
+                        <FormErrorsBanner errors={fieldErrors} labels={FIELD_LABELS} />
+                    )}
                     <div className="form-grid">
                         <h3 className="form-section-title">Datos de la Persona</h3>
 
@@ -426,9 +488,17 @@ const DelegadosForm = () => {
                                     name="documento"
                                     value={formData.documento}
                                     onChange={handleChange}
-                                    onBlur={() => buscarPersonaPorDni(undefined, { notify: !personaFound })}
-                                    className="form-input"
-                                    required
+                                    onBlur={() => {
+                                        const digits = String(formData.documento || '').replace(/\D/g, '');
+                                        if (!digits) return;
+                                        if (digits.length < 7) {
+                                            applyErrors({ documento: 'Ingresá al menos 7 dígitos del DNI.' }, { scroll: false });
+                                            return;
+                                        }
+                                        buscarPersonaPorDni(digits, { notify: !personaFound });
+                                    }}
+                                    className={`form-input ${fieldErrors.documento ? 'error' : ''}`}
+                                    aria-invalid={!!fieldErrors.documento}
                                     autoComplete="off"
                                     placeholder="Al escribir se busca automáticamente"
                                 />
@@ -443,7 +513,8 @@ const DelegadosForm = () => {
                                     {searching ? <Loader2 size={16} className="spin" /> : <Search size={16} />}
                                 </Button>
                             </div>
-                            {personaFound && (
+                            <FieldError message={fieldErrors.documento} />
+                            {personaFound && !fieldErrors.documento && (
                                 <small className="form-hint" style={{ color: 'var(--primary, #3b82f6)' }}>
                                     Persona existente encontrada (puede ser entrenador y también delegado).
                                 </small>
@@ -457,9 +528,10 @@ const DelegadosForm = () => {
                                 name="nombre"
                                 value={formData.nombre}
                                 onChange={handleChange}
-                                className="form-input"
-                                required
+                                className={`form-input ${fieldErrors.nombre ? 'error' : ''}`}
+                                aria-invalid={!!fieldErrors.nombre}
                             />
+                            <FieldError message={fieldErrors.nombre} />
                         </div>
 
                         <div className="form-group">
@@ -469,9 +541,10 @@ const DelegadosForm = () => {
                                 name="apellido"
                                 value={formData.apellido}
                                 onChange={handleChange}
-                                className="form-input"
-                                required
+                                className={`form-input ${fieldErrors.apellido ? 'error' : ''}`}
+                                aria-invalid={!!fieldErrors.apellido}
                             />
+                            <FieldError message={fieldErrors.apellido} />
                         </div>
 
                         <div className="form-group">
@@ -480,11 +553,12 @@ const DelegadosForm = () => {
                                 name="sexo"
                                 value={formData.sexo}
                                 onChange={handleChange}
-                                className="form-input"
+                                className={`form-input ${fieldErrors.sexo ? 'error' : ''}`}
                             >
                                 <option value={1}>Masculino</option>
                                 <option value={2}>Femenino</option>
                             </select>
+                            <FieldError message={fieldErrors.sexo} />
                         </div>
 
                         <div className="form-group">
@@ -494,8 +568,9 @@ const DelegadosForm = () => {
                                 name="fechaNacimiento"
                                 value={formData.fechaNacimiento}
                                 onChange={handleChange}
-                                className="form-input"
+                                className={`form-input ${fieldErrors.fechaNacimiento ? 'error' : ''}`}
                             />
+                            <FieldError message={fieldErrors.fechaNacimiento} />
                         </div>
 
                         <div className="form-group">
@@ -505,8 +580,9 @@ const DelegadosForm = () => {
                                 name="email"
                                 value={formData.email}
                                 onChange={handleChange}
-                                className="form-input"
+                                className={`form-input ${fieldErrors.email ? 'error' : ''}`}
                             />
+                            <FieldError message={fieldErrors.email} />
                         </div>
 
                         <div className="form-group">
@@ -516,8 +592,9 @@ const DelegadosForm = () => {
                                 name="telefono"
                                 value={formData.telefono}
                                 onChange={handleChange}
-                                className="form-input"
+                                className={`form-input ${fieldErrors.telefono ? 'error' : ''}`}
                             />
+                            <FieldError message={fieldErrors.telefono} />
                         </div>
 
                         <div className="form-group">
@@ -527,8 +604,9 @@ const DelegadosForm = () => {
                                 name="direccion"
                                 value={formData.direccion}
                                 onChange={handleChange}
-                                className="form-input"
+                                className={`form-input ${fieldErrors.direccion ? 'error' : ''}`}
                             />
+                            <FieldError message={fieldErrors.direccion} />
                         </div>
 
                         <h3 className="form-section-title">Datos del Delegado</h3>
@@ -539,8 +617,7 @@ const DelegadosForm = () => {
                                 name="idClub"
                                 value={formData.idClub}
                                 onChange={handleChange}
-                                className="form-input"
-                                required
+                                className={`form-input ${fieldErrors.idClub ? 'error' : ''}`}
                             >
                                 <option value="">-- Seleccionar club --</option>
                                 {clubes.map((club) => (
@@ -549,7 +626,10 @@ const DelegadosForm = () => {
                                     </option>
                                 ))}
                             </select>
-                            <small className="form-hint">Obligatorio para el login del panel del club.</small>
+                            <FieldError message={fieldErrors.idClub} />
+                            {!fieldErrors.idClub && (
+                                <small className="form-hint">Obligatorio para el login del panel del club.</small>
+                            )}
                         </div>
 
                         <div className="form-group">

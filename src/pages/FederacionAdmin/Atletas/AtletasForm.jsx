@@ -8,8 +8,34 @@ import Modal from '../../../components/common/Modal';
 import { ArrowLeft, Save, CheckCircle, XCircle } from 'lucide-react';
 import { CATEGORIA_MAP, PARENTESCO_MAP, SEXO_MAP } from '../../../utils/enums';
 import { getCategoryByAge } from '../../../utils/categoryConfig';
+import { validateRequiredFields, mapApiFieldErrorsWithTutor } from '../../../utils/formFieldErrors';
+import useFormFieldErrors from '../../../hooks/useFormFieldErrors';
+import FieldError from '../../../components/forms/FieldError';
+import FormErrorsBanner from '../../../components/forms/FormErrorsBanner';
 import './Atletas.css';
 import '../../../styles/CompactForm.css';
+
+const FIELD_LABELS = {
+    nombre: 'Nombre',
+    apellido: 'Apellido',
+    documento: 'Documento',
+    fechaNacimiento: 'Fecha de nacimiento',
+    sexo: 'Sexo',
+    email: 'Email',
+    telefono: 'Teléfono',
+    direccion: 'Dirección',
+    idClub: 'Club',
+    categoria: 'Categoría',
+    estadoPago: 'Estado de pago',
+    montoBeca: 'Monto de beca',
+    fechaVencimientoApto: 'Vencimiento apto médico',
+    tutorDocumento: 'Documento del tutor',
+    tutorNombre: 'Nombre del tutor',
+    tutorApellido: 'Apellido del tutor',
+    tutorParentesco: 'Parentesco',
+    tutorTelefono: 'Teléfono del tutor',
+    tutorEmail: 'Email del tutor',
+};
 
 const getParticipanteId = (data) =>
     data?.participanteId ?? data?.ParticipanteId ?? data?.idPersona ?? data?.IdPersona ?? null;
@@ -63,6 +89,14 @@ const AtletasForm = () => {
         title: '',
         message: ''
     });
+
+    const {
+        fieldErrors,
+        clearFieldError,
+        clearFieldErrors,
+        applyErrors,
+        hasFieldErrors,
+    } = useFormFieldErrors(FIELD_LABELS);
 
     useEffect(() => {
         loadClubes();
@@ -275,10 +309,12 @@ const AtletasForm = () => {
             ...prev,
             [name]: type === 'checkbox' ? checked : (['categoria', 'idClub', 'sexo'].includes(name) ? parseInt(value) || value : (name === 'documento' ? value.replace(/[\s.]/g, '') : value))
         }));
+        clearFieldError(name);
     };
 
     const handleTutorChange = (e) => {
         const { name, value } = e.target;
+        clearFieldError(`tutor${name.charAt(0).toUpperCase()}${name.slice(1)}`);
         const sanitizedValue = name === 'documento' ? value.replace(/[\s.]/g, '') : value;
 
         setTutorData(prev => ({ ...prev, [name]: name === 'parentesco' ? parseInt(value) : sanitizedValue }));
@@ -291,6 +327,34 @@ const AtletasForm = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        clearFieldErrors();
+
+        const clientErrors = validateRequiredFields(formData, {
+            nombre: 'El nombre es obligatorio.',
+            apellido: 'El apellido es obligatorio.',
+            documento: 'El documento es obligatorio.',
+            fechaNacimiento: 'La fecha de nacimiento es obligatoria.',
+            sexo: 'Seleccioná el sexo.',
+        });
+        if (esMenor && !tutorLater) {
+            Object.assign(clientErrors, validateRequiredFields(
+                {
+                    tutorDocumento: tutorData.documento,
+                    tutorNombre: tutorData.nombre,
+                    tutorApellido: tutorData.apellido,
+                },
+                {
+                    tutorDocumento: 'El documento del tutor es obligatorio.',
+                    tutorNombre: 'El nombre del tutor es obligatorio.',
+                    tutorApellido: 'El apellido del tutor es obligatorio.',
+                }
+            ));
+        }
+        if (Object.keys(clientErrors).length) {
+            applyErrors(clientErrors);
+            return;
+        }
+
         setLoading(true);
 
         trackClientAction({
@@ -467,12 +531,17 @@ const AtletasForm = () => {
                     httpStatus: error.status ?? null,
                 },
             });
-            setResultModal({
-                open: true,
-                type: 'error',
-                title: 'Error',
-                message: `Hubo un problema al guardar: ${error.message || 'Error desconocido'}`
-            });
+            const mapped = mapApiFieldErrorsWithTutor(error);
+            if (Object.keys(mapped).length) {
+                applyErrors(mapped);
+            } else {
+                setResultModal({
+                    open: true,
+                    type: 'error',
+                    title: 'Error',
+                    message: `Hubo un problema al guardar: ${error.message || 'Error desconocido'}`
+                });
+            }
         } finally {
             setLoading(false);
         }
@@ -514,47 +583,58 @@ const AtletasForm = () => {
             </div>
 
             <Card className="compact-form-card">
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} noValidate>
+                    {hasFieldErrors && (
+                        <FormErrorsBanner errors={fieldErrors} labels={FIELD_LABELS} />
+                    )}
                     <div className="form-grid">
                         <h3 className="form-section-title">Datos Personales</h3>
 
                         <div className="form-group">
                             <label>Nombre *</label>
-                            <input name="nombre" value={formData.nombre} onChange={handleChange} className="form-input" required />
+                            <input name="nombre" value={formData.nombre} onChange={handleChange} className={`form-input ${fieldErrors.nombre ? 'error' : ''}`} aria-invalid={!!fieldErrors.nombre} />
+                            <FieldError message={fieldErrors.nombre} />
                         </div>
                         <div className="form-group">
                             <label>Apellido *</label>
-                            <input name="apellido" value={formData.apellido} onChange={handleChange} className="form-input" required />
+                            <input name="apellido" value={formData.apellido} onChange={handleChange} className={`form-input ${fieldErrors.apellido ? 'error' : ''}`} aria-invalid={!!fieldErrors.apellido} />
+                            <FieldError message={fieldErrors.apellido} />
                         </div>
                         <div className="form-group">
                             <label>Documento *</label>
-                            <input name="documento" value={formData.documento} onChange={handleChange} className="form-input" required />
+                            <input name="documento" value={formData.documento} onChange={handleChange} className={`form-input ${fieldErrors.documento ? 'error' : ''}`} aria-invalid={!!fieldErrors.documento} />
+                            <FieldError message={fieldErrors.documento} />
                         </div>
                         <div className="form-group">
                             <label>Fecha Nacimiento *</label>
-                            <input type="date" name="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} className="form-input" required />
+                            <input type="date" name="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} className={`form-input ${fieldErrors.fechaNacimiento ? 'error' : ''}`} aria-invalid={!!fieldErrors.fechaNacimiento} />
+                            <FieldError message={fieldErrors.fechaNacimiento} />
                         </div>
                         <div className="form-group">
                             <label>Sexo *</label>
-                            <select name="sexo" value={formData.sexo} onChange={handleChange} className="form-input" required>
+                            <select name="sexo" value={formData.sexo} onChange={handleChange} className={`form-input ${fieldErrors.sexo ? 'error' : ''}`}>
                                 {Object.entries(SEXO_MAP)
                                     .filter(([key]) => key === "1" || key === "2")
                                     .map(([key, label]) => (
                                         <option key={key} value={key}>{label}</option>
                                     ))}
                             </select>
+                            <FieldError message={fieldErrors.sexo} />
                         </div>
                         <div className="form-group">
                             <label>Email {esMenor ? (tutorLater ? '(opcional)' : '(opcional - se usará el del tutor si está vacío)') : ''}</label>
-                            <input type="email" name="email" value={formData.email} onChange={handleChange} className="form-input" />
+                            <input type="email" name="email" value={formData.email} onChange={handleChange} className={`form-input ${fieldErrors.email ? 'error' : ''}`} />
+                            <FieldError message={fieldErrors.email} />
                         </div>
                         <div className="form-group">
                             <label>Teléfono {esMenor ? (tutorLater ? '(opcional)' : '(opcional - se usará el del tutor si está vacío)') : ''}</label>
-                            <input name="telefono" value={formData.telefono} onChange={handleChange} className="form-input" />
+                            <input name="telefono" value={formData.telefono} onChange={handleChange} className={`form-input ${fieldErrors.telefono ? 'error' : ''}`} />
+                            <FieldError message={fieldErrors.telefono} />
                         </div>
                         <div className="form-group">
                             <label>Dirección</label>
-                            <input name="direccion" value={formData.direccion} onChange={handleChange} className="form-input" />
+                            <input name="direccion" value={formData.direccion} onChange={handleChange} className={`form-input ${fieldErrors.direccion ? 'error' : ''}`} />
+                            <FieldError message={fieldErrors.direccion} />
                         </div>
 
                         {esMenor && (
@@ -582,13 +662,15 @@ const AtletasForm = () => {
                                         <div className="form-group">
                                             <label>Documento del Tutor *</label>
                                             <input
+                                                id="tutorDocumento"
                                                 name="documento"
                                                 value={tutorData.documento}
                                                 onChange={handleTutorChange}
-                                                className="form-input"
+                                                className={`form-input ${fieldErrors.tutorDocumento ? 'error' : ''}`}
+                                                aria-invalid={!!fieldErrors.tutorDocumento}
                                                 placeholder="Buscar por documento..."
-                                                required={!tutorLater}
                                             />
+                                            <FieldError message={fieldErrors.tutorDocumento} />
                                             <div className="form-hint" style={{ minHeight: '1.1rem' }}>
                                                 {tutorSearchStatus === 'loading' && <span>Buscando...</span>}
                                                 {tutorSearchStatus === 'found' && <span style={{ color: 'var(--success)' }}>Persona encontrada, datos precargados.</span>}
@@ -598,53 +680,62 @@ const AtletasForm = () => {
                                         <div className="form-group">
                                             <label>Nombre del Tutor *</label>
                                             <input
+                                                id="tutorNombre"
                                                 name="nombre"
                                                 value={tutorData.nombre}
                                                 onChange={handleTutorChange}
-                                                className="form-input"
+                                                className={`form-input ${fieldErrors.tutorNombre ? 'error' : ''}`}
+                                                aria-invalid={!!fieldErrors.tutorNombre}
                                                 disabled={tutorData.existe}
-                                                required={!tutorLater}
                                             />
+                                            <FieldError message={fieldErrors.tutorNombre} />
                                         </div>
                                         <div className="form-group">
                                             <label>Apellido del Tutor *</label>
                                             <input
+                                                id="tutorApellido"
                                                 name="apellido"
                                                 value={tutorData.apellido}
                                                 onChange={handleTutorChange}
-                                                className="form-input"
+                                                className={`form-input ${fieldErrors.tutorApellido ? 'error' : ''}`}
+                                                aria-invalid={!!fieldErrors.tutorApellido}
                                                 disabled={tutorData.existe}
-                                                required={!tutorLater}
                                             />
+                                            <FieldError message={fieldErrors.tutorApellido} />
                                         </div>
                                         <div className="form-group">
                                             <label>Parentesco *</label>
-                                            <select name="parentesco" value={tutorData.parentesco} onChange={handleTutorChange} className="form-input" required={!tutorLater}>
+                                            <select id="tutorParentesco" name="parentesco" value={tutorData.parentesco} onChange={handleTutorChange} className={`form-input ${fieldErrors.tutorParentesco ? 'error' : ''}`}>
                                                 {Object.entries(PARENTESCO_MAP).map(([key, label]) => (
                                                     <option key={key} value={key}>{label}</option>
                                                 ))}
                                             </select>
+                                            <FieldError message={fieldErrors.tutorParentesco} />
                                         </div>
                                         <div className="form-group">
                                             <label>Teléfono del Tutor</label>
                                             <input
+                                                id="tutorTelefono"
                                                 name="telefono"
                                                 value={tutorData.telefono}
                                                 onChange={handleTutorChange}
-                                                className="form-input"
+                                                className={`form-input ${fieldErrors.tutorTelefono ? 'error' : ''}`}
                                                 disabled={tutorData.existe}
                                             />
+                                            <FieldError message={fieldErrors.tutorTelefono} />
                                         </div>
                                         <div className="form-group">
                                             <label>Email del Tutor</label>
                                             <input
+                                                id="tutorEmail"
                                                 type="email"
                                                 name="email"
                                                 value={tutorData.email}
                                                 onChange={handleTutorChange}
-                                                className="form-input"
+                                                className={`form-input ${fieldErrors.tutorEmail ? 'error' : ''}`}
                                                 disabled={tutorData.existe}
                                             />
+                                            <FieldError message={fieldErrors.tutorEmail} />
                                         </div>
                                     </>
                                 )}
@@ -655,12 +746,13 @@ const AtletasForm = () => {
 
                         <div className="form-group">
                             <label>Club</label>
-                            <select name="idClub" value={formData.idClub} onChange={handleChange} className="form-input">
+                            <select name="idClub" value={formData.idClub} onChange={handleChange} className={`form-input ${fieldErrors.idClub ? 'error' : ''}`}>
                                 <option value="">Sin Asignar (Agente Libre)</option>
                                 {clubes.map(club => (
                                     <option key={club.idClub} value={club.idClub}>{club.nombre}</option>
                                 ))}
                             </select>
+                            <FieldError message={fieldErrors.idClub} />
                         </div>
                         <div className="form-group">
                             <label>Estado de Pago (Matrícula)</label>
@@ -683,8 +775,9 @@ const AtletasForm = () => {
                                 name="fechaVencimientoApto"
                                 value={formData.fechaVencimientoApto}
                                 onChange={handleChange}
-                                className="form-input"
+                                className={`form-input ${fieldErrors.fechaVencimientoApto ? 'error' : ''}`}
                             />
+                            <FieldError message={fieldErrors.fechaVencimientoApto} />
                         </div>
 
                         <div className="form-group checkbox-group">
@@ -704,7 +797,8 @@ const AtletasForm = () => {
                         </div>
                         <div className="form-group">
                             <label>Monto Beca</label>
-                            <input type="number" name="montoBeca" value={formData.montoBeca} onChange={handleChange} className="form-input" />
+                            <input type="number" name="montoBeca" value={formData.montoBeca} onChange={handleChange} className={`form-input ${fieldErrors.montoBeca ? 'error' : ''}`} />
+                            <FieldError message={fieldErrors.montoBeca} />
                         </div>
                     </div>
 

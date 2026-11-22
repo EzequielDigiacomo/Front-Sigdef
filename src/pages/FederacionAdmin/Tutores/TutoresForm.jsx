@@ -6,7 +6,26 @@ import Button from '../../../components/common/Button';
 import { ArrowLeft, Save } from 'lucide-react';
 import { PARENTESCO_MAP, SEXO_MAP } from '../../../utils/enums';
 import { withFederationScope } from '../../../utils/apiHelpers';
+import { validateRequiredFields } from '../../../utils/formFieldErrors';
+import useFormFieldErrors from '../../../hooks/useFormFieldErrors';
+import FieldError from '../../../components/forms/FieldError';
+import FormErrorsBanner from '../../../components/forms/FormErrorsBanner';
 import '../../../styles/CompactForm.css';
+
+const FIELD_LABELS = {
+    nombre: 'Nombre',
+    apellido: 'Apellido',
+    documento: 'Documento',
+    fechaNacimiento: 'Fecha de nacimiento',
+    sexo: 'Sexo',
+    tipoTutor: 'Tipo / Parentesco',
+    parentesco: 'Tipo / Parentesco',
+    email: 'Email',
+    telefono: 'Teléfono',
+    direccion: 'Dirección',
+    idClub: 'Club',
+    idAtleta: 'Atleta',
+};
 
 const TutoresForm = () => {
     const { id, fedId } = useParams();
@@ -19,6 +38,14 @@ const TutoresForm = () => {
     const [busquedaAtleta, setBusquedaAtleta] = useState('');
 
     const [initialLinkedAtletaId, setInitialLinkedAtletaId] = useState('');
+    const {
+        fieldErrors,
+        clearFieldError,
+        clearFieldErrors,
+        applyApiError,
+        applyErrors,
+        hasFieldErrors,
+    } = useFormFieldErrors(FIELD_LABELS);
 
     const goBack = () => {
         if (location.state?.returnPath) {
@@ -313,10 +340,25 @@ const TutoresForm = () => {
             [name]: name === 'idClub' ? value : value,
             ...(name === 'idClub' ? { idAtleta: '' } : {}),
         }));
+        clearFieldError(name);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        clearFieldErrors();
+
+        const clientErrors = validateRequiredFields(formData, {
+            nombre: 'El nombre es obligatorio.',
+            apellido: 'El apellido es obligatorio.',
+            documento: 'El documento es obligatorio.',
+            sexo: 'Seleccioná el sexo.',
+            tipoTutor: 'Seleccioná el tipo / parentesco.',
+        });
+        if (Object.keys(clientErrors).length) {
+            applyErrors(clientErrors);
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -384,7 +426,10 @@ const TutoresForm = () => {
             goBack();
         } catch (error) {
             console.error('Error guardando:', error);
-            alert('Error al guardar el tutor. Verifica los datos e intenta nuevamente.');
+            const mapped = applyApiError(error, { parentesco: 'tipoTutor', Parentesco: 'tipoTutor', TipoTutor: 'tipoTutor' });
+            if (!Object.keys(mapped).length) {
+                alert('Error al guardar el tutor. Verifica los datos e intenta nuevamente.');
+            }
         } finally {
             setLoading(false);
         }
@@ -417,7 +462,10 @@ const TutoresForm = () => {
             </div>
 
             <Card className="compact-form-card">
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} noValidate>
+                    {hasFieldErrors && (
+                        <FormErrorsBanner errors={fieldErrors} labels={FIELD_LABELS} />
+                    )}
                     <div className="form-grid">
                         <h3 className="form-section-title">Datos Personales</h3>
 
@@ -427,9 +475,10 @@ const TutoresForm = () => {
                                 name="nombre"
                                 value={formData.nombre}
                                 onChange={handleChange}
-                                className="form-input"
-                                required
+                                className={`form-input ${fieldErrors.nombre ? 'error' : ''}`}
+                                aria-invalid={!!fieldErrors.nombre}
                             />
+                            <FieldError message={fieldErrors.nombre} />
                         </div>
                         <div className="form-group">
                             <label>Apellido *</label>
@@ -437,9 +486,10 @@ const TutoresForm = () => {
                                 name="apellido"
                                 value={formData.apellido}
                                 onChange={handleChange}
-                                className="form-input"
-                                required
+                                className={`form-input ${fieldErrors.apellido ? 'error' : ''}`}
+                                aria-invalid={!!fieldErrors.apellido}
                             />
+                            <FieldError message={fieldErrors.apellido} />
                         </div>
                         <div className="form-group">
                             <label>Documento *</label>
@@ -447,9 +497,10 @@ const TutoresForm = () => {
                                 name="documento"
                                 value={formData.documento}
                                 onChange={handleChange}
-                                className="form-input"
-                                required
+                                className={`form-input ${fieldErrors.documento ? 'error' : ''}`}
+                                aria-invalid={!!fieldErrors.documento}
                             />
+                            <FieldError message={fieldErrors.documento} />
                         </div>
                         <div className="form-group">
                             <label>Fecha Nacimiento</label>
@@ -458,8 +509,9 @@ const TutoresForm = () => {
                                 name="fechaNacimiento"
                                 value={formData.fechaNacimiento}
                                 onChange={handleChange}
-                                className="form-input"
+                                className={`form-input ${fieldErrors.fechaNacimiento ? 'error' : ''}`}
                             />
+                            <FieldError message={fieldErrors.fechaNacimiento} />
                         </div>
                         <div className="form-group">
                             <label>Sexo *</label>
@@ -467,8 +519,7 @@ const TutoresForm = () => {
                                 name="sexo"
                                 value={formData.sexo}
                                 onChange={handleChange}
-                                className="form-input"
-                                required
+                                className={`form-input ${fieldErrors.sexo ? 'error' : ''}`}
                             >
                                 {Object.entries(SEXO_MAP)
                                     .filter(([key]) => key === '1' || key === '2')
@@ -478,6 +529,7 @@ const TutoresForm = () => {
                                         </option>
                                     ))}
                             </select>
+                            <FieldError message={fieldErrors.sexo} />
                         </div>
                         <div className="form-group">
                             <label>Tipo / Parentesco *</label>
@@ -485,8 +537,7 @@ const TutoresForm = () => {
                                 name="tipoTutor"
                                 value={formData.tipoTutor}
                                 onChange={handleChange}
-                                className="form-input"
-                                required
+                                className={`form-input ${fieldErrors.tipoTutor ? 'error' : ''}`}
                             >
                                 {Object.entries(PARENTESCO_MAP).map(([key, label]) => (
                                     <option key={key} value={key}>
@@ -494,6 +545,7 @@ const TutoresForm = () => {
                                     </option>
                                 ))}
                             </select>
+                            <FieldError message={fieldErrors.tipoTutor} />
                         </div>
                         <div className="form-group">
                             <label>Email</label>
@@ -502,8 +554,9 @@ const TutoresForm = () => {
                                 name="email"
                                 value={formData.email}
                                 onChange={handleChange}
-                                className="form-input"
+                                className={`form-input ${fieldErrors.email ? 'error' : ''}`}
                             />
+                            <FieldError message={fieldErrors.email} />
                         </div>
                         <div className="form-group">
                             <label>Teléfono</label>
@@ -511,8 +564,9 @@ const TutoresForm = () => {
                                 name="telefono"
                                 value={formData.telefono}
                                 onChange={handleChange}
-                                className="form-input"
+                                className={`form-input ${fieldErrors.telefono ? 'error' : ''}`}
                             />
+                            <FieldError message={fieldErrors.telefono} />
                         </div>
                         <div className="form-group full-width">
                             <label>Dirección</label>
@@ -520,8 +574,9 @@ const TutoresForm = () => {
                                 name="direccion"
                                 value={formData.direccion}
                                 onChange={handleChange}
-                                className="form-input"
+                                className={`form-input ${fieldErrors.direccion ? 'error' : ''}`}
                             />
+                            <FieldError message={fieldErrors.direccion} />
                         </div>
 
                         <h3 className="form-section-title">Asignación a club</h3>

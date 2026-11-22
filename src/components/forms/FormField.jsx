@@ -33,7 +33,7 @@ const FormField = ({
         };
 
         if (variant === 'dark-focused') {
-            return {
+            const styles = {
                 ...baseStyles,
                 background: isFocused
                     ? 'rgba(255, 255, 255, 0.15)'
@@ -45,10 +45,15 @@ const FormField = ({
                     ? '0 0 0 3px rgba(var(--primary-rgb, 99, 102, 241), 0.3)'
                     : 'none'
             };
+            if (error) {
+                styles.borderColor = '#ef4444';
+                styles.boxShadow = '0 0 0 2px rgba(239, 68, 68, 0.25)';
+            }
+            return styles;
         }
 
         // Estilo por defecto (claro al hacer focus)
-        return {
+        const styles = {
             ...baseStyles,
             background: isFocused
                 ? 'rgba(255, 255, 255, 0.15)'
@@ -60,6 +65,13 @@ const FormField = ({
                 ? '0 0 0 2px rgba(var(--primary-rgb, 99, 102, 241), 0.2)'
                 : 'none'
         };
+
+        if (error) {
+            styles.borderColor = '#ef4444';
+            styles.boxShadow = '0 0 0 2px rgba(239, 68, 68, 0.25)';
+        }
+
+        return styles;
     };
 
     const getIconColor = () => {

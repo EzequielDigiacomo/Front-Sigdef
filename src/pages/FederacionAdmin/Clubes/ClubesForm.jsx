@@ -4,7 +4,20 @@ import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import { ArrowLeft, Save } from 'lucide-react';
+import { validateRequiredFields } from '../../../utils/formFieldErrors';
+import useFormFieldErrors from '../../../hooks/useFormFieldErrors';
+import FieldError from '../../../components/forms/FieldError';
+import FormErrorsBanner from '../../../components/forms/FormErrorsBanner';
 import '../../../styles/CompactForm.css';
+
+const FIELD_LABELS = {
+    nombre: 'Nombre institucional',
+    siglas: 'Sigla / Acrónimo',
+    email: 'Email oficial',
+    telefono: 'Teléfono',
+    direccion: 'Dirección',
+    estadoMatricula: 'Estado de matrícula',
+};
 
 const ClubesForm = () => {
     const { id, fedId } = useParams();
@@ -20,6 +33,14 @@ const ClubesForm = () => {
         direccion: '',
         estadoMatricula: 0
     });
+    const {
+        fieldErrors,
+        clearFieldError,
+        clearFieldErrors,
+        applyApiError,
+        applyErrors,
+        hasFieldErrors,
+    } = useFormFieldErrors(FIELD_LABELS);
 
     useEffect(() => {
         if (id) {
@@ -50,6 +71,16 @@ const ClubesForm = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        clearFieldErrors();
+
+        const clientErrors = validateRequiredFields(formData, {
+            nombre: 'El nombre institucional es obligatorio.',
+        });
+        if (Object.keys(clientErrors).length) {
+            applyErrors(clientErrors);
+            return;
+        }
+
         setLoading(true);
         try {
             const payload = {
@@ -69,7 +100,10 @@ const ClubesForm = () => {
             handleNavigateBack();
         } catch (error) {
             console.error('Error guardando club:', error);
-            alert(error.message || 'Error al guardar el club');
+            const mapped = applyApiError(error);
+            if (!Object.keys(mapped).length) {
+                alert(error.message || 'Error al guardar el club');
+            }
         } finally {
             setLoading(false);
         }
@@ -77,6 +111,7 @@ const ClubesForm = () => {
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+        clearFieldError(e.target.name);
     };
 
     return (
@@ -91,44 +126,53 @@ const ClubesForm = () => {
             </div>
 
             <Card className="compact-form-card">
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} noValidate>
+                    {hasFieldErrors && (
+                        <FormErrorsBanner errors={fieldErrors} labels={FIELD_LABELS} />
+                    )}
                     <div className="form-grid">
                         <h3 className="form-section-title">Datos Identificatorios</h3>
 
                         <div className="form-group">
                             <label>Nombre Institucional *</label>
-                            <input name="nombre" value={formData.nombre} onChange={handleChange} className="form-input" required />
+                            <input name="nombre" value={formData.nombre} onChange={handleChange} className={`form-input ${fieldErrors.nombre ? 'error' : ''}`} aria-invalid={!!fieldErrors.nombre} />
+                            <FieldError message={fieldErrors.nombre} />
                         </div>
                         <div className="form-group">
                             <label>Sigla / Acrónimo</label>
-                            <input name="siglas" value={formData.siglas} onChange={handleChange} className="form-input" maxLength="10" placeholder="Ej: CFD, CNS..." />
+                            <input name="siglas" value={formData.siglas} onChange={handleChange} className={`form-input ${fieldErrors.siglas ? 'error' : ''}`} maxLength="10" placeholder="Ej: CFD, CNS..." />
+                            <FieldError message={fieldErrors.siglas} />
                         </div>
 
                         <h3 className="form-section-title">Información de Contacto</h3>
 
                         <div className="form-group">
                             <label>Email Oficial</label>
-                            <input type="email" name="email" value={formData.email} onChange={handleChange} className="form-input" placeholder="contacto@club.org" />
+                            <input type="email" name="email" value={formData.email} onChange={handleChange} className={`form-input ${fieldErrors.email ? 'error' : ''}`} placeholder="contacto@club.org" />
+                            <FieldError message={fieldErrors.email} />
                         </div>
                         <div className="form-group">
                             <label>Teléfono</label>
-                            <input name="telefono" value={formData.telefono} onChange={handleChange} className="form-input" placeholder="+54 11 ..." />
+                            <input name="telefono" value={formData.telefono} onChange={handleChange} className={`form-input ${fieldErrors.telefono ? 'error' : ''}`} placeholder="+54 11 ..." />
+                            <FieldError message={fieldErrors.telefono} />
                         </div>
                         <div className="form-group full-width">
                             <label>Dirección / Ubicación / Sede</label>
-                            <input name="direccion" value={formData.direccion} onChange={handleChange} className="form-input" placeholder="Ciudad, Provincia..." />
+                            <input name="direccion" value={formData.direccion} onChange={handleChange} className={`form-input ${fieldErrors.direccion ? 'error' : ''}`} placeholder="Ciudad, Provincia..." />
+                            <FieldError message={fieldErrors.direccion} />
                         </div>
 
                         <h3 className="form-section-title">Estado Administrativo</h3>
 
                         <div className="form-group">
                             <label>Estado de Matrícula (Federación)</label>
-                            <select name="estadoMatricula" value={formData.estadoMatricula} onChange={handleChange} className="form-input">
+                            <select name="estadoMatricula" value={formData.estadoMatricula} onChange={handleChange} className={`form-input ${fieldErrors.estadoMatricula ? 'error' : ''}`}>
                                 <option value="0">Pendiente</option>
                                 <option value="1">Pagado (Al Día)</option>
                                 <option value="2">Vencido</option>
                                 <option value="3">Parcial</option>
                             </select>
+                            <FieldError message={fieldErrors.estadoMatricula} />
                         </div>
                     </div>
 

@@ -5,7 +5,29 @@ import { Search, Save, UserPlus } from 'lucide-react';
 import { SEXO_MAP } from '../../../../utils/enums';
 import Button from '../../../../components/common/Button';
 import ConfirmationModal from '../../../../components/common/ConfirmationModal';
+import { validateRequiredFields } from '../../../../utils/formFieldErrors';
+import useFormFieldErrors from '../../../../hooks/useFormFieldErrors';
+import FieldError from '../../../../components/forms/FieldError';
+import FormErrorsBanner from '../../../../components/forms/FormErrorsBanner';
+import '../../../../styles/CompactForm.css';
 import './RegisterPersonForm.css';
+
+const FIELD_LABELS = {
+    documento: 'Documento (DNI)',
+    nombre: 'Nombre',
+    apellido: 'Apellido',
+    sexo: 'Sexo',
+    fechaNacimiento: 'Fecha de nacimiento',
+    email: 'Email',
+    telefono: 'Teléfono',
+    direccion: 'Dirección',
+    username: 'Nombre de usuario',
+    rol: 'Rol',
+    idClub: 'Club asociado',
+    password: 'Contraseña',
+    confirmPassword: 'Confirmar contraseña',
+    licencia: 'Licencia',
+};
 
 const RegisterPersonForm = ({ onUserCreated }) => {
     const { user } = useAuth();
@@ -45,10 +67,14 @@ const RegisterPersonForm = ({ onUserCreated }) => {
         formData.password.length >= 6 &&
         formData.password === formData.confirmPassword;
 
-    const renderError = (condition, message) => {
-        if (condition) return <small className="error-text">{message}</small>;
-        return null;
-    };
+    const {
+        fieldErrors,
+        clearFieldError,
+        clearFieldErrors,
+        applyApiError,
+        applyErrors,
+        hasFieldErrors,
+    } = useFormFieldErrors(FIELD_LABELS);
 
     const [clubs, setClubs] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -124,18 +150,35 @@ const RegisterPersonForm = ({ onUserCreated }) => {
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }));
+        clearFieldError(name);
+        if (name === 'password') clearFieldError('confirmPassword');
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        clearFieldErrors();
 
-        if (!isFormValid) {
-            setResultModal({
-                open: true,
-                type: 'danger',
-                title: 'Validación',
-                message: 'Por favor complete todos los campos obligatorios correctamente.'
-            });
+        const clientErrors = validateRequiredFields(formData, {
+            documento: 'El documento es obligatorio.',
+            nombre: 'El nombre es obligatorio.',
+            apellido: 'El apellido es obligatorio.',
+            direccion: 'La dirección es obligatoria.',
+            username: 'El nombre de usuario es obligatorio.',
+            rol: 'Seleccioná un rol.',
+            password: 'La contraseña es obligatoria.',
+            confirmPassword: 'Confirmá la contraseña.',
+        });
+        if (!clientErrors.username && formData.username.length < 4) {
+            clientErrors.username = 'Mínimo 4 caracteres.';
+        }
+        if (!clientErrors.password && formData.password.length < 6) {
+            clientErrors.password = 'Mínimo 6 caracteres.';
+        }
+        if (!clientErrors.confirmPassword && formData.password !== formData.confirmPassword) {
+            clientErrors.confirmPassword = 'Las contraseñas no coinciden.';
+        }
+        if (Object.keys(clientErrors).length) {
+            applyErrors(clientErrors);
             return;
         }
 
@@ -221,12 +264,15 @@ const RegisterPersonForm = ({ onUserCreated }) => {
 
             if (onUserCreated) onUserCreated();
         } catch (error) {
-            setResultModal({
-                open: true,
-                type: 'danger',
-                title: 'Error de Registro',
-                message: error.message || 'Ocurrió un error inesperado.'
-            });
+            const mapped = applyApiError(error);
+            if (!Object.keys(mapped).length) {
+                setResultModal({
+                    open: true,
+                    type: 'danger',
+                    title: 'Error de Registro',
+                    message: error.message || 'Ocurrió un error inesperado.'
+                });
+            }
         } finally {
             setLoading(false);
         }
@@ -234,8 +280,12 @@ const RegisterPersonForm = ({ onUserCreated }) => {
 
     return (
         <>
-            <form onSubmit={handleSubmit} className="form-container expanded-form">
+            <form onSubmit={handleSubmit} className="form-container expanded-form" noValidate>
                 <h3 className="form-title">Registrar Persona y Usuario</h3>
+
+                {hasFieldErrors && (
+                    <FormErrorsBanner errors={fieldErrors} labels={FIELD_LABELS} />
+                )}
 
                 <section className="form-section">
                     <h4 className="section-subtitle">Datos Personales</h4>
@@ -249,53 +299,60 @@ const RegisterPersonForm = ({ onUserCreated }) => {
                                     value={formData.documento}
                                     onChange={handleChange}
                                     onBlur={buscarPersona}
-                                    className="form-input"
-                                    required
+                                    className={`form-input ${fieldErrors.documento ? 'error' : ''}`}
+                                    aria-invalid={!!fieldErrors.documento}
                                 />
                                 <button type="button" onClick={buscarPersona} className="action-btn" disabled={searchingPersona}>
                                     {searchingPersona ? <span className="spinner-small"></span> : <Search size={18} />}
                                 </button>
                             </div>
+                            <FieldError message={fieldErrors.documento} />
                         </div>
 
                         <div className="form-group">
                             <label>Nombre *</label>
-                            <input name="nombre" value={formData.nombre} onChange={handleChange} className="form-input" required />
+                            <input name="nombre" value={formData.nombre} onChange={handleChange} className={`form-input ${fieldErrors.nombre ? 'error' : ''}`} aria-invalid={!!fieldErrors.nombre} />
+                            <FieldError message={fieldErrors.nombre} />
                         </div>
 
                         <div className="form-group">
                             <label>Apellido *</label>
-                            <input name="apellido" value={formData.apellido} onChange={handleChange} className="form-input" required />
+                            <input name="apellido" value={formData.apellido} onChange={handleChange} className={`form-input ${fieldErrors.apellido ? 'error' : ''}`} aria-invalid={!!fieldErrors.apellido} />
+                            <FieldError message={fieldErrors.apellido} />
                         </div>
 
                         <div className="form-group">
                             <label>Sexo *</label>
-                            <select name="sexo" value={formData.sexo} onChange={handleChange} className="form-input">
+                            <select name="sexo" value={formData.sexo} onChange={handleChange} className={`form-input ${fieldErrors.sexo ? 'error' : ''}`}>
                                 {Object.entries(SEXO_MAP).map(([key, label]) => (
                                     <option key={key} value={key}>{label}</option>
                                 ))}
                             </select>
+                            <FieldError message={fieldErrors.sexo} />
                         </div>
 
                         <div className="form-group">
                             <label>Fecha Nacimiento</label>
-                            <input type="date" name="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} className="form-input" />
+                            <input type="date" name="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} className={`form-input ${fieldErrors.fechaNacimiento ? 'error' : ''}`} />
+                            <FieldError message={fieldErrors.fechaNacimiento} />
                         </div>
 
                         <div className="form-group">
                             <label>Email</label>
-                            <input type="email" name="email" value={formData.email} onChange={handleChange} className="form-input" placeholder="ejemplo@correo.com" />
+                            <input type="email" name="email" value={formData.email} onChange={handleChange} className={`form-input ${fieldErrors.email ? 'error' : ''}`} placeholder="ejemplo@correo.com" />
+                            <FieldError message={fieldErrors.email} />
                         </div>
 
                         <div className="form-group">
                             <label>Teléfono</label>
-                            <input name="telefono" value={formData.telefono} onChange={handleChange} className="form-input" placeholder="Ej: 11 1234 5678" />
+                            <input name="telefono" value={formData.telefono} onChange={handleChange} className={`form-input ${fieldErrors.telefono ? 'error' : ''}`} placeholder="Ej: 11 1234 5678" />
+                            <FieldError message={fieldErrors.telefono} />
                         </div>
 
                         <div className="form-group full-width">
                             <label>Dirección *</label>
-                            <input name="direccion" value={formData.direccion} onChange={handleChange} className="form-input" required placeholder="Calle, Número, Localidad" />
-                            {renderError(!formData.direccion && formData.documento, "La dirección es obligatoria")}
+                            <input name="direccion" value={formData.direccion} onChange={handleChange} className={`form-input ${fieldErrors.direccion ? 'error' : ''}`} aria-invalid={!!fieldErrors.direccion} placeholder="Calle, Número, Localidad" />
+                            <FieldError message={fieldErrors.direccion} />
                         </div>
                     </div>
                 </section>
@@ -305,37 +362,38 @@ const RegisterPersonForm = ({ onUserCreated }) => {
                     <div className="form-grid">
                         <div className="form-group">
                             <label>Nombre de Usuario *</label>
-                            <input name="username" value={formData.username} onChange={handleChange} className="form-input" required />
-                            {renderError(formData.username.length > 0 && formData.username.length < 4, "Mínimo 4 caracteres")}
+                            <input name="username" value={formData.username} onChange={handleChange} className={`form-input ${fieldErrors.username ? 'error' : ''}`} aria-invalid={!!fieldErrors.username} />
+                            <FieldError message={fieldErrors.username} />
                         </div>
 
                         <div className="form-group">
                             <label>Rol *</label>
-                            <select name="rol" value={formData.rol} onChange={handleChange} className="form-input" required>
+                            <select name="rol" value={formData.rol} onChange={handleChange} className={`form-input ${fieldErrors.rol ? 'error' : ''}`}>
                                 <option value="">Seleccione un rol</option>
                                 {roles.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                             </select>
-                            {renderError(!formData.rol && formData.username.length >= 4, "Selección obligatoria")}
+                            <FieldError message={fieldErrors.rol} />
                         </div>
 
                         <div className="form-group">
                             <label>Club Asociado</label>
-                            <select name="idClub" value={formData.idClub} onChange={handleChange} className="form-input">
+                            <select name="idClub" value={formData.idClub} onChange={handleChange} className={`form-input ${fieldErrors.idClub ? 'error' : ''}`}>
                                 <option value="0">Ninguno (Federación)</option>
                                 {clubs.map(c => <option key={c.idClub} value={c.idClub}>{c.nombre}</option>)}
                             </select>
+                            <FieldError message={fieldErrors.idClub} />
                         </div>
 
                         <div className="form-group">
                             <label>Contraseña *</label>
-                            <input type="text" name="password" value={formData.password} onChange={handleChange} className="form-input" required />
-                            {renderError(formData.password.length > 0 && formData.password.length < 6, "Mínimo 6 caracteres")}
+                            <input type="text" name="password" value={formData.password} onChange={handleChange} className={`form-input ${fieldErrors.password ? 'error' : ''}`} aria-invalid={!!fieldErrors.password} />
+                            <FieldError message={fieldErrors.password} />
                         </div>
 
                         <div className="form-group">
                             <label>Confirmar Contraseña *</label>
-                            <input type="text" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} className="form-input" required />
-                            {renderError(formData.confirmPassword.length > 0 && formData.password !== formData.confirmPassword, "Las contraseñas no coinciden")}
+                            <input type="text" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} className={`form-input ${fieldErrors.confirmPassword ? 'error' : ''}`} aria-invalid={!!fieldErrors.confirmPassword} />
+                            <FieldError message={fieldErrors.confirmPassword} />
                         </div>
                     </div>
                 </section>
@@ -345,7 +403,8 @@ const RegisterPersonForm = ({ onUserCreated }) => {
                         <h4 className="section-subtitle">Datos de {formData.rol}</h4>
                         <div className="form-group">
                             <label>Licencia</label>
-                            <input name="licencia" value={formData.licencia} onChange={handleChange} className="form-input" />
+                            <input name="licencia" value={formData.licencia} onChange={handleChange} className={`form-input ${fieldErrors.licencia ? 'error' : ''}`} />
+                            <FieldError message={fieldErrors.licencia} />
                         </div>
                     </section>
                 )}

@@ -7,7 +7,26 @@ import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import { withFederationScope } from '../../../utils/apiHelpers';
 import { ArrowLeft, Save } from 'lucide-react';
 import { CATEGORIA_MAP, SEXO_MAP } from '../../../utils/enums';
+import { validateRequiredFields } from '../../../utils/formFieldErrors';
+import useFormFieldErrors from '../../../hooks/useFormFieldErrors';
+import FieldError from '../../../components/forms/FieldError';
+import FormErrorsBanner from '../../../components/forms/FormErrorsBanner';
 import '../../../styles/CompactForm.css';
+
+const FIELD_LABELS = {
+    nombre: 'Nombre',
+    apellido: 'Apellido',
+    documento: 'Documento',
+    fechaNacimiento: 'Fecha de nacimiento',
+    sexo: 'Sexo',
+    email: 'Email',
+    telefono: 'Teléfono',
+    direccion: 'Dirección',
+    idClub: 'Club',
+    licencia: 'Licencia',
+    categoriaSeleccion: 'Categoría de selección',
+    montoBeca: 'Monto de beca',
+};
 
 const resolveSexoId = (value) => {
     if (value == null || value === '') return 1;
@@ -52,6 +71,15 @@ const EntrenadoresForm = () => {
         type: 'info',
         shouldNavigate: false,
     });
+
+    const {
+        fieldErrors,
+        clearFieldError,
+        clearFieldErrors,
+        applyApiError,
+        applyErrors,
+        hasFieldErrors,
+    } = useFormFieldErrors(FIELD_LABELS);
 
     const listPath = fedId
         ? `/superadmin/federacion/${fedId}/entrenadores`
@@ -222,6 +250,7 @@ const EntrenadoresForm = () => {
             ...prev,
             [name]: type === 'checkbox' ? checked : value,
         }));
+        clearFieldError(name);
     };
 
     const buildPersonaPayload = () => ({
@@ -262,6 +291,19 @@ const EntrenadoresForm = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        clearFieldErrors();
+
+        const clientErrors = validateRequiredFields(formData, {
+            nombre: 'El nombre es obligatorio.',
+            apellido: 'El apellido es obligatorio.',
+            documento: 'El documento es obligatorio.',
+            sexo: 'Seleccioná el sexo.',
+        });
+        if (Object.keys(clientErrors).length) {
+            applyErrors(clientErrors);
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -316,13 +358,16 @@ const EntrenadoresForm = () => {
             });
         } catch (error) {
             console.error('Error guardando:', error);
-            setModalConfig({
-                isOpen: true,
-                title: 'Error',
-                message: error.message || 'Error al guardar el entrenador.',
-                type: 'danger',
-                shouldNavigate: false,
-            });
+            const mapped = applyApiError(error);
+            if (!Object.keys(mapped).length) {
+                setModalConfig({
+                    isOpen: true,
+                    title: 'Error',
+                    message: error.message || 'Error al guardar el entrenador.',
+                    type: 'danger',
+                    shouldNavigate: false,
+                });
+            }
         } finally {
             setLoading(false);
         }
@@ -342,7 +387,10 @@ const EntrenadoresForm = () => {
             </div>
 
             <Card className="compact-form-card">
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} noValidate>
+                    {hasFieldErrors && (
+                        <FormErrorsBanner errors={fieldErrors} labels={FIELD_LABELS} />
+                    )}
                     <div className="form-grid">
                         <h3 className="form-section-title">Datos Personales</h3>
                         <div className="form-group">
@@ -351,9 +399,10 @@ const EntrenadoresForm = () => {
                                 name="nombre"
                                 value={formData.nombre}
                                 onChange={handleChange}
-                                className="form-input"
-                                required
+                                className={`form-input ${fieldErrors.nombre ? 'error' : ''}`}
+                                aria-invalid={!!fieldErrors.nombre}
                             />
+                            <FieldError message={fieldErrors.nombre} />
                         </div>
                         <div className="form-group">
                             <label>Apellido *</label>
@@ -361,9 +410,10 @@ const EntrenadoresForm = () => {
                                 name="apellido"
                                 value={formData.apellido}
                                 onChange={handleChange}
-                                className="form-input"
-                                required
+                                className={`form-input ${fieldErrors.apellido ? 'error' : ''}`}
+                                aria-invalid={!!fieldErrors.apellido}
                             />
+                            <FieldError message={fieldErrors.apellido} />
                         </div>
                         <div className="form-group">
                             <label>Documento *</label>
@@ -371,9 +421,10 @@ const EntrenadoresForm = () => {
                                 name="documento"
                                 value={formData.documento}
                                 onChange={handleChange}
-                                className="form-input"
-                                required
+                                className={`form-input ${fieldErrors.documento ? 'error' : ''}`}
+                                aria-invalid={!!fieldErrors.documento}
                             />
+                            <FieldError message={fieldErrors.documento} />
                         </div>
                         <div className="form-group">
                             <label>Fecha Nacimiento</label>
@@ -382,8 +433,9 @@ const EntrenadoresForm = () => {
                                 name="fechaNacimiento"
                                 value={formData.fechaNacimiento}
                                 onChange={handleChange}
-                                className="form-input"
+                                className={`form-input ${fieldErrors.fechaNacimiento ? 'error' : ''}`}
                             />
+                            <FieldError message={fieldErrors.fechaNacimiento} />
                         </div>
                         <div className="form-group">
                             <label>Sexo *</label>
@@ -391,8 +443,7 @@ const EntrenadoresForm = () => {
                                 name="sexo"
                                 value={formData.sexo}
                                 onChange={handleChange}
-                                className="form-input"
-                                required
+                                className={`form-input ${fieldErrors.sexo ? 'error' : ''}`}
                             >
                                 {Object.entries(SEXO_MAP)
                                     .filter(([key]) => key === '1' || key === '2')
@@ -402,6 +453,7 @@ const EntrenadoresForm = () => {
                                         </option>
                                     ))}
                             </select>
+                            <FieldError message={fieldErrors.sexo} />
                         </div>
                         <div className="form-group">
                             <label>Email</label>
@@ -410,8 +462,9 @@ const EntrenadoresForm = () => {
                                 name="email"
                                 value={formData.email}
                                 onChange={handleChange}
-                                className="form-input"
+                                className={`form-input ${fieldErrors.email ? 'error' : ''}`}
                             />
+                            <FieldError message={fieldErrors.email} />
                         </div>
                         <div className="form-group">
                             <label>Teléfono</label>
@@ -419,8 +472,9 @@ const EntrenadoresForm = () => {
                                 name="telefono"
                                 value={formData.telefono}
                                 onChange={handleChange}
-                                className="form-input"
+                                className={`form-input ${fieldErrors.telefono ? 'error' : ''}`}
                             />
+                            <FieldError message={fieldErrors.telefono} />
                         </div>
                         <div className="form-group">
                             <label>Dirección</label>
@@ -428,8 +482,9 @@ const EntrenadoresForm = () => {
                                 name="direccion"
                                 value={formData.direccion}
                                 onChange={handleChange}
-                                className="form-input"
+                                className={`form-input ${fieldErrors.direccion ? 'error' : ''}`}
                             />
+                            <FieldError message={fieldErrors.direccion} />
                         </div>
 
                         <h3 className="form-section-title">Club</h3>
@@ -439,7 +494,7 @@ const EntrenadoresForm = () => {
                                 name="idClub"
                                 value={formData.idClub}
                                 onChange={handleChange}
-                                className="form-input"
+                                className={`form-input ${fieldErrors.idClub ? 'error' : ''}`}
                             >
                                 <option value="">Sin club</option>
                                 {clubes.map((club) => (
@@ -451,6 +506,7 @@ const EntrenadoresForm = () => {
                                     </option>
                                 ))}
                             </select>
+                            <FieldError message={fieldErrors.idClub} />
                         </div>
                         <div className="form-group">
                             <label>Licencia</label>
@@ -458,9 +514,10 @@ const EntrenadoresForm = () => {
                                 name="licencia"
                                 value={formData.licencia}
                                 onChange={handleChange}
-                                className="form-input"
+                                className={`form-input ${fieldErrors.licencia ? 'error' : ''}`}
                                 maxLength={50}
                             />
+                            <FieldError message={fieldErrors.licencia} />
                         </div>
 
                         <h3 className="form-section-title">Selección</h3>
@@ -483,7 +540,7 @@ const EntrenadoresForm = () => {
                                     name="categoriaSeleccion"
                                     value={formData.categoriaSeleccion}
                                     onChange={handleChange}
-                                    className="form-input"
+                                    className={`form-input ${fieldErrors.categoriaSeleccion ? 'error' : ''}`}
                                 >
                                     <option value="0">Sin asignar</option>
                                     {Object.entries(CATEGORIA_MAP).map(([key, label]) => (
@@ -492,6 +549,7 @@ const EntrenadoresForm = () => {
                                         </option>
                                     ))}
                                 </select>
+                                <FieldError message={fieldErrors.categoriaSeleccion} />
                             </div>
                         )}
 
@@ -527,9 +585,10 @@ const EntrenadoresForm = () => {
                                 name="montoBeca"
                                 value={formData.montoBeca}
                                 onChange={handleChange}
-                                className="form-input"
+                                className={`form-input ${fieldErrors.montoBeca ? 'error' : ''}`}
                                 inputMode="decimal"
                             />
+                            <FieldError message={fieldErrors.montoBeca} />
                         </div>
                         <div className="form-group checkbox-group">
                             <input

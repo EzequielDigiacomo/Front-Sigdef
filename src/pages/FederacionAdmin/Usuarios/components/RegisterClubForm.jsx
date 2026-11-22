@@ -4,6 +4,19 @@ import Button from '../../../../components/common/Button';
 import ConfirmationModal from '../../../../components/common/ConfirmationModal';
 import { api } from '../../../../services/api';
 import { canAccessDashboardClub, extractPlanFromUser } from '../../../../utils/planHelpers';
+import { validateRequiredFields } from '../../../../utils/formFieldErrors';
+import useFormFieldErrors from '../../../../hooks/useFormFieldErrors';
+import FieldError from '../../../../components/forms/FieldError';
+import FormErrorsBanner from '../../../../components/forms/FormErrorsBanner';
+import '../../../../styles/CompactForm.css';
+
+const FIELD_LABELS = {
+    idClub: 'Club',
+    username: 'Nombre de usuario',
+    password: 'Contraseña',
+    confirmPassword: 'Confirmar contraseña',
+    email: 'Email',
+};
 
 const RegisterClubForm = ({ onUserCreated }) => {
     const { user } = useAuth();
@@ -24,6 +37,14 @@ const RegisterClubForm = ({ onUserCreated }) => {
         formData.password === formData.confirmPassword;
     const [clubs, setClubs] = useState([]);
     const [loading, setLoading] = useState(false);
+    const {
+        fieldErrors,
+        clearFieldError,
+        clearFieldErrors,
+        applyApiError,
+        applyErrors,
+        hasFieldErrors,
+    } = useFormFieldErrors(FIELD_LABELS);
     const [resultModal, setResultModal] = useState({
         open: false,
         type: 'success',
@@ -57,10 +78,13 @@ const RegisterClubForm = ({ onUserCreated }) => {
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }));
+        clearFieldError(name);
+        if (name === 'password') clearFieldError('confirmPassword');
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        clearFieldErrors();
 
         if (!clubLoginAllowed) {
             setResultModal({
@@ -72,43 +96,23 @@ const RegisterClubForm = ({ onUserCreated }) => {
             return;
         }
 
-        if (!formData.idClub) {
-            setResultModal({
-                open: true,
-                type: 'danger',
-                title: 'Validación',
-                message: 'Debe seleccionar un club'
-            });
-            return;
+        const clientErrors = validateRequiredFields(formData, {
+            idClub: 'Debe seleccionar un club.',
+            username: 'El nombre de usuario es obligatorio.',
+            password: 'La contraseña es obligatoria.',
+            confirmPassword: 'Confirmá la contraseña.',
+        });
+        if (!clientErrors.username && formData.username.length <= 4) {
+            clientErrors.username = 'El nombre de usuario debe tener más de 4 caracteres.';
         }
-
-        if (formData.username.length <= 4) {
-            setResultModal({
-                open: true,
-                type: 'danger',
-                title: 'Validación',
-                message: 'El nombre de usuario debe tener más de 4 caracteres'
-            });
-            return;
+        if (!clientErrors.password && formData.password.length < 6) {
+            clientErrors.password = 'La contraseña debe tener al menos 6 caracteres.';
         }
-
-        if (formData.password.length < 6) {
-            setResultModal({
-                open: true,
-                type: 'danger',
-                title: 'Validación',
-                message: 'La contraseña debe tener al menos 6 caracteres'
-            });
-            return;
+        if (!clientErrors.confirmPassword && formData.password !== formData.confirmPassword) {
+            clientErrors.confirmPassword = 'Las contraseñas no coinciden.';
         }
-
-        if (formData.password !== formData.confirmPassword) {
-            setResultModal({
-                open: true,
-                type: 'danger',
-                title: 'Validación',
-                message: 'Las contraseñas no coinciden'
-            });
+        if (Object.keys(clientErrors).length) {
+            applyErrors(clientErrors);
             return;
         }
 
@@ -141,12 +145,15 @@ const RegisterClubForm = ({ onUserCreated }) => {
 
             if (onUserCreated) onUserCreated();
         } catch (error) {
-            setResultModal({
-                open: true,
-                type: 'danger',
-                title: 'Error de Registro',
-                message: error.message || 'Error al registrar el club'
-            });
+            const mapped = applyApiError(error);
+            if (!Object.keys(mapped).length) {
+                setResultModal({
+                    open: true,
+                    type: 'danger',
+                    title: 'Error de Registro',
+                    message: error.message || 'Error al registrar el club'
+                });
+            }
         } finally {
             setLoading(false);
         }
@@ -154,8 +161,12 @@ const RegisterClubForm = ({ onUserCreated }) => {
 
     return (
         <>
-            <form onSubmit={handleSubmit} className="form-container">
+            <form onSubmit={handleSubmit} className="form-container" noValidate>
                 <h3 className="form-title">Registrar Nuevo Club</h3>
+
+                {hasFieldErrors && (
+                    <FormErrorsBanner errors={fieldErrors} labels={FIELD_LABELS} />
+                )}
 
                 {!clubLoginAllowed && (
                     <div className="form-group" style={{ marginBottom: '1rem' }}>
@@ -172,8 +183,8 @@ const RegisterClubForm = ({ onUserCreated }) => {
                         name="idClub"
                         value={formData.idClub}
                         onChange={handleChange}
-                        className="form-input"
-                        required
+                        className={`form-input ${fieldErrors.idClub ? 'error' : ''}`}
+                        aria-invalid={!!fieldErrors.idClub}
                         disabled={!clubLoginAllowed}
                     >
                         <option value="">Seleccione un club...</option>
@@ -183,6 +194,7 @@ const RegisterClubForm = ({ onUserCreated }) => {
                             </option>
                         ))}
                     </select>
+                    <FieldError message={fieldErrors.idClub} />
                     <small className="text-muted">Seleccione el club para crear sus credenciales de acceso</small>
                 </div>
 
@@ -194,10 +206,11 @@ const RegisterClubForm = ({ onUserCreated }) => {
                         name="username"
                         value={formData.username}
                         onChange={handleChange}
-                        className="form-input"
-                        required
+                        className={`form-input ${fieldErrors.username ? 'error' : ''}`}
+                        aria-invalid={!!fieldErrors.username}
                         disabled={!clubLoginAllowed}
                     />
+                    <FieldError message={fieldErrors.username} />
                 </div>
 
                 <div className="form-row">
@@ -209,10 +222,11 @@ const RegisterClubForm = ({ onUserCreated }) => {
                             name="password"
                             value={formData.password}
                             onChange={handleChange}
-                            className="form-input"
-                            required
+                            className={`form-input ${fieldErrors.password ? 'error' : ''}`}
+                            aria-invalid={!!fieldErrors.password}
                             disabled={!clubLoginAllowed}
                         />
+                        <FieldError message={fieldErrors.password} />
                     </div>
                     <div className="form-group" style={{ marginBottom: '1rem' }}    >
                         <label htmlFor="confirmPassword">Confirmar Contraseña</label>
@@ -222,10 +236,11 @@ const RegisterClubForm = ({ onUserCreated }) => {
                             name="confirmPassword"
                             value={formData.confirmPassword}
                             onChange={handleChange}
-                            className="form-input"
-                            required
+                            className={`form-input ${fieldErrors.confirmPassword ? 'error' : ''}`}
+                            aria-invalid={!!fieldErrors.confirmPassword}
                             disabled={!clubLoginAllowed}
                         />
+                        <FieldError message={fieldErrors.confirmPassword} />
                     </div>
                 </div>
 

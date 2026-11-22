@@ -9,6 +9,21 @@ import { ArrowLeft, Save, Search } from 'lucide-react';
 import '../Atletas/ClubAtletas.css';
 import '../../../styles/CompactForm.css';
 import { toFriendlyErrorMessage } from '../../../utils/friendlyError';
+import { validateRequiredFields } from '../../../utils/formFieldErrors';
+import useFormFieldErrors from '../../../hooks/useFormFieldErrors';
+import FieldError from '../../../components/forms/FieldError';
+import FormErrorsBanner from '../../../components/forms/FormErrorsBanner';
+
+const FIELD_LABELS = {
+    documento: 'DNI',
+    nombre: 'Nombre',
+    apellido: 'Apellido',
+    sexo: 'Sexo',
+    fechaNacimiento: 'Fecha de nacimiento',
+    email: 'Email',
+    telefono: 'Teléfono',
+    direccion: 'Dirección',
+};
 
 const ClubDelegadosForm = () => {
     const { id } = useParams();
@@ -46,6 +61,14 @@ const ClubDelegadosForm = () => {
     const [participanteId, setParticipanteId] = useState(null);
     const [personaFound, setPersonaFound] = useState(false);
     const searchTimer = useRef(null);
+    const {
+        fieldErrors,
+        clearFieldError,
+        clearFieldErrors,
+        applyApiError,
+        applyErrors,
+        hasFieldErrors,
+    } = useFormFieldErrors(FIELD_LABELS);
 
     const handleModalClose = () => {
         const shouldNav = modalConfig.shouldNavigate;
@@ -98,6 +121,7 @@ const ClubDelegadosForm = () => {
             ...prev,
             [name]: type === 'number' ? parseInt(value) : value
         }));
+        clearFieldError(name);
 
         if (name === 'documento' && !id) {
             setPersonaFound(false);
@@ -149,6 +173,23 @@ const ClubDelegadosForm = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        clearFieldErrors();
+
+        const clientErrors = validateRequiredFields(formData, {
+            documento: 'El DNI es obligatorio.',
+            nombre: 'El nombre es obligatorio.',
+            apellido: 'El apellido es obligatorio.',
+            fechaNacimiento: 'La fecha de nacimiento es obligatoria.',
+        });
+        const docDigits = String(formData.documento || '').replace(/\D/g, '');
+        if (docDigits && docDigits.length < 7) {
+            clientErrors.documento = 'Ingresá al menos 7 dígitos del DNI.';
+        }
+        if (Object.keys(clientErrors).length) {
+            applyErrors(clientErrors);
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -223,13 +264,16 @@ const ClubDelegadosForm = () => {
             );
         } catch (error) {
             console.error('Error guardando:', error);
-            showModal(
-                'Error',
-                toFriendlyErrorMessage(error, {
-                    fallback: 'No se pudo guardar el delegado. Revisá los datos e intentá nuevamente.',
-                }),
-                'danger'
-            );
+            const mapped = applyApiError(error);
+            if (!Object.keys(mapped).length) {
+                showModal(
+                    'Error',
+                    toFriendlyErrorMessage(error, {
+                        fallback: 'No se pudo guardar el delegado. Revisá los datos e intentá nuevamente.',
+                    }),
+                    'danger'
+                );
+            }
         } finally {
             setLoading(false);
         }
@@ -251,7 +295,10 @@ const ClubDelegadosForm = () => {
             </div>
 
             <Card className="compact-form-card">
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} noValidate>
+                    {hasFieldErrors && (
+                        <FormErrorsBanner errors={fieldErrors} labels={FIELD_LABELS} />
+                    )}
                     <div className="form-grid">
                         <h3 className="form-section-title">Datos Personales</h3>
 
@@ -263,8 +310,8 @@ const ClubDelegadosForm = () => {
                                     value={formData.documento}
                                     onChange={handleChange}
                                     onBlur={buscarPersonaPorDni}
-                                    className="form-input"
-                                    required
+                                    className={`form-input ${fieldErrors.documento ? 'error' : ''}`}
+                                    aria-invalid={!!fieldErrors.documento}
                                     disabled={!!id} // Disable DNI edit on update to prevent changing identity easily
                                 />
                                 {!id && (
@@ -273,15 +320,18 @@ const ClubDelegadosForm = () => {
                                     </Button>
                                 )}
                             </div>
+                            <FieldError message={fieldErrors.documento} />
                         </div>
 
                         <div className="form-group">
                             <label>Nombre *</label>
-                            <input name="nombre" value={formData.nombre} onChange={handleChange} className="form-input" required />
+                            <input name="nombre" value={formData.nombre} onChange={handleChange} className={`form-input ${fieldErrors.nombre ? 'error' : ''}`} aria-invalid={!!fieldErrors.nombre} />
+                            <FieldError message={fieldErrors.nombre} />
                         </div>
                         <div className="form-group">
                             <label>Apellido *</label>
-                            <input name="apellido" value={formData.apellido} onChange={handleChange} className="form-input" required />
+                            <input name="apellido" value={formData.apellido} onChange={handleChange} className={`form-input ${fieldErrors.apellido ? 'error' : ''}`} aria-invalid={!!fieldErrors.apellido} />
+                            <FieldError message={fieldErrors.apellido} />
                         </div>
                         <div className="form-group">
                             <label>Sexo *</label>
@@ -289,27 +339,32 @@ const ClubDelegadosForm = () => {
                                 name="sexo"
                                 value={formData.sexo}
                                 onChange={handleChange}
-                                className="form-input"
+                                className={`form-input ${fieldErrors.sexo ? 'error' : ''}`}
                             >
                                 <option value={1}>Masculino</option>
                                 <option value={2}>Femenino</option>
                             </select>
+                            <FieldError message={fieldErrors.sexo} />
                         </div>
                         <div className="form-group">
                             <label>Fecha Nacimiento *</label>
-                            <input type="date" name="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} className="form-input" required />
+                            <input type="date" name="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} className={`form-input ${fieldErrors.fechaNacimiento ? 'error' : ''}`} aria-invalid={!!fieldErrors.fechaNacimiento} />
+                            <FieldError message={fieldErrors.fechaNacimiento} />
                         </div>
                         <div className="form-group">
                             <label>Email</label>
-                            <input type="email" name="email" value={formData.email} onChange={handleChange} className="form-input" />
+                            <input type="email" name="email" value={formData.email} onChange={handleChange} className={`form-input ${fieldErrors.email ? 'error' : ''}`} />
+                            <FieldError message={fieldErrors.email} />
                         </div>
                         <div className="form-group">
                             <label>Teléfono</label>
-                            <input name="telefono" value={formData.telefono} onChange={handleChange} className="form-input" />
+                            <input name="telefono" value={formData.telefono} onChange={handleChange} className={`form-input ${fieldErrors.telefono ? 'error' : ''}`} />
+                            <FieldError message={fieldErrors.telefono} />
                         </div>
                         <div className="form-group">
                             <label>Dirección</label>
-                            <input name="direccion" value={formData.direccion} onChange={handleChange} className="form-input" />
+                            <input name="direccion" value={formData.direccion} onChange={handleChange} className={`form-input ${fieldErrors.direccion ? 'error' : ''}`} />
+                            <FieldError message={fieldErrors.direccion} />
                         </div>
                     </div>
 
