@@ -9,7 +9,7 @@ import DocumentUploadModal from '../../../components/common/DocumentUploadModal'
 import DocumentViewerModal from '../../../components/common/DocumentViewerModal';
 import { Plus, Edit, Trash2, Search, FileText, Eye, ChevronUp, ChevronDown, ChevronsUpDown, ClipboardList } from 'lucide-react';
 import { useSort } from '../../../hooks/useSort';
-import { withFederationScope } from '../../../utils/apiHelpers';
+import { withFederationScope, getClubId, sameClubId } from '../../../utils/apiHelpers';
 import { getCategoriaLabel, getEstadoPagoLabel, getEstadoPagoColor, TIPO_DOCUMENTO_MAP, getEstadoFichajeColor, getEstadoAptoColor } from '../../../utils/enums';
 import { TutorStatusCell, calcEdad } from '../../../components/common/TutorStatusCell';
 import './Atletas.css';
@@ -195,7 +195,7 @@ const AtletasList = () => {
         setBulkUpdating(true);
         try {
             const allAtletas = await api.get(withFederationScope('/Atleta', fedId));
-            const clubAtletas = allAtletas.filter(a => (a.idClub || a.IdClub) === parseInt(selectedClubForBulk));
+            const clubAtletas = allAtletas.filter((a) => sameClubId(a, selectedClubForBulk));
             
             let count = 0;
             for (const atleta of clubAtletas) {
@@ -272,11 +272,11 @@ const AtletasList = () => {
                     const clubesFed = await api.get('/Club');
                     const clubIdsFed = (Array.isArray(clubesFed) ? clubesFed : [])
                         .filter(c => String(c.idFederacion ?? c.federacionId ?? '') === String(fedId))
-                        .map(c => c.idClub);
+                        .map((c) => getClubId(c, { allowBareId: true }));
                     // Si no hay clubes con idFederacion, mostramos todos (datos no tienen el campo)
                     if (clubIdsFed.length > 0) {
-                        atletasArray = atletasArray.filter(a =>
-                            clubIdsFed.includes(a.idClub ?? a.IdClub)
+                        atletasArray = atletasArray.filter((a) =>
+                            clubIdsFed.some((cid) => sameClubId(a, cid))
                         );
                     }
                 } catch (filterErr) {

@@ -7,6 +7,7 @@ import Button from '../../../components/common/Button';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import { ArrowLeft, Save, Plus, Trash2 } from 'lucide-react';
 import { DISTANCIA_REGATA_MAP, CATEGORIA_EDAD_MAP, SEXO_MAP } from '../../../utils/enums';
+import { getClubId } from '../../../utils/apiHelpers';
 import './ClubEventos.css';
 
 const ClubEventosForm = () => {
@@ -147,7 +148,7 @@ const ClubEventosForm = () => {
 
             const payload = {
                 ...formData,
-                IdClub: user.IdClub || user.idClub || user.clubId, // Sending PascalCase as requested
+                IdClub: getClubId(user), // Sending PascalCase as requested
                 nombre: formData.nombre,
                 descripcion: formData.descripcion,
                 tipoEvento: parseInt(formData.tipoEvento),

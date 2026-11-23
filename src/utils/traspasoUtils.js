@@ -1,4 +1,4 @@
-import { pick } from './apiHelpers';
+import { pick, getClubId } from './apiHelpers';
 
 export const ESTADOS_TRASPASO = {
     PendienteOrigen: { label: 'Pendiente club origen', color: 'warning' },
@@ -40,15 +40,17 @@ export const normalizePeriodo = (p) => ({
     esVigente: !!pick(p, 'esVigente', 'EsVigente'),
 });
 
-export const normalizeAtletaBusqueda = (a) => ({
-    participanteId: pick(a, 'participanteId', 'ParticipanteId'),
-    nombre: pick(a, 'nombre', 'Nombre') || '—',
-    documento: pick(a, 'documento', 'Documento') || '—',
-    idClub: pick(a, 'idClub', 'IdClub') ?? null,
-    clubNombre: pick(a, 'clubNombre', 'ClubNombre') || 'Agente Libre',
-    sinClub: pick(a, 'sinClub', 'SinClub') === true
-        || pick(a, 'idClub', 'IdClub') == null,
-});
+export const normalizeAtletaBusqueda = (a) => {
+    const idClub = getClubId(a);
+    return {
+        participanteId: pick(a, 'participanteId', 'ParticipanteId'),
+        nombre: pick(a, 'nombre', 'Nombre') || '—',
+        documento: pick(a, 'documento', 'Documento') || '—',
+        idClub,
+        clubNombre: pick(a, 'clubNombre', 'ClubNombre') || 'Agente Libre',
+        sinClub: pick(a, 'sinClub', 'SinClub') === true || idClub == null,
+    };
+};
 
 export const normalizeValidaciones = (v) => ({
     solicitudId: pick(v, 'solicitudId', 'SolicitudId'),

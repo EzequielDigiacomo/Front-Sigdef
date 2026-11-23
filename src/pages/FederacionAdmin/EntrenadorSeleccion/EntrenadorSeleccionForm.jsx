@@ -7,6 +7,7 @@ import { ArrowLeft, Save, Award } from 'lucide-react';
 import { CATEGORIA_MAP, SEXO_MAP } from '../../../utils/enums';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import PageHeader from '../../../components/common/PageHeader';
+import { getClubId } from '../../../utils/apiHelpers';
 import './EntrenadorSeleccion.css';
  
 const EntrenadorSeleccionForm = () => {
@@ -73,7 +74,7 @@ const EntrenadorSeleccionForm = () => {
                     documento: prefill.documento || prev.documento,
                     email: prefill.email || prev.email,
                     telefono: prefill.telefono || prev.telefono,
-                    idClub: prefill.idClub ?? prefill.IdClub ?? prev.idClub,
+                    idClub: getClubId(prefill) ?? prev.idClub,
                     categoriaSeleccion: String(prefill.categoriaSeleccion ?? prefill.CategoriaSeleccion ?? prev.categoriaSeleccion ?? '0'),
                     becadoEnard: !!(prefill.becadoEnard ?? prefill.BecadoEnard ?? prev.becadoEnard),
                     becadoSdn: !!(prefill.becadoSdn ?? prefill.BecadoSdn ?? prev.becadoSdn),
@@ -179,7 +180,7 @@ const EntrenadorSeleccionForm = () => {
                     personaExtra.direccion ||
                     personaExtra.Direccion ||
                     '',
-                idClub: data.idClub ?? data.IdClub ?? '',
+                idClub: getClubId(data) ?? '',
                 categoriaSeleccion: String(data.categoriaSeleccion ?? data.CategoriaSeleccion ?? '0'),
                 becadoEnard: !!(data.becadoEnard ?? data.BecadoEnard),
                 becadoSdn: !!(data.becadoSdn ?? data.BecadoSdn),
@@ -446,11 +447,14 @@ const EntrenadorSeleccionForm = () => {
                             >
                                 <option value="">Seleccione un Club</option>
                                 <option value="0">--- Sin Club ---</option>
-                                {clubes.map(club => (
-                                    <option key={club.idClub ?? club.IdClub} value={club.idClub ?? club.IdClub}>
+                                {clubes.map((club) => {
+                                    const clubOptId = getClubId(club, { allowBareId: true });
+                                    return (
+                                    <option key={clubOptId} value={clubOptId}>
                                         {club.nombre || club.Nombre}
                                     </option>
-                                ))}
+                                    );
+                                })}
                             </select>
                         </div>
                         <div className="form-group">

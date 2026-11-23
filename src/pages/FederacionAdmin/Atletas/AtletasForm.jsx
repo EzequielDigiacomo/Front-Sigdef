@@ -17,6 +17,7 @@ import AtletaPendingPhotos, {
     uploadPendingAtletaPhotos,
     formatPhotosUploadNote,
 } from '../../../components/forms/AtletaPendingPhotos';
+import { getClubId } from '../../../utils/apiHelpers';
 import './Atletas.css';
 import '../../../styles/CompactForm.css';
 
@@ -230,7 +231,7 @@ const AtletasForm = () => {
                 telefono: pick(p.telefono, p.Telefono, nested.telefono, nested.Telefono),
                 direccion: pick(p.direccion, p.Direccion, nested.direccion, nested.Direccion),
 
-                idClub: data.idClub ?? data.IdClub ?? '',
+                idClub: getClubId(data) ?? '',
                 categoria: data.categoria ?? data.Categoria ?? 0,
                 becadoEnard: data.becadoEnard ?? data.BecadoEnard ?? false,
                 becadoSdn: data.becadoSdn ?? data.BecadoSdn ?? false,

@@ -20,6 +20,7 @@ import {
     getUsuarioUsername,
 } from '../../../utils/delegadoHelpers';
 import { matchesSearch } from '../../../utils/searchUtils';
+import { getClubId } from '../../../utils/apiHelpers';
 import '../Atletas/ClubAtletas.css';
 
 const ClubDelegados = () => {
@@ -35,12 +36,12 @@ const ClubDelegados = () => {
 
     useEffect(() => {
         fetchDelegados();
-    }, [user?.idClub, user?.clubId]);
+    }, [user]);
 
     const fetchDelegados = async () => {
         try {
             setLoading(true);
-            const clubIdActual = user?.idClub || user?.IdClub || user?.clubId || user?.ClubId;
+            const clubIdActual = getClubId(user);
             const clubNameHint =
                 user?.clubNombre ||
                 user?.nombreClub ||

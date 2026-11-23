@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { jwtDecode } from 'jwt-decode';
 import { normalizePlan, canAccessSigdef } from '../utils/planHelpers';
+import { getClubId, normalizeClubIdFields } from '../utils/apiHelpers';
 
 const AuthContext = createContext();
 
@@ -41,15 +42,10 @@ const decodeTokenSafe = (token) => {
     }
 };
 
+/** Ingiere variantes legacy (JWT/API) y deja solo idClub canónico. */
 const resolveClubId = (sources = {}, decoded = null) =>
-    pickPositiveId(
-        sources.idClub,
-        sources.IdClub,
-        sources.clubId,
-        sources.ClubId,
-        decoded?.ClubId,
-        decoded?.clubId
-    );
+    getClubId(normalizeClubIdFields({ ...sources }))
+    ?? getClubId(normalizeClubIdFields({ ...(decoded || {}) }));
 
 const resolveFederacionId = (sources = {}, decoded = null) =>
     pickPositiveId(
@@ -103,10 +99,12 @@ export const AuthProvider = ({ children }) => {
                     ...parsedUser,
                     plan,
                     idClub,
-                    clubId: idClub,
                     idFederacion,
                     clubNombre,
                 };
+                delete restoredUser.clubId;
+                delete restoredUser.IdClub;
+                delete restoredUser.ClubId;
 
                 if (restoredUser.role !== 'SUPERADMIN' && plan && !canAccessSigdef(plan)) {
                     localStorage.removeItem('user');
@@ -199,7 +197,6 @@ export const AuthProvider = ({ children }) => {
                 email: email || '',
                 role: mappedRole,
                 idClub: finalClubId,
-                clubId: finalClubId,
                 idFederacion: finalFederacionId,
                 clubNombre: clubNombre || ClubNombre || null,
                 plan,

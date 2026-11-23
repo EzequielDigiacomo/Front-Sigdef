@@ -2,6 +2,7 @@ import { PARENTESCO_MAP } from '../utils/enums';
 import { toFriendlyErrorMessage } from '../utils/friendlyError';
 import { normalizeAspNetFieldErrors } from '../utils/formFieldErrors';
 import { isAuditEndpoint, trackApiError } from './auditClient';
+import { getClubId, normalizeClubIdFields } from '../utils/apiHelpers';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5029/api';
 const CLIENT_APP = 'sigdef';
@@ -218,15 +219,18 @@ const request = async (endpoint, options = {}, retries = MAX_RETRIES) => {
             throw responseError;
         }
 
+        // Unifica IdClub/clubId/ClubId → solo idClub en todo el front
+        data = normalizeClubIdFields(data);
+
         if (finalEndpoint.startsWith('/Clubes')) {
             if (Array.isArray(data)) {
                 data = data.map((c) => ({
                     ...c,
-                    idClub: c.idClub ?? c.id ?? c.Id,
+                    idClub: getClubId(c, { allowBareId: true }),
                     siglas: c.sigla ?? c.Sigla ?? c.siglas ?? c.Siglas ?? '',
                 }));
             } else if (data && typeof data === 'object') {
-                data.idClub = data.idClub ?? data.id ?? data.Id;
+                data.idClub = getClubId(data, { allowBareId: true });
                 data.siglas = data.sigla ?? data.Sigla ?? data.siglas ?? data.Siglas ?? '';
             }
         }

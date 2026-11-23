@@ -18,6 +18,7 @@ import AtletaPendingPhotos, {
     formatPhotosUploadNote,
 } from '../../../components/forms/AtletaPendingPhotos';
 import { toUserFacingErrorMessage } from '../../../utils/friendlyError';
+import { getClubId } from '../../../utils/apiHelpers';
 import '../../../styles/CompactForm.css';
 
 const FIELD_LABELS = {
@@ -161,7 +162,7 @@ const ClubEntrenadoresForm = () => {
 
         setLoading(true);
 
-        const targetClubId = location.state?.clubId || user?.IdClub || user?.idClub || user?.clubId || user?.club?.id;
+        const targetClubId = location.state?.clubId || getClubId(user);
         // Verify we have a club ID if creating new
         if (!id && !targetClubId) {
             alert('Error: No se ha especificado un Club para este entrenador.');

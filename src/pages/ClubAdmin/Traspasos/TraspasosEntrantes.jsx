@@ -12,10 +12,11 @@ import {
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import Modal from '../../../components/common/Modal';
+import { getClubId } from '../../../utils/apiHelpers';
 
 const TraspasosEntrantes = () => {
     const { user } = useAuth();
-    const idClub = user?.idClub ?? user?.IdClub;
+    const idClub = getClubId(user);
 
     const [solicitudes, setSolicitudes] = useState([]);
     const [loading, setLoading] = useState(true);

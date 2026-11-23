@@ -1,3 +1,5 @@
+import { getClubId } from './apiHelpers';
+
 /** Id del participante/atleta para la API SIGDEF (PUT /Atleta/{id}). */
 export const getParticipanteId = (atleta) =>
     atleta?.participanteId ??
@@ -11,7 +13,7 @@ export const buildAtletaUpdatePayload = (atleta, overrides = {}) => {
     const participanteId = getParticipanteId(atleta);
     return {
         participanteId,
-        idClub: atleta?.idClub ?? atleta?.IdClub ?? null,
+        idClub: getClubId(atleta),
         estadoPago: atleta?.estadoPago ?? atleta?.EstadoPago ?? 0,
         perteneceSeleccion: atleta?.perteneceSeleccion ?? atleta?.PerteneceSeleccion ?? false,
         categoria: atleta?.categoria ?? atleta?.Categoria ?? null,

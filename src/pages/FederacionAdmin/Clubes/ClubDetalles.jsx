@@ -10,7 +10,7 @@ import {
 import Modal from '../../../components/common/Modal';
 import AtletaDetailModal from '../Atletas/components/AtletaDetailModal';
 import { getCategoriaLabel, getEstadoPagoColor, getEstadoPagoLabel } from '../../../utils/enums';
-import { pick } from '../../../utils/apiHelpers';
+import { pick, getClubId, sameClubId } from '../../../utils/apiHelpers';
 import './ClubDetalles.css';
 
 const ATLETAS_PAGE_SIZE = 12;
@@ -38,7 +38,7 @@ const normalizeClubAtleta = (a) => {
     return {
         ...a,
         idPersona,
-        idClub: pick(a, 'idClub', 'IdClub'),
+        idClub: getClubId(a),
         nombrePersona: resolvePersonaNombre(a),
         documento: resolveDocumento(a),
         categoria: pick(a, 'categoria', 'Categoria'),
@@ -127,7 +127,7 @@ const ClubDetalles = () => {
             } catch {
                 const todos = await api.get(`/Entrenador`, { silentErrors: true }).catch(() => []);
                 entrenadoresData = (Array.isArray(todos) ? todos : []).filter(
-                    (x) => Number(x.idClub ?? x.IdClub) === clubIdInt
+                    (x) => sameClubId(x, clubIdInt)
                 );
             }
 
@@ -137,7 +137,7 @@ const ClubDetalles = () => {
             } catch {
                 const todos = await api.get(`/DelegadoClub`, { silentErrors: true }).catch(() => []);
                 delegadosData = (Array.isArray(todos) ? todos : []).filter(
-                    (x) => Number(x.idClub ?? x.IdClub) === clubIdInt
+                    (x) => sameClubId(x, clubIdInt)
                 );
             }
 
@@ -147,7 +147,7 @@ const ClubDetalles = () => {
             } catch {
                 const todos = await api.get(`/Evento`, { silentErrors: true }).catch(() => []);
                 eventosData = (Array.isArray(todos) ? todos : []).filter(
-                    (x) => Number(x.clubId ?? x.ClubId) === clubIdInt
+                    (x) => sameClubId(x, clubIdInt)
                 );
             }
 
@@ -155,7 +155,7 @@ const ClubDetalles = () => {
             try {
                 const todos = await api.get(`/Atleta`, { silentErrors: true });
                 atletasData = (Array.isArray(todos) ? todos : []).filter(
-                    (x) => Number(x.idClub ?? x.IdClub) === clubIdInt
+                    (x) => sameClubId(x, clubIdInt)
                 );
                 if (atletasData.length === 0) throw new Error('Fallback Participantes');
             } catch {
@@ -168,7 +168,7 @@ const ClubDetalles = () => {
             }
 
             const normalizedClub = {
-                idClub: clubData.idClub ?? clubData.id ?? clubData.Id,
+                idClub: getClubId(clubData, { allowBareId: true }),
                 nombre: clubData.nombre ?? clubData.Nombre,
                 siglas: clubData.sigla ?? clubData.Sigla ?? clubData.siglas ?? clubData.Siglas ?? '',
                 email: clubData.email ?? clubData.Email ?? '',
@@ -382,7 +382,7 @@ const ClubDetalles = () => {
                                 try {
                                     const allDelegados = await api.get('/DelegadoClub');
                                     const libres = (Array.isArray(allDelegados) ? allDelegados : []).filter(
-                                        (d) => !d.idClub || d.idClub === 0
+                                        (d) => getClubId(d) == null
                                     );
                                     const libresEnriquecidos = await Promise.all(libres.map(async (d) => {
                                         const base = normalizeClubDelegado(d);
@@ -548,16 +548,20 @@ const ClubDetalles = () => {
                                         api.get('/Club'),
                                     ]);
                                     const clubsMap = (Array.isArray(allClubes) ? allClubes : []).reduce(
-                                        (acc, c) => ({ ...acc, [c.idClub ?? c.IdClub]: c.nombre ?? c.Nombre }),
+                                        (acc, c) => {
+                                            const cid = getClubId(c, { allowBareId: true });
+                                            return cid != null
+                                                ? { ...acc, [cid]: c.nombre ?? c.Nombre }
+                                                : acc;
+                                        },
                                         {}
                                     );
                                     const athletesWithClubName = (Array.isArray(allAtletas) ? allAtletas : []).map((a) => {
                                         const normalized = normalizeClubAtleta(a);
+                                        const aClubId = getClubId(a);
                                         return {
                                             ...normalized,
-                                            nombreClub: a.idClub || a.IdClub
-                                                ? clubsMap[a.idClub ?? a.IdClub]
-                                                : null,
+                                            nombreClub: aClubId ? clubsMap[aClubId] : null,
                                         };
                                     });
                                     setTodosAtletas(athletesWithClubName);
@@ -699,12 +703,12 @@ const ClubDetalles = () => {
                                             )}
                                         </div>
                                     </div>
-                                    {atleta.idClub !== parseInt(id) ? (
+                                    {!sameClubId(atleta, id) ? (
                                         <Button
                                             size="sm"
                                             variant="primary"
                                             onClick={() => {
-                                                const hasClub = !!atleta.idClub;
+                                                const hasClub = getClubId(atleta) != null;
 
                                                 if (hasClub) {
                                                     setConfirmModalState({

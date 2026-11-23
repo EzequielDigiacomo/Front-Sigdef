@@ -97,6 +97,11 @@ const RedirectEntrenadoresNuevo = () => {
   return <Navigate to={target} replace />;
 };
 
+const RedirectFedSection = ({ to }) => {
+  const { fedId } = useParams();
+  return <Navigate to={`/superadmin/federacion/${fedId}/${to}`} replace />;
+};
+
 const PrivateRoute = ({ children, allowedRoles }) => {
   const { isAuthenticated, loading, user } = useAuth();
 
@@ -310,6 +315,12 @@ function App() {
               <Route path="federacion/:fedId/atletas" element={<AtletasList />} />
               <Route path="federacion/:fedId/atletas/nuevo" element={<AtletasForm />} />
               <Route path="federacion/:fedId/atletas/editar/:id" element={<AtletasForm />} />
+              <Route path="federacion/:fedId/solicitudes" element={<SolicitudesAltas />} />
+              <Route
+                path="federacion/:fedId/fichajes"
+                element={<RedirectFedSection to="solicitudes" />}
+              />
+              <Route path="federacion/:fedId/padron" element={<PadronHabilitados modo="admin" />} />
               <Route path="federacion/:fedId/clubes" element={<ClubesList />} />
               <Route path="federacion/:fedId/clubes/nuevo" element={<ClubesForm />} />
               <Route path="federacion/:fedId/clubes/editar/:id" element={<ClubesForm />} />

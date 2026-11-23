@@ -7,6 +7,7 @@ import FormField from '../../components/forms/FormField';
 import PageHeader from '../../components/common/PageHeader';
 import { useDevice } from '../../hooks/useDevice';
 import { Search, ClipboardList, Trash2, Download, RefreshCw } from 'lucide-react';
+import { getClubId } from '../../utils/apiHelpers';
 import './RegistroInscripciones.css';
 
 const normalizeRegistro = (item) => ({
@@ -14,7 +15,7 @@ const normalizeRegistro = (item) => ({
     participanteId: item.participanteId ?? item.ParticipanteId,
     participanteNombre: item.participanteNombre ?? item.ParticipanteNombre ?? '',
     participanteDocumento: item.participanteDocumento ?? item.ParticipanteDocumento ?? '',
-    clubId: item.clubId ?? item.ClubId,
+    clubId: getClubId(item),
     clubNombre: item.clubNombre ?? item.ClubNombre ?? '',
     eventoId: item.eventoId ?? item.EventoId,
     eventoNombre: item.eventoNombre ?? item.EventoNombre ?? '',
@@ -208,7 +209,7 @@ const RegistroInscripciones = ({ modo = 'admin' }) => {
                             >
                                 <option value="">Todos los clubes</option>
                                 {clubes.map((c) => {
-                                    const id = c.idClub ?? c.id ?? c.Id;
+                                    const id = getClubId(c, { allowBareId: true });
                                     const nombre = c.nombre ?? c.Nombre ?? `Club ${id}`;
                                     return (
                                         <option key={id} value={id}>{nombre}</option>
@@ -279,7 +280,7 @@ const RegistroInscripciones = ({ modo = 'admin' }) => {
                 {!loading && inscripciones.length > 0 && (
                     <p className="inscripciones-count">
                         {inscripciones.length} inscripción{inscripciones.length !== 1 ? 'es' : ''} encontrada{inscripciones.length !== 1 ? 's' : ''}
-                        {!esAdmin && user?.clubId ? ` · Club ID ${user.clubId}` : ''}
+                        {!esAdmin && user?.idClub ? ` · Club ID ${user.idClub}` : ''}
                     </p>
                 )}
             </Card>

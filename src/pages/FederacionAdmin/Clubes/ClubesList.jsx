@@ -9,7 +9,7 @@ import {
     Mail, Phone, MapPin, Building2, CheckCircle2, AlertCircle, Eye,
 } from 'lucide-react';
 import { useDevice } from '../../../hooks/useDevice';
-import { withFederationScope, getClubFederationId, pick } from '../../../utils/apiHelpers';
+import { withFederationScope, getClubFederationId, pick, getClubId } from '../../../utils/apiHelpers';
 import PageHeader from '../../../components/common/PageHeader';
 import './Clubes.css';
 
@@ -41,13 +41,13 @@ const ClubesList = () => {
 
             const sigdefById = new Map(
                 (Array.isArray(clubSigdefRaw) ? clubSigdefRaw : []).map((c) => {
-                    const id = c.idClub ?? c.IdClub ?? c.id ?? c.Id;
+                    const id = getClubId(c, { allowBareId: true });
                     return [String(id), c];
                 })
             );
 
             let normalizedClubes = (Array.isArray(clubesData) ? clubesData : []).map((c) => {
-                const id = c.idClub ?? c.id ?? c.Id ?? c.IdClub;
+                const id = getClubId(c, { allowBareId: true });
                 const sig = sigdefById.get(String(id)) || {};
                 return {
                     idClub: id,

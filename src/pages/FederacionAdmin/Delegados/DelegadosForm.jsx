@@ -6,7 +6,7 @@ import Button from '../../../components/common/Button';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import { ArrowLeft, Save, Search, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
-import { withFederationScope } from '../../../utils/apiHelpers';
+import { withFederationScope, getClubId } from '../../../utils/apiHelpers';
 import { canAccessDashboardClub, extractPlanFromUser } from '../../../utils/planHelpers';
 import { toFriendlyErrorMessage } from '../../../utils/friendlyError';
 import { validateRequiredFields } from '../../../utils/formFieldErrors';
@@ -159,7 +159,7 @@ const DelegadosForm = () => {
                     documento: personaExtra.documento || documento || '',
                     email: personaExtra.email || found.email || found.Email || '',
                     telefono: personaExtra.telefono || found.telefono || found.Telefono || '',
-                    idClub: found.clubId || found.ClubId || found.idClub || found.IdClub || '',
+                    idClub: getClubId(found) ?? '',
                     idFederacion: found.federacionId || found.idFederacion || prev.idFederacion,
                 }));
                 setParticipanteId(pid);

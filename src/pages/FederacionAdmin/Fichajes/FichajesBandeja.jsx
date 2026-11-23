@@ -84,13 +84,19 @@ const FichajesBandeja = () => {
     const handleAprobar = async (id) => {
         setActionLoading(true);
         try {
-            await FichajeService.aprobar(id);
-            showAlert('success', 'Fichaje aprobado.');
+            const result = await FichajeService.aprobar(id);
+            const faltantes = result?.docsFaltantes || result?.DocsFaltantes || [];
+            const msg = result?.message
+                || (faltantes.length
+                    ? `Fichaje aprobado. Atención: faltan ${faltantes.join(', ')} para habilitación.`
+                    : 'Fichaje aprobado.');
+            showAlert('success', msg);
             await load();
         } catch (err) {
-            const msg = err?.response?.data?.error || err.message || 'No se pudo aprobar.';
-            const faltantes = err?.response?.data?.docsFaltantes;
-            showAlert('error', faltantes?.length ? `${msg} Falta: ${faltantes.join(', ')}` : msg);
+            const body = err?.body || err?.response?.data || {};
+            const msg = body.error || body.Error || err.message || 'No se pudo aprobar.';
+            const faltantes = body.docsFaltantes || body.DocsFaltantes || [];
+            showAlert('error', faltantes.length ? `${msg} Falta: ${faltantes.join(', ')}` : msg);
         } finally {
             setActionLoading(false);
         }

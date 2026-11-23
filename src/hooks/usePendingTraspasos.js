@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import TraspasoService from '../services/traspasoService';
 import { useAuth } from '../context/AuthContext';
 import { normalizeSolicitud } from '../utils/traspasoUtils';
+import { getClubId } from '../utils/apiHelpers';
 
 const POLL_MS = 90_000;
 
@@ -28,7 +29,7 @@ export default function usePendingTraspasos(enabled = true) {
                 const data = await TraspasoService.getSolicitudes('PendienteFederacion');
                 count = Array.isArray(data) ? data.length : 0;
             } else if (role === 'CLUB') {
-                const idClub = user?.idClub ?? user?.IdClub;
+                const idClub = getClubId(user);
                 const data = await TraspasoService.getSolicitudes('PendienteOrigen');
                 const list = (Array.isArray(data) ? data : []).map(normalizeSolicitud);
                 count = list.filter((s) => String(s.idClubOrigen) === String(idClub)).length;
@@ -39,7 +40,7 @@ export default function usePendingTraspasos(enabled = true) {
         } catch {
             return 0;
         }
-    }, [canUse, role, user?.idClub, user?.IdClub]);
+    }, [canUse, role, user]);
 
     useEffect(() => {
         if (!canUse) {

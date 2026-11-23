@@ -17,6 +17,7 @@ import { getEstadoPagoLabel, getEstadoPagoColor, getCategoriaLabel, PARENTESCO_M
 import { TutorStatusCell, calcEdad } from '../../../components/common/TutorStatusCell';
 import { buildAtletaUpdatePayload, getParticipanteId } from '../../../utils/atletaUtils';
 import { matchesSearch } from '../../../utils/searchUtils';
+import { getClubId, sameClubId } from '../../../utils/apiHelpers';
 import './ClubAtletas.css';
 
 const ESTADO_PAGO_PAGADO = 1;
@@ -67,7 +68,7 @@ const ClubAtletas = () => {
     const [loadingTutores, setLoadingTutores] = useState(false);
 
     useEffect(() => {
-        const clubId = user?.IdClub || user?.idClub || user?.clubId || user?.club?.id;
+        const clubId = getClubId(user);
         if (clubId) fetchAtletas(clubId);
     }, [user]);
 
@@ -94,14 +95,11 @@ const ClubAtletas = () => {
 
             if (needsEnrichment) {
                 const all = await api.get('/Atleta').catch(() => []);
-                data = (Array.isArray(all) ? all : []).filter((a) => {
-                    const athleteClubId = a.idClub ?? a.IdClub ?? a.clubId ?? a.ClubId;
-                    return String(athleteClubId) === String(clubId);
-                });
+                data = (Array.isArray(all) ? all : []).filter((a) => sameClubId(a, clubId));
             } else {
                 data = (data || []).filter((a) => {
-                    const athleteClubId = a.idClub ?? a.IdClub ?? a.clubId ?? a.ClubId;
-                    return !athleteClubId || String(athleteClubId) === String(clubId);
+                    const athleteClubId = getClubId(a);
+                    return !athleteClubId || sameClubId(a, clubId);
                 });
             }
 
@@ -204,7 +202,7 @@ const ClubAtletas = () => {
             setShowSelectTutorModal(false);
             setSelectedTutorIdToAssign('');
 
-            const clubId = user?.IdClub || user?.idClub || user?.clubId || user?.club?.id;
+            const clubId = getClubId(user);
             if (clubId) {
                 await fetchAtletas(clubId);
             }
@@ -249,7 +247,7 @@ const ClubAtletas = () => {
                         await api.delete(`/AtletaTutor/${atletaDetails.idPersona}/${idTutor}`);
                     }
                     
-                    const clubId = user?.IdClub || user?.idClub || user?.clubId || user?.club?.id;
+                    const clubId = getClubId(user);
                     if (clubId) {
                         await fetchAtletas(clubId);
                         setShowModal(false);
@@ -339,7 +337,7 @@ const ClubAtletas = () => {
     };
 
     const handleBulkUpdate = async () => {
-        const clubId = user?.IdClub || user?.idClub || user?.club?.id;
+        const clubId = getClubId(user);
         if (!clubId) return;
 
         setFeedbackModal({
@@ -411,7 +409,7 @@ const ClubAtletas = () => {
             await api.post(`/Atleta/${id}/liberar`);
             setShowLiberarModal(false);
             handleCloseModal();
-            const clubId = user?.IdClub || user?.idClub || user?.clubId || user?.club?.id;
+            const clubId = getClubId(user);
             if (clubId) await fetchAtletas(clubId);
             setFeedbackModal({
                 isOpen: true,
@@ -1075,7 +1073,7 @@ const ClubAtletas = () => {
                         setSelectedAtletaForDocs(null);
                     }}
                     onSuccess={() => {
-                        const clubId = user?.IdClub || user?.idClub || user?.club?.id;
+                        const clubId = getClubId(user);
                         if (clubId) fetchAtletas(clubId);
                     }}
                     personName={selectedAtletaForDocs.nombrePersona}

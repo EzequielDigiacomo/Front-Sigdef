@@ -7,6 +7,7 @@ import Button from '../../../components/common/Button';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import { ArrowLeft, Calendar, Users, Trash2, Edit, MapPin, DollarSign, Info, Route } from 'lucide-react';
 import { getCategoriaEdadLabel, getDistanciaShortLabel, getSexoLabel, getCategoriaLabel } from '../../../utils/enums';
+import { getClubId } from '../../../utils/apiHelpers';
 
 const ClubEventoDetalle = () => {
     const { id } = useParams();
@@ -35,7 +36,7 @@ const ClubEventoDetalle = () => {
                 ?? inscripcion.ParticipanteId
                 ?? inscripcion.idAtleta
                 ?? inscripcion.IdAtleta;
-            const idClub = user.idClub || user.IdClub || user.clubId;
+            const idClub = getClubId(user);
             const pagoData = {
                 concepto: `Inscripción Evento: ${evento.nombre} - Atleta: ${inscripcion.nombreCompleto}`,
                 monto: precio,

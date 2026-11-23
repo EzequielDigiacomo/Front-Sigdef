@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { matchesSearch } from '../../utils/searchUtils';
+import { getClubId, sameClubId } from '../../utils/apiHelpers';
 import './GlobalSearch.css';
 
 const normalizeAtleta = (a) => ({
@@ -23,7 +24,7 @@ const GlobalSearch = ({ isOpen, onClose, role }) => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const isClub = role === 'CLUB';
-    const clubId = user?.idClub ?? user?.clubId ?? user?.IdClub;
+    const clubId = getClubId(user);
 
     useEffect(() => {
         if (isOpen) {
@@ -50,7 +51,7 @@ const GlobalSearch = ({ isOpen, onClose, role }) => {
                     } catch {
                         const all = await api.get('/Atleta').catch(() => []);
                         atletasData = (Array.isArray(all) ? all : []).filter(
-                            (a) => String(a.idClub ?? a.IdClub) === String(clubId)
+                            (a) => sameClubId(a, clubId)
                         );
                     }
                 }
@@ -161,24 +162,27 @@ const GlobalSearch = ({ isOpen, onClose, role }) => {
                                 {filtered.clubes.length > 0 && (
                                     <div className="result-section">
                                         <p className="results-label">Clubes</p>
-                                        {filtered.clubes.map((club) => (
-                                            <div
-                                                key={club.idClub ?? club.IdClub}
-                                                className="result-item"
-                                                onClick={() =>
-                                                    navigateTo(`/dashboard/clubes/editar/${club.idClub ?? club.IdClub}`)
-                                                }
-                                            >
-                                                <div className="result-avatar"><Building2 size={18} /></div>
-                                                <div className="result-info">
-                                                    <p className="result-title">{club.nombre ?? club.Nombre}</p>
-                                                    <p className="result-subtitle">
-                                                        {(club.localidad ?? club.Localidad) || 'Sin localidad'}
-                                                    </p>
+                                        {filtered.clubes.map((club) => {
+                                            const clubKey = getClubId(club, { allowBareId: true });
+                                            return (
+                                                <div
+                                                    key={clubKey}
+                                                    className="result-item"
+                                                    onClick={() =>
+                                                        navigateTo(`/dashboard/clubes/editar/${clubKey}`)
+                                                    }
+                                                >
+                                                    <div className="result-avatar"><Building2 size={18} /></div>
+                                                    <div className="result-info">
+                                                        <p className="result-title">{club.nombre ?? club.Nombre}</p>
+                                                        <p className="result-subtitle">
+                                                            {(club.localidad ?? club.Localidad) || 'Sin localidad'}
+                                                        </p>
+                                                    </div>
+                                                    <ArrowRight size={16} />
                                                 </div>
-                                                <ArrowRight size={16} />
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </>

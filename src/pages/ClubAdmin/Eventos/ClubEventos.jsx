@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, Plus, MapPin, Users, Edit, Trash2, UserPlus } from 'lucide-react';
 import Button from '../../../components/common/Button';
 import DataTable from '../../../components/common/DataTable';
+import { getClubId, sameClubId } from '../../../utils/apiHelpers';
 import './ClubEventos.css';
 
 const ClubEventos = () => {
@@ -13,15 +14,17 @@ const ClubEventos = () => {
     const [eventos, setEventos] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const sessionClubId = getClubId(user);
+
     useEffect(() => {
         fetchEventos();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user.IdClub, user.idClub, user.clubId]);
+    }, [sessionClubId]);
 
     const fetchEventos = async () => {
         try {
             setLoading(true);
-            const clubId = user.IdClub || user.idClub || user.clubId;
+            const clubId = sessionClubId;
 
             if (!clubId) {
                 console.error('❌ Error: No se encontró ID de club en el usuario');
@@ -70,9 +73,7 @@ const ClubEventos = () => {
                         }
                     }
 
-                    eventosDelClub = todosEventos.filter(e =>
-                        (e.IdClub || e.idClub || e.clubId) == clubId
-                    );
+                    eventosDelClub = todosEventos.filter((e) => sameClubId(e, clubId));
                     strategyUsed = 'manual_filter';
                 }
             }
@@ -191,7 +192,7 @@ const ClubEventos = () => {
                         label: 'Organizador',
                         render: (value, row) => (
                             <span className="font-medium">
-                                {row.nombreClub || (row.idClub == (user.idClub || user.clubId) ? 'Mi Club' : 'Federación')}
+                                {row.nombreClub || (sameClubId(row, user) ? 'Mi Club' : 'Federación')}
                             </span>
                         )
                     },

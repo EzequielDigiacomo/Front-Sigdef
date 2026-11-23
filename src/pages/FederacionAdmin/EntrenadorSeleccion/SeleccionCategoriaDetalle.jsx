@@ -6,7 +6,7 @@ import Button from '../../../components/common/Button';
 import PageHeader from '../../../components/common/PageHeader';
 import { Plus, Trash2, Edit, Eye, UserCog, X, Award, Users } from 'lucide-react';
 import { getCategoriaLabel, normalizeCategoriaId } from '../../../utils/enums';
-import { withFederationScope } from '../../../utils/apiHelpers';
+import { withFederationScope, getClubId } from '../../../utils/apiHelpers';
 import { buildAtletaUpdatePayload } from '../../../utils/atletaUtils';
 import AddAtletaSeleccionModal from './components/AddAtletaSeleccionModal';
 import AssignCoachModal from './components/AssignCoachModal';
@@ -68,7 +68,7 @@ const SeleccionCategoriaDetalle = () => {
                     nombre: c.nombrePersona || c.NombrePersona || 'Entrenador',
                     email: c.email || c.Email || '-',
                     telefono: c.telefono || c.Telefono || '-',
-                    idClub: c.idClub ?? c.IdClub ?? null,
+                    idClub: getClubId(c),
                     licencia: c.licencia ?? c.Licencia ?? '',
                     becadoEnard: !!(c.becadoEnard ?? c.BecadoEnard),
                     becadoSdn: !!(c.becadoSdn ?? c.BecadoSdn),
@@ -233,7 +233,7 @@ const SeleccionCategoriaDetalle = () => {
                         participanteId: coach.id,
                         ParticipanteId: coach.id,
                         idPersona: coach.id,
-                        idClub: coach.idClub || null,
+                        idClub: getClubId(coach),
                         licencia: coach.licencia || '',
                         perteneceSeleccion: false,
                         categoriaSeleccion: '0',

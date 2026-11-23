@@ -4,8 +4,9 @@ import { api } from '../../services/api';
 import {
     ArrowLeft, Users, Shield, DollarSign, Award, Briefcase,
     UserCheck, Lock, Eye, AlertCircle, Building2, ClipboardList, ArrowRightLeft, Key,
+    ClipboardCheck, ShieldCheck,
 } from 'lucide-react';
-import { withFederationScope, getClubFederationId } from '../../utils/apiHelpers';
+import { withFederationScope, getClubFederationId, getClubId } from '../../utils/apiHelpers';
 
 // Banner visual que recuerda que el SuperAdmin está viendo una federación ajena
 const SuperAdminContextBanner = ({ federacionNombre, onBack }) => (
@@ -171,13 +172,13 @@ const FederacionView = () => {
                 String(getClubFederationId(c) ?? '') === String(fedId)
             );
             
-            const clubIds = clubesArr.map(c => c.idClub ?? c.id ?? c.Id);
+            const clubIds = clubesArr.map((c) => getClubId(c, { allowBareId: true }));
 
             // Filtrar atletas (por idFederacion directo si existe, o por pertenecer a un club de la federación)
             atletasArr = atletasArr.filter(a => {
                 const aFed = String(a.idFederacion ?? a.federacionId ?? a.FederacionId ?? '');
                 if (aFed === String(fedId)) return true;
-                const aClub = a.idClub ?? a.clubId ?? a.ClubId;
+                const aClub = getClubId(a);
                 return clubIds.includes(aClub);
             });
 
@@ -199,6 +200,8 @@ const FederacionView = () => {
 
     const modules = [
         { label: 'Atletas', icon: Users, color: '#3b82f6', description: 'Nómina y registro de atletas', section: 'atletas' },
+        { label: 'Solicitudes', icon: ClipboardCheck, color: '#f97316', description: 'Aprobar o rechazar altas de clubes', section: 'solicitudes' },
+        { label: 'Padrón', icon: ShieldCheck, color: '#0ea5e9', description: 'Atletas habilitados para la federación', section: 'padron' },
         { label: 'Clubes', icon: Building2, color: '#10b981', description: 'Instituciones afiliadas', section: 'clubes' },
         { label: 'Entrenadores', icon: Award, color: '#f59e0b', description: 'Técnicos de club y selección', section: 'entrenadores' },
         { label: 'Selección Nacional', icon: Shield, color: '#8b5cf6', description: 'Selecciones nacionales por categoría', section: 'selecciones' },

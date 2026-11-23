@@ -14,6 +14,86 @@ export const pick = (obj, ...keys) => {
     return undefined;
 };
 
+/** Variantes que puede mandar el API/JWT. Solo se usan al normalizar, no al leer. */
+const LEGACY_CLUB_ID_KEYS = ['idClub', 'IdClub', 'clubId', 'ClubId'];
+
+const coercePositiveId = (value) => {
+    if (value == null || value === '') return null;
+    const n = Number(value);
+    return Number.isFinite(n) && n > 0 ? n : null;
+};
+
+/** Une IdClub/clubId/ClubId → idClub (una sola vez, en el borde del API). */
+const extractIncomingClubId = (obj) => {
+    if (obj == null || obj === '') return null;
+    if (typeof obj !== 'object') return coercePositiveId(obj);
+    const direct = coercePositiveId(pick(obj, ...LEGACY_CLUB_ID_KEYS));
+    if (direct) return direct;
+    if (obj.club && typeof obj.club === 'object') {
+        return coercePositiveId(pick(obj.club, ...LEGACY_CLUB_ID_KEYS, 'id', 'Id'));
+    }
+    return null;
+};
+
+/**
+ * Normaliza cualquier payload: deja solo `idClub` como ID de club.
+ * Borrar IdClub / clubId / ClubId para que el front no dependa de variantes.
+ */
+export function normalizeClubIdFields(data, depth = 0) {
+    if (data == null || depth > 10) return data;
+    if (Array.isArray(data)) return data.map((item) => normalizeClubIdFields(item, depth + 1));
+    if (typeof data !== 'object') return data;
+    if (data instanceof Date || data instanceof Blob || data instanceof File) return data;
+
+    const out = { ...data };
+    const canonical = extractIncomingClubId(out);
+    if (canonical != null) out.idClub = canonical;
+    delete out.IdClub;
+    delete out.clubId;
+    delete out.ClubId;
+
+    for (const key of Object.keys(out)) {
+        if (key === 'idClub') continue;
+        const value = out[key];
+        if (value && typeof value === 'object') {
+            out[key] = normalizeClubIdFields(value, depth + 1);
+        }
+    }
+    return out;
+}
+
+/**
+ * Lee el ID de club canónico (`idClub`).
+ * Los datos deben pasar antes por normalizeClubIdFields (api client / login).
+ * @param {{ allowBareId?: boolean }} [opts] allowBareId: también lee id/Id (solo entidades Club)
+ */
+export function getClubId(obj, { allowBareId = false } = {}) {
+    if (obj == null || obj === '') return null;
+    if (typeof obj !== 'object') return coercePositiveId(obj);
+
+    const canonical = coercePositiveId(obj.idClub);
+    if (canonical) return canonical;
+
+    if (allowBareId) {
+        const bare = coercePositiveId(obj.id ?? obj.Id);
+        if (bare) return bare;
+    }
+
+    if (obj.club && typeof obj.club === 'object') {
+        return getClubId(obj.club, { allowBareId: true });
+    }
+
+    return null;
+}
+
+/** Compara dos club IDs (objetos o valores) usando solo idClub canónico. */
+export function sameClubId(a, b) {
+    const idA = getClubId(a);
+    const idB = getClubId(b);
+    if (idA == null || idB == null) return false;
+    return String(idA) === String(idB);
+}
+
 /** Normaliza id de federación en objetos club */
 export function getClubFederationId(club) {
     return club?.idFederacion ?? club?.federacionId ?? club?.FederacionId ?? null;
@@ -46,10 +126,10 @@ export function getUsuarioFederationName(usuario, clubes = [], federaciones = []
         return getFederationNameById(federaciones, fedId) || `ID ${fedId}`;
     }
 
-    const clubId = pick(usuario, 'clubId', 'ClubId', 'idClub', 'IdClub');
-    if (clubId != null && clubId !== '') {
-        const club = (clubes || []).find((c) =>
-            String(pick(c, 'idClub', 'IdClub', 'id', 'Id') ?? '') === String(clubId)
+    const clubId = getClubId(usuario);
+    if (clubId != null) {
+        const club = (clubes || []).find(
+            (c) => String(getClubId(c, { allowBareId: true }) ?? '') === String(clubId)
         );
         const clubFedId = getClubFederationId(club);
         if (clubFedId != null) return getFederationNameById(federaciones, clubFedId) || `ID ${clubFedId}`;
@@ -115,7 +195,9 @@ export const mapFederacionFromStatus = (c) => {
     const nombre = pick(c, 'clubNombre', 'ClubNombre') || 'Federación';
 
     return {
-        idFederacion: pick(c, 'clubId', 'ClubId'),
+        // /saas/clubes-status usa clubId como id de federación (tenant);
+        // tras normalizeClubIdFields queda en idClub.
+        idFederacion: pick(c, 'idFederacion', 'IdFederacion', 'idClub', 'clubId', 'ClubId'),
         nombre,
         sigla: pick(c, 'sigla', 'Sigla') || getSiglaFromNombre(nombre),
         email: pick(c, 'email', 'Email') || '',

@@ -11,6 +11,7 @@ import { fetchFederacionesList } from '../../../services/saasService';
 import { useAuth } from '../../../context/AuthContext';
 import {
     pick,
+    getClubId,
     clubBelongsToFederation,
     filterClubesByFederation,
     getUsuarioFederationName,
@@ -47,8 +48,10 @@ const emptyForm = {
 
 const normalizeUsuario = (u, clubes = [], federaciones = []) => {
     const id = pick(u, 'id', 'Id', 'idUsuario', 'IdUsuario');
-    const clubId = pick(u, 'clubId', 'ClubId', 'idClub', 'IdClub');
-    const club = clubes.find((c) => String(pick(c, 'idClub', 'IdClub', 'id', 'Id')) === String(clubId));
+    const clubId = getClubId(u);
+    const club = clubes.find(
+        (c) => String(getClubId(c, { allowBareId: true }) ?? '') === String(clubId)
+    );
     const activoRaw = pick(u, 'activo', 'Activo', 'estaActivo', 'EstaActivo');
     const federacionId = pick(u, 'federacionId', 'FederacionId', 'idFederacion', 'IdFederacion');
 
@@ -326,8 +329,10 @@ const GestionLoginsSection = () => {
                 const userFedId = pick(u, 'federacionId', 'FederacionId');
                 if (userFedId) {
                     if (String(userFedId) !== String(fedFilter)) return false;
-                } else if (u.clubId) {
-                    const userClub = clubes.find((c) => String(pick(c, 'idClub', 'IdClub', 'id', 'Id')) === String(u.clubId));
+                } else if (getClubId(u)) {
+                    const userClub = clubes.find(
+                        (c) => String(getClubId(c, { allowBareId: true }) ?? '') === String(getClubId(u))
+                    );
                     if (!userClub || !clubBelongsToFederation(userClub, fedFilter)) return false;
                 } else {
                     const rol = String(u.rol || '').toLowerCase();

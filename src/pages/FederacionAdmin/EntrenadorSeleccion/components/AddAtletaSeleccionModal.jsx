@@ -7,6 +7,7 @@ import { CATEGORY_RANGES } from '../../../../utils/categoryConfig';
 import { getCategoriaLabel } from '../../../../utils/enums';
 import ConfirmationModal from '../../../../components/common/ConfirmationModal';
 import { buildAtletaUpdatePayload, getParticipanteId } from '../../../../utils/atletaUtils';
+import { getClubId } from '../../../../utils/apiHelpers';
 import './AddAtletaSeleccionModal.css';
 
 const AddAtletaSeleccionModal = ({ isOpen, onClose, onSuccess, categoryId }) => {
@@ -79,12 +80,13 @@ const AddAtletaSeleccionModal = ({ isOpen, onClose, onSuccess, categoryId }) => 
                         }
                     }
 
+                    const athleteClubId = getClubId(athlete);
                     const clubName =
                         athlete.nombreClub ||
                         athlete.NombreClub ||
                         athlete.club?.nombre ||
                         athlete.Club?.Nombre ||
-                        (athlete.idClub ? clubMap[athlete.idClub] : null) ||
+                        (athleteClubId ? clubMap[athleteClubId] : null) ||
                         'Agente Libre';
 
                     const nombreFromPersona =
@@ -128,7 +130,8 @@ const AddAtletaSeleccionModal = ({ isOpen, onClose, onSuccess, categoryId }) => 
             const clubesData = await clubesPromise;
             const clubMap = {};
             (clubesData || []).forEach((club) => {
-                clubMap[club.idClub ?? club.IdClub] = club.nombre || club.Nombre;
+                const cid = getClubId(club, { allowBareId: true });
+                if (cid != null) clubMap[cid] = club.nombre || club.Nombre;
             });
             const withClubs = filterByCategory(mapEnriched(available, clubMap));
             setAthletes(withClubs);

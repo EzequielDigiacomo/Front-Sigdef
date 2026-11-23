@@ -6,7 +6,7 @@ import {
     MapPin, Phone, Mail, Users, Award, User, CheckCircle2, AlertCircle,
     UserCheck, Shield, ChevronRight, ChevronLeft, Clock, ClipboardList, ArrowRightLeft,
 } from 'lucide-react';
-import { pick } from '../../../utils/apiHelpers';
+import { pick, getClubId, sameClubId } from '../../../utils/apiHelpers';
 import './ClubInfo.css';
 
 const ACTIVITY_COLS = 4;
@@ -55,13 +55,13 @@ const ClubInfo = () => {
     const [activityPage, setActivityPage] = useState(1);
 
     useEffect(() => {
-        if (user?.idClub) {
+        if (getClubId(user)) {
             fetchClubData();
         }
-    }, [user.idClub]);
+    }, [user]);
 
     const fetchClubData = async () => {
-        const clubId = user?.idClub || user?.IdClub || user?.clubId;
+        const clubId = getClubId(user);
         try {
             setLoading(true);
 
@@ -101,9 +101,7 @@ const ClubInfo = () => {
                 ]);
 
             const atletas = Array.isArray(atletasRaw) ? atletasRaw : [];
-            const atletasDelClub = atletas.filter(
-                (a) => String(a.idClub ?? a.IdClub ?? a.clubId) === String(clubId)
-            );
+            const atletasDelClub = atletas.filter((a) => sameClubId(a, clubId));
             const atletaIds = new Set(
                 atletasDelClub.map((a) => a.idPersona ?? a.IdPersona ?? a.participanteId)
             );
@@ -126,7 +124,7 @@ const ClubInfo = () => {
             );
 
             const entrenadoresDelClub = (Array.isArray(entrenadoresRaw) ? entrenadoresRaw : [])
-                .filter((e) => String(e.idClub ?? e.IdClub) === String(clubId))
+                .filter((e) => sameClubId(e, clubId))
                 .map((e) => {
                     const id = e.idPersona ?? e.IdPersona ?? e.participanteId ?? e.ParticipanteId;
                     return {
@@ -160,10 +158,9 @@ const ClubInfo = () => {
 
             const delegadosDelClub = (Array.isArray(usuariosRaw) ? usuariosRaw : [])
                 .filter((d) => {
-                    const idClubDelegado = d.idClub || d.IdClub || d.clubId || d.ClubId;
                     const rol = d.rol || d.Rol || d.rolFederacion || d.RolFederacion || '';
                     return (
-                        String(idClubDelegado) === String(clubId) &&
+                        sameClubId(d, clubId) &&
                         ['Club', 'Delegado', 'DelegadoClub'].includes(rol)
                     );
                 })

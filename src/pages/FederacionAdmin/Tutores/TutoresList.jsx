@@ -10,7 +10,7 @@ import { Plus, Edit, Trash2, Search, UserCheck, Eye, UserPlus, FileText, Chevron
 import { useSort } from '../../../hooks/useSort';
 import Modal from '../../../components/common/Modal';
 import * as XLSX from 'xlsx';
-import { withFederationScope } from '../../../utils/apiHelpers';
+import { withFederationScope, getClubId } from '../../../utils/apiHelpers';
 import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
 import PageHeader from '../../../components/common/PageHeader';
@@ -239,10 +239,12 @@ const TutoresList = () => {
                 clubesPromise,
             ]);
 
-            const clubesMap = new Map((clubesRes || []).map((c) => [c.idClub || c.IdClub, c]));
+            const clubesMap = new Map(
+                (clubesRes || []).map((c) => [getClubId(c, { allowBareId: true }), c])
+            );
 
             const atletasEnriquecidos = (atletasRes || []).map((atleta) => {
-                const club = clubesMap.get(atleta.idClub || atleta.IdClub);
+                const club = clubesMap.get(getClubId(atleta));
                 const persona = atleta.participante || atleta.Participante || {};
                 const nombreFromPersona =
                     persona.nombre || persona.Nombre

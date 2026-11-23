@@ -7,6 +7,7 @@ import { api } from '../../../../services/api';
 import Modal from '../../../../components/common/Modal';
 import Button from '../../../../components/common/Button';
 import ConfirmationModal from '../../../../components/common/ConfirmationModal';
+import { getClubId } from '../../../../utils/apiHelpers';
 import './UserTable.css';
 
 const getUserId = (u) =>
@@ -37,7 +38,7 @@ const UserTable = ({ users, clubs = [], onUserUpdated }) => {
     const getClubName = (idClub) => {
         if (!idClub) return '-';
         const club = clubs.find(
-            (c) => String(c.idClub ?? c.IdClub) === String(idClub)
+            (c) => String(getClubId(c, { allowBareId: true }) ?? '') === String(idClub)
         );
         return club ? club.nombre || club.Nombre : idClub;
     };
@@ -71,7 +72,7 @@ const UserTable = ({ users, clubs = [], onUserUpdated }) => {
         {
             key: 'idClub',
             label: 'Club',
-            render: (value, row) => getClubName(value ?? row.IdClub),
+            render: (_value, row) => getClubName(getClubId(row)),
         },
         {
             key: 'estaActivo',

@@ -13,6 +13,7 @@ import DataTable from '../../../components/common/DataTable';
 import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
 import { matchesSearch } from '../../../utils/searchUtils';
+import { getClubId, sameClubId } from '../../../utils/apiHelpers';
 import '../Entrenadores/ClubEntrenadores.css';
 
 const ClubEntrenadores = () => {
@@ -33,7 +34,7 @@ const ClubEntrenadores = () => {
     const [existingDocuments, setExistingDocuments] = useState([]);
 
     useEffect(() => {
-        const clubId = user?.IdClub || user?.idClub || user?.club?.id;
+        const clubId = getClubId(user);
         if (clubId) fetchEntrenadores(clubId);
         else setLoading(false);
     }, [user]);
@@ -43,10 +44,7 @@ const ClubEntrenadores = () => {
             setLoading(true);
             const todosEntrenadores = await api.get('/Entrenador');
 
-            const clubEntrenadores = todosEntrenadores.filter(e => {
-                const eClubId = e.idClub ?? e.IdClub;
-                return String(eClubId) === String(clubId);
-            });
+            const clubEntrenadores = todosEntrenadores.filter((e) => sameClubId(e, clubId));
 
             const enrichedData = clubEntrenadores.map(entrenador => {
                 const trainerId = entrenador.participanteId ?? entrenador.ParticipanteId ?? entrenador.idPersona ?? entrenador.IdPersona;
@@ -214,7 +212,7 @@ const ClubEntrenadores = () => {
                         setSelectedEntrenadorForDocs(null);
                     }}
                     onSuccess={() => {
-                        const clubId = user?.IdClub || user?.idClub || user?.club?.id;
+                        const clubId = getClubId(user);
                         if (clubId) fetchEntrenadores(clubId);
                     }}
                     personName={selectedEntrenadorForDocs.nombrePersona}

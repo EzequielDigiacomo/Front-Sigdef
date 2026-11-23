@@ -3,14 +3,11 @@ import { api } from '../../../../services/api';
 import Button from '../../../../components/common/Button';
 import FormField from '../../../../components/forms/FormField';
 import ConfirmationModal from '../../../../components/common/ConfirmationModal';
-import { withFederationScope } from '../../../../utils/apiHelpers';
+import { withFederationScope, getClubId } from '../../../../utils/apiHelpers';
 import { Search, X, UserPlus, AlertCircle } from 'lucide-react';
 import './AddCoachToSelectionModal.css';
 
-const hasClub = (coach) => {
-    const clubId = coach.idClub ?? coach.IdClub;
-    return clubId != null && clubId !== 0 && clubId !== '0';
-};
+const hasClub = (coach) => getClubId(coach) != null;
 
 const AddCoachToSelectionModal = ({ isOpen, onClose, onSuccess, fedId }) => {
     const [coaches, setCoaches] = useState([]);
@@ -70,7 +67,7 @@ const AddCoachToSelectionModal = ({ isOpen, onClose, onSuccess, fedId }) => {
                         coach.ParticipanteId ??
                         coach.idPersona ??
                         coach.IdPersona;
-                    const clubId = coach.idClub ?? coach.IdClub;
+                    const clubId = getClubId(coach);
                     return {
                         ...coach,
                         idPersona: id,
@@ -97,8 +94,8 @@ const AddCoachToSelectionModal = ({ isOpen, onClose, onSuccess, fedId }) => {
             const clubesData = await clubesPromise;
             const clubMap = {};
             (clubesData || []).forEach((club) => {
-                const id = club.idClub ?? club.IdClub;
-                clubMap[id] = club.nombre || club.Nombre;
+                const id = getClubId(club, { allowBareId: true });
+                if (id != null) clubMap[id] = club.nombre || club.Nombre;
             });
             const withClubs = mapEnriched(available, clubMap);
             setCoaches(withClubs);
@@ -120,7 +117,7 @@ const AddCoachToSelectionModal = ({ isOpen, onClose, onSuccess, fedId }) => {
                 participanteId: selectedCoach.idPersona,
                 ParticipanteId: selectedCoach.idPersona,
                 idPersona: selectedCoach.idPersona,
-                idClub: selectedCoach.idClub ?? selectedCoach.IdClub ?? null,
+                idClub: getClubId(selectedCoach),
                 licencia: selectedCoach.licencia || '',
                 perteneceSeleccion: true,
                 categoriaSeleccion: '0',

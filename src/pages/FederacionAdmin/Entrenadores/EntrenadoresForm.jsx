@@ -4,7 +4,7 @@ import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
-import { withFederationScope } from '../../../utils/apiHelpers';
+import { withFederationScope, getClubId } from '../../../utils/apiHelpers';
 import { ArrowLeft, Save } from 'lucide-react';
 import { CATEGORIA_MAP, SEXO_MAP } from '../../../utils/enums';
 import { validateRequiredFields } from '../../../utils/formFieldErrors';
@@ -123,7 +123,7 @@ const EntrenadoresForm = () => {
                     documento: prefill.documento || prev.documento,
                     email: prefill.email || prev.email,
                     telefono: prefill.telefono || prev.telefono,
-                    idClub: prefill.idClub ?? prefill.IdClub ?? prev.idClub,
+                    idClub: getClubId(prefill) ?? prev.idClub,
                     licencia: prefill.licencia || prefill.Licencia || prev.licencia,
                     perteneceSeleccion: !!(
                         prefill.perteneceSeleccion ??
@@ -227,7 +227,7 @@ const EntrenadoresForm = () => {
                     personaExtra.direccion ||
                     personaExtra.Direccion ||
                     '',
-                idClub: data.idClub ?? data.IdClub ?? '',
+                idClub: getClubId(data) ?? '',
                 licencia: data.licencia || data.Licencia || '',
                 perteneceSeleccion: !!(data.perteneceSeleccion ?? data.PerteneceSeleccion),
                 categoriaSeleccion: String(
@@ -517,14 +517,17 @@ const EntrenadoresForm = () => {
                                 className={`form-input ${fieldErrors.idClub ? 'error' : ''}`}
                             >
                                 <option value="">Sin club</option>
-                                {clubes.map((club) => (
+                                {clubes.map((club) => {
+                                    const clubOptId = getClubId(club, { allowBareId: true });
+                                    return (
                                     <option
-                                        key={club.idClub ?? club.IdClub}
-                                        value={club.idClub ?? club.IdClub}
+                                        key={clubOptId}
+                                        value={clubOptId}
                                     >
                                         {club.nombre || club.Nombre}
                                     </option>
-                                ))}
+                                    );
+                                })}
                             </select>
                             <FieldError message={fieldErrors.idClub} />
                         </div>

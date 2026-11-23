@@ -6,7 +6,7 @@ import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import { ArrowLeft, Save } from 'lucide-react';
 import { PARENTESCO_MAP, SEXO_MAP } from '../../../utils/enums';
-import { withFederationScope } from '../../../utils/apiHelpers';
+import { withFederationScope, getClubId, sameClubId } from '../../../utils/apiHelpers';
 import { validateRequiredFields } from '../../../utils/formFieldErrors';
 import useFormFieldErrors from '../../../hooks/useFormFieldErrors';
 import FieldError from '../../../components/forms/FieldError';
@@ -165,7 +165,7 @@ const TutoresForm = () => {
             };
 
             const delClub = (Array.isArray(allAtletas) ? allAtletas : [])
-                .filter((a) => String(a.idClub ?? a.IdClub ?? a.clubId) === String(clubId))
+                .filter((a) => sameClubId(a, clubId))
                 .map((a) => {
                     const idPersona =
                         a.idPersona ?? a.IdPersona ?? a.participanteId ?? a.ParticipanteId;
@@ -246,13 +246,7 @@ const TutoresForm = () => {
             if (idAtletaLinked) {
                 try {
                     const atleta = await api.get(`/Atleta/${idAtletaLinked}`);
-                    idClub = String(
-                        atleta.idClub ??
-                            atleta.IdClub ??
-                            atleta.club?.idClub ??
-                            atleta.Club?.IdClub ??
-                            ''
-                    );
+                    idClub = String(getClubId(atleta) ?? '');
                 } catch (err) {
                     console.warn('No se pudo resolver club del atleta vinculado:', err);
                 }
@@ -270,7 +264,7 @@ const TutoresForm = () => {
                             const match = (Array.isArray(clubs) ? clubs : []).find(
                                 (c) => (c.nombre || c.Nombre) === nombreClub
                             );
-                            if (match) idClub = String(match.idClub ?? match.IdClub);
+                            if (match) idClub = String(getClubId(match, { allowBareId: true }) ?? '');
                         } catch {
                             /* ignore */
                         }
@@ -610,7 +604,7 @@ const TutoresForm = () => {
                             >
                                 <option value="">Sin asignar (después)</option>
                                 {clubes.map((club) => {
-                                    const clubId = club.idClub ?? club.IdClub;
+                                    const clubId = getClubId(club, { allowBareId: true });
                                     return (
                                         <option key={clubId} value={clubId}>
                                             {club.nombre || club.Nombre}

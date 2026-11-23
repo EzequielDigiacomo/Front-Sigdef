@@ -11,7 +11,7 @@ import DocumentViewerModal from '../../../components/common/DocumentViewerModal'
 import AssignCategoryModal from './components/AssignCategoryModal';
 import AddCoachToSelectionModal from './components/AddCoachToSelectionModal';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
-import { withFederationScope } from '../../../utils/apiHelpers';
+import { withFederationScope, getClubId } from '../../../utils/apiHelpers';
 import { getCategoriaLabel } from '../../../utils/enums';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Button from '../../../components/common/Button';
@@ -21,8 +21,8 @@ import PageHeader from '../../../components/common/PageHeader';
 import EntrenadorDetailModal from './components/EntrenadorDetailModal';
 
 const hasClub = (item) => {
-    const clubId = item.idClub ?? item.IdClub;
-    return clubId != null && clubId !== 0 && clubId !== '0';
+    const clubId = getClubId(item);
+    return clubId != null;
 };
 
 const EntrenadoresList = () => {
@@ -87,7 +87,7 @@ const EntrenadoresList = () => {
                         id,
                         idPersona: id,
                         participanteId: id,
-                        idClub: ent.idClub ?? ent.IdClub ?? null,
+                        idClub: getClubId(ent),
                         nombrePersona: ent.nombrePersona || ent.NombrePersona || '-',
                         documento: ent.documento || ent.Documento || '-',
                         email: ent.email || ent.Email || '-',
@@ -218,7 +218,7 @@ const EntrenadoresList = () => {
                         participanteId: coach.idPersona,
                         ParticipanteId: coach.idPersona,
                         idPersona: coach.idPersona,
-                        idClub: coach.idClub || null,
+                        idClub: getClubId(coach),
                         licencia: coach.licencia === '-' ? '' : coach.licencia || '',
                         perteneceSeleccion: false,
                         categoriaSeleccion: '0',
@@ -467,7 +467,7 @@ const EntrenadoresList = () => {
                                 options={[
                                     { value: '', label: 'Todos los Clubes' },
                                     ...clubes.map((c) => ({
-                                        value: c.idClub ?? c.IdClub,
+                                        value: getClubId(c, { allowBareId: true }),
                                         label: c.nombre || c.Nombre,
                                     })),
                                 ]}

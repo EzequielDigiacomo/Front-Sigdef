@@ -5,6 +5,7 @@ import FormField from '../../../../components/forms/FormField';
 import ConfirmationModal from '../../../../components/common/ConfirmationModal';
 import { Search, X, UserPlus, AlertCircle } from 'lucide-react';
 import { getCategoriaLabel } from '../../../../utils/enums';
+import { getClubId } from '../../../../utils/apiHelpers';
 import './AssignCoachModal.css';
 
 const AssignCoachModal = ({ isOpen, onClose, onSuccess, categoryId, categoryLabel }) => {
@@ -87,7 +88,7 @@ const AssignCoachModal = ({ isOpen, onClose, onSuccess, categoryId, categoryLabe
                 participanteId: selectedCoach.idPersona,
                 ParticipanteId: selectedCoach.idPersona,
                 idPersona: selectedCoach.idPersona,
-                idClub: selectedCoach.idClub || null,
+                idClub: getClubId(selectedCoach),
                 licencia: selectedCoach.licencia || '',
                 perteneceSeleccion: true,
                 categoriaSeleccion: categoryId.toString(), // Convert to string as expected by backend

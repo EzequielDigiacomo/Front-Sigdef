@@ -24,6 +24,7 @@ import {
     resolveDocumentoFromUser,
 } from '../../../utils/delegadoHelpers';
 import { trackFormOutcome } from '../../../services/auditClient';
+import { getClubId } from '../../../utils/apiHelpers';
 
 const FIELD_LABELS = {
     documento: 'DNI',
@@ -43,7 +44,7 @@ const ClubDelegadosForm = () => {
     const [loading, setLoading] = useState(false);
 
     // Get Club ID from authenticated user context
-    const clubId = user?.idClub || user?.IdClub;
+    const clubId = getClubId(user);
 
     const [formData, setFormData] = useState({
         // Datos Persona

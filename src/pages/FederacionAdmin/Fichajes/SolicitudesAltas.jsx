@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { ClipboardList, RefreshCw, Search, CheckCircle2, AlertCircle, XCircle } from 'lucide-react';
 import FichajeService from '../../../services/fichajeService';
 import Card from '../../../components/common/Card';
@@ -43,6 +44,8 @@ const formatFecha = (value) => {
 };
 
 const SolicitudesAltas = () => {
+    const { fedId } = useParams();
+    const backTo = fedId ? `/superadmin/federacion/${fedId}` : '/dashboard';
     const [filtro, setFiltro] = useState('');
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -60,7 +63,10 @@ const SolicitudesAltas = () => {
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await FichajeService.getFichajes(filtro === '' ? undefined : Number(filtro));
+            const data = await FichajeService.getFichajes(
+                filtro === '' ? undefined : Number(filtro),
+                fedId
+            );
             setItems((Array.isArray(data) ? data : []).map(normalize));
         } catch (err) {
             showAlert('error', err.message || 'Error al cargar solicitudes.');
@@ -68,7 +74,7 @@ const SolicitudesAltas = () => {
         } finally {
             setLoading(false);
         }
-    }, [filtro]);
+    }, [filtro, fedId]);
 
     useEffect(() => {
         load();
@@ -85,13 +91,19 @@ const SolicitudesAltas = () => {
     const handleAprobar = async (id) => {
         setActionLoading(true);
         try {
-            await FichajeService.aprobar(id);
-            showAlert('success', 'Alta aprobada.');
+            const result = await FichajeService.aprobar(id, fedId);
+            const faltantes = result?.docsFaltantes || result?.DocsFaltantes || [];
+            const msg = result?.message
+                || (faltantes.length
+                    ? `Alta aprobada. Atención: faltan ${faltantes.join(', ')} para habilitación.`
+                    : 'Alta aprobada.');
+            showAlert('success', msg);
             await load();
         } catch (err) {
-            const msg = err?.response?.data?.error || err.message || 'No se pudo aprobar.';
-            const faltantes = err?.response?.data?.docsFaltantes;
-            showAlert('error', faltantes?.length ? `${msg} Falta: ${faltantes.join(', ')}` : msg);
+            const body = err?.body || err?.response?.data || {};
+            const msg = body.error || body.Error || err.message || 'No se pudo aprobar.';
+            const faltantes = body.docsFaltantes || body.DocsFaltantes || [];
+            showAlert('error', faltantes.length ? `${msg} Falta: ${faltantes.join(', ')}` : msg);
         } finally {
             setActionLoading(false);
         }
@@ -110,10 +122,10 @@ const SolicitudesAltas = () => {
         setActionLoading(true);
         try {
             if (motivoModal.accion === 'observar') {
-                await FichajeService.observar(motivoModal.id, motivo.trim());
+                await FichajeService.observar(motivoModal.id, motivo.trim(), fedId);
                 showAlert('success', 'Solicitud observada.');
             } else {
-                await FichajeService.rechazar(motivoModal.id, motivo.trim());
+                await FichajeService.rechazar(motivoModal.id, motivo.trim(), fedId);
                 showAlert('success', 'Solicitud rechazada.');
             }
             setMotivoModal(null);
@@ -130,7 +142,8 @@ const SolicitudesAltas = () => {
             <PageHeader
                 title="Solicitudes de alta"
                 icon={ClipboardList}
-                backTo="/dashboard"
+                backTo={backTo}
+                backLabel={fedId ? 'Dashboard federación' : 'Dashboard'}
                 actions={
                     <Button variant="ghost" size="sm" onClick={load} disabled={loading}>
                         <RefreshCw size={16} /> Actualizar

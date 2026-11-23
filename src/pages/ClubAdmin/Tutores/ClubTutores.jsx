@@ -9,6 +9,7 @@ import FormField from '../../../components/forms/FormField';
 import DataTable from '../../../components/common/DataTable';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import { matchesSearch } from '../../../utils/searchUtils';
+import { getClubId, sameClubId } from '../../../utils/apiHelpers';
 import '../Atletas/ClubAtletas.css';
 
 const ClubTutores = () => {
@@ -30,7 +31,7 @@ const ClubTutores = () => {
         try {
             setLoading(true);
 
-            const clubId = user?.IdClub || user?.idClub || user?.club?.id || user?.clubId;
+            const clubId = getClubId(user);
             if (!clubId) {
                 console.error('No Club ID found for user');
                 setLoading(false);
@@ -51,10 +52,9 @@ const ClubTutores = () => {
                 r.idAtleta ?? r.IdAtleta ?? r.participanteId ?? r.ParticipanteId;
             const getRelTutorId = (r) => r.idTutor ?? r.IdTutor;
 
-            const myClubAtletas = (Array.isArray(allAtletas) ? allAtletas : []).filter((a) => {
-                const aClubId = a.idClub || a.clubId || a.IdClub;
-                return aClubId && String(aClubId) === String(clubId);
-            });
+            const myClubAtletas = (Array.isArray(allAtletas) ? allAtletas : []).filter((a) =>
+                sameClubId(a, clubId)
+            );
 
             const myClubAtletaIds = new Set(
                 myClubAtletas.map((a) => Number(getAtletaId(a))).filter((id) => Number.isFinite(id))

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../../services/api';
 import PagoService from '../../../services/pagoService';
-import { withFederationScope, getClubFederationId, pick } from '../../../utils/apiHelpers';
+import { withFederationScope, getClubFederationId, pick, getClubId } from '../../../utils/apiHelpers';
 import { getEstadoPagoLabel, getEstadoPagoColor } from '../../../utils/enums';
 import { matchesSearch } from '../../../utils/searchUtils';
 import Card from '../../../components/common/Card';
@@ -27,7 +27,7 @@ import './PagosClubes.css';
 const ESTADO_PAGO_PAGADO = 1;
 
 const normalizeClub = (c) => ({
-    idClub: pick(c, 'idClub', 'id', 'Id'),
+    idClub: getClubId(c, { allowBareId: true }),
     nombre: pick(c, 'nombre', 'Nombre') || 'Sin nombre',
     siglas: pick(c, 'sigla', 'Sigla', 'siglas', 'Siglas') || '',
     idFederacion: getClubFederationId(c),
@@ -93,7 +93,7 @@ const extractAtletasPayload = (response) => {
 const normalizeRecibo = (p) => ({
     id: pick(p, 'id', 'Id'),
     tipoPago: pick(p, 'tipoPago', 'TipoPago') || '',
-    clubId: pick(p, 'clubId', 'ClubId'),
+    clubId: getClubId(p),
     clubNombre: pick(p, 'clubNombre', 'ClubNombre') || '',
     participanteId: pick(p, 'participanteId', 'ParticipanteId'),
     participanteNombre: pick(p, 'participanteNombre', 'ParticipanteNombre') || 'Sin nombre',

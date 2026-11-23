@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { Download, RefreshCw, Search, ShieldCheck } from 'lucide-react';
 import FichajeService from '../../../services/fichajeService';
 import { api } from '../../../services/api';
@@ -13,6 +14,7 @@ import {
     getEstadoPagoLabel,
     getCategoriaLabel,
 } from '../../../utils/enums';
+import { getClubId, withFederationScope } from '../../../utils/apiHelpers';
 
 const normalize = (item) => ({
     id: item.participanteId ?? item.ParticipanteId,
@@ -29,7 +31,11 @@ const normalize = (item) => ({
 });
 
 const PadronHabilitados = ({ modo = 'admin' }) => {
+    const { fedId } = useParams();
     const esAdmin = modo === 'admin';
+    const backTo = fedId
+        ? `/superadmin/federacion/${fedId}`
+        : (esAdmin ? '/dashboard' : '/club');
     const [items, setItems] = useState([]);
     const [clubes, setClubes] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -50,6 +56,7 @@ const PadronHabilitados = ({ modo = 'admin' }) => {
                 soloHabilitados,
                 clubId: clubId || undefined,
                 busqueda: busqueda.trim() || undefined,
+                fedId,
             });
             setItems((Array.isArray(data) ? data : []).map(normalize));
         } catch (err) {
@@ -58,13 +65,16 @@ const PadronHabilitados = ({ modo = 'admin' }) => {
         } finally {
             setLoading(false);
         }
-    }, [soloHabilitados, clubId, busqueda]);
+    }, [soloHabilitados, clubId, busqueda, fedId]);
 
     useEffect(() => {
         if (esAdmin) {
-            api.get('/Club').then((data) => setClubes(Array.isArray(data) ? data : [])).catch(() => setClubes([]));
+            api.get(withFederationScope('/Clubes', fedId))
+                .catch(() => api.get(withFederationScope('/Club', fedId)))
+                .then((data) => setClubes(Array.isArray(data) ? data : []))
+                .catch(() => setClubes([]));
         }
-    }, [esAdmin]);
+    }, [esAdmin, fedId]);
 
     useEffect(() => {
         const t = setTimeout(load, busqueda ? 350 : 0);
@@ -100,7 +110,8 @@ const PadronHabilitados = ({ modo = 'admin' }) => {
             <PageHeader
                 title={esAdmin ? 'Padrón habilitados' : 'Mi plantel habilitado'}
                 icon={ShieldCheck}
-                backTo={esAdmin ? '/dashboard' : '/club'}
+                backTo={backTo}
+                backLabel={fedId ? 'Dashboard federación' : (esAdmin ? 'Dashboard' : 'Club')}
                 actions={
                     <div style={{ display: 'flex', gap: 8 }}>
                         <Button variant="ghost" size="sm" onClick={load} disabled={loading}>
@@ -126,11 +137,14 @@ const PadronHabilitados = ({ modo = 'admin' }) => {
                     {esAdmin && (
                         <select className="form-input" value={clubId} onChange={(e) => setClubId(e.target.value)} style={{ minWidth: 180 }}>
                             <option value="">Todos los clubes</option>
-                            {clubes.map((c) => (
-                                <option key={c.idClub ?? c.IdClub} value={c.idClub ?? c.IdClub}>
+                            {clubes.map((c) => {
+                                const cid = getClubId(c, { allowBareId: true });
+                                return (
+                                <option key={cid} value={cid}>
                                     {c.nombre ?? c.Nombre}
                                 </option>
-                            ))}
+                                );
+                            })}
                         </select>
                     )}
                     <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.9rem' }}>

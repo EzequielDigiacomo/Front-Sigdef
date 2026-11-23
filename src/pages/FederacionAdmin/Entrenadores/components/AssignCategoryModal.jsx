@@ -4,6 +4,7 @@ import Button from '../../../../components/common/Button';
 import ConfirmationModal from '../../../../components/common/ConfirmationModal';
 import { X, Award, Check } from 'lucide-react';
 import { CATEGORIA_MAP } from '../../../../utils/enums';
+import { getClubId } from '../../../../utils/apiHelpers';
 import './AssignCategoryModal.css';
 
 const AssignCategoryModal = ({ isOpen, onClose, onSuccess, coach }) => {
@@ -32,7 +33,7 @@ const AssignCategoryModal = ({ isOpen, onClose, onSuccess, coach }) => {
                 participanteId: coach.idPersona,
                 ParticipanteId: coach.idPersona,
                 idPersona: coach.idPersona,
-                idClub: coach.idClub || null,
+                idClub: getClubId(coach),
                 licencia: coach.licencia || '',
                 perteneceSeleccion: true,
                 categoriaSeleccion: selectedCategory,

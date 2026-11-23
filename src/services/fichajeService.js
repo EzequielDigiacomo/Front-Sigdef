@@ -1,18 +1,22 @@
 import { api } from './api';
+import { withFederationScope } from '../utils/apiHelpers';
 
 const FichajeService = {
-    getFichajes: (estado) => {
+    getFichajes: (estado, fedId) => {
         const q = estado != null && estado !== '' ? `?estado=${estado}` : '';
-        return api.get(`/Atleta/fichajes${q}`);
+        return api.get(withFederationScope(`/Atleta/fichajes${q}`, fedId));
     },
 
-    aprobar: (id) => api.post(`/Atleta/${id}/fichaje/aprobar`),
+    aprobar: (id, fedId) => api.post(withFederationScope(`/Atleta/${id}/fichaje/aprobar`, fedId)),
 
-    observar: (id, motivo) => api.post(`/Atleta/${id}/fichaje/observar`, { motivo }),
+    observar: (id, motivo, fedId) =>
+        api.post(withFederationScope(`/Atleta/${id}/fichaje/observar`, fedId), { motivo }),
 
-    rechazar: (id, motivo) => api.post(`/Atleta/${id}/fichaje/rechazar`, { motivo }),
+    rechazar: (id, motivo, fedId) =>
+        api.post(withFederationScope(`/Atleta/${id}/fichaje/rechazar`, fedId), { motivo }),
 
-    getHistorial: (id) => api.get(`/Atleta/${id}/fichaje/historial`),
+    getHistorial: (id, fedId) =>
+        api.get(withFederationScope(`/Atleta/${id}/fichaje/historial`, fedId)),
 
     getPadron: (params = {}) => {
         const qs = new URLSearchParams();
@@ -22,10 +26,10 @@ const FichajeService = {
         if (params.estadoFichaje != null && params.estadoFichaje !== '') qs.set('estadoFichaje', params.estadoFichaje);
         if (params.busqueda) qs.set('busqueda', params.busqueda);
         const query = qs.toString();
-        return api.get(`/Atleta/padron${query ? `?${query}` : ''}`);
+        return api.get(withFederationScope(`/Atleta/padron${query ? `?${query}` : ''}`, params.fedId));
     },
 
-    getResumen: () => api.get('/Atleta/reportes/resumen'),
+    getResumen: (fedId) => api.get(withFederationScope('/Atleta/reportes/resumen', fedId)),
 };
 
 export default FichajeService;

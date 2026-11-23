@@ -13,6 +13,7 @@ import useFormFieldErrors from '../../../hooks/useFormFieldErrors';
 import FieldError from '../../../components/forms/FieldError';
 import FormErrorsBanner from '../../../components/forms/FormErrorsBanner';
 import { toUserFacingErrorMessage } from '../../../utils/friendlyError';
+import { getClubId, sameClubId } from '../../../utils/apiHelpers';
 import '../../../styles/CompactForm.css';
 
 const FIELD_LABELS = {
@@ -84,7 +85,7 @@ const ClubTutoresForm = () => {
 
     const fetchAtletas = async () => {
         try {
-            const clubId = user?.IdClub || user?.idClub || user?.club?.id || user?.clubId;
+            const clubId = getClubId(user);
             if (!clubId) {
                 console.error('No se pudo identificar el Club ID');
                 return;
@@ -109,10 +110,7 @@ const ClubTutoresForm = () => {
             );
 
             const atletasDisponibles = (Array.isArray(allAtletas) ? allAtletas : [])
-                .filter((a) => {
-                    const aClubId = a.idClub || a.clubId || a.IdClub;
-                    return aClubId && String(aClubId) === String(clubId);
-                })
+                .filter((a) => sameClubId(a, clubId))
                 .map((a) => {
                     const idPersona = Number(getAtletaId(a));
                     const persona = a.participante || a.Participante || {};

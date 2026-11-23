@@ -7,6 +7,7 @@ import Button from '../../../components/common/Button';
 import Card from '../../../components/common/Card';
 import FormField from '../../../components/forms/FormField';
 import { matchesSearch } from '../../../utils/searchUtils';
+import { getClubId, sameClubId } from '../../../utils/apiHelpers';
 import './EventosDisponibles.css';
 
 const EventosDisponibles = () => {
@@ -31,20 +32,23 @@ const EventosDisponibles = () => {
             const inscripciones = await api.get('/Inscripcion');
 
             console.log('Todos los eventos:', todosEventos);
-            console.log('Mi Club ID:', user?.idClub ?? user?.clubId);
+            const myClubId = getClubId(user);
+            console.log('Mi Club ID:', myClubId);
 
-            const myClubId = user?.idClub ?? user?.clubId ?? user?.IdClub;
             const eventosDisponibles = todosEventos
                 .filter(e => {
 
-                    const esOtroClub = e.idClub != myClubId;
+                    const esOtroClub = !sameClubId(e, myClubId);
 
                     const esFuturo = new Date(e.fechaFin) >= new Date();
                     return esOtroClub && esFuturo;
                 })
                 .map(evento => {
 
-                    const clubOrganizador = clubes.find(c => c.id === evento.idClub || c.idClub === evento.idClub);
+                    const clubOrganizador = clubes.find((c) =>
+                        sameClubId(c, getClubId(evento)) ||
+                        String(getClubId(c, { allowBareId: true }) ?? '') === String(getClubId(evento) ?? '')
+                    );
 
                     const inscritosTotal = inscripciones.filter(i => i.idEvento === evento.idEvento || i.idEvento === evento.id).length;
 

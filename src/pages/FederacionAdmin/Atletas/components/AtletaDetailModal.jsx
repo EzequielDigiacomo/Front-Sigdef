@@ -255,22 +255,30 @@ const AtletaDetailModal = ({ isOpen, onClose, athlete, onRefresh, returnPath = '
         if (!participanteId) return;
         setFichajeLoading(true);
         try {
-            await FichajeService.aprobar(participanteId);
+            const result = await FichajeService.aprobar(participanteId);
             setLocalAthlete((prev) => (prev ? { ...prev, estadoFichaje: 2 } : prev));
             if (onRefresh) onRefresh();
+            const faltantes = result?.docsFaltantes || result?.DocsFaltantes || [];
             setConfirmModal({
                 isOpen: true,
                 title: 'Alta aprobada',
-                message: 'El fichaje del atleta quedó aprobado.',
-                type: 'success',
+                message: result?.message
+                    || (faltantes.length
+                        ? `El fichaje quedó aprobado. Faltan para habilitación: ${faltantes.join(', ')}.`
+                        : 'El fichaje del atleta quedó aprobado.'),
+                type: faltantes.length ? 'warning' : 'success',
                 showCancel: false,
                 onConfirm: () => setConfirmModal((prev) => ({ ...prev, isOpen: false })),
             });
         } catch (error) {
+            const body = error?.body || {};
+            const faltantes = body.docsFaltantes || body.DocsFaltantes || [];
             setConfirmModal({
                 isOpen: true,
                 title: 'No se pudo aprobar',
-                message: error.message || 'Revisá documentación y apto médico.',
+                message: faltantes.length
+                    ? `${error.message || body.error || 'No se pudo aprobar.'} Falta: ${faltantes.join(', ')}.`
+                    : (error.message || body.error || 'No se pudo aprobar el alta.'),
                 type: 'danger',
                 showCancel: false,
                 onConfirm: () => setConfirmModal((prev) => ({ ...prev, isOpen: false })),

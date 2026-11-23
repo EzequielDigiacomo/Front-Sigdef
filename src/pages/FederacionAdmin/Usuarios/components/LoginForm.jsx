@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Save, Eye, EyeOff, User } from 'lucide-react';
 import Button from '../../../../components/common/Button';
 import { useAuth } from '../../../../context/AuthContext';
-import { pick } from '../../../../utils/apiHelpers';
+import { pick, getClubId } from '../../../../utils/apiHelpers';
 import {
     canAccessControlesLive,
     canAccessDashboardClub,
@@ -157,7 +157,7 @@ const LoginForm = ({
                                     >
                                         <option value="">Seleccionar club...</option>
                                         {clubes.map((c) => {
-                                            const id = pick(c, 'idClub', 'IdClub', 'id', 'Id');
+                                            const id = getClubId(c, { allowBareId: true });
                                             return (
                                                 <option key={id} value={id}>
                                                     {pick(c, 'nombre', 'Nombre') || id}

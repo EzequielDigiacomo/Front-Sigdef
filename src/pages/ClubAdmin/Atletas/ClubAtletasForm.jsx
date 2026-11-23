@@ -20,6 +20,7 @@ import AtletaPendingPhotos, {
 } from '../../../components/forms/AtletaPendingPhotos';
 import { getParticipanteId } from '../../../utils/atletaUtils';
 import { toUserFacingErrorMessage } from '../../../utils/friendlyError';
+import { getClubId } from '../../../utils/apiHelpers';
 import './ClubAtletas.css';
 import '../../../styles/CompactForm.css';
 
@@ -309,7 +310,7 @@ const ClubAtletasForm = () => {
         }
     };
 
-    const clubId = user?.idClub ?? user?.clubId ?? user?.IdClub ?? null;
+    const clubId = getClubId(user);
 
     const handleSubmit = async (e) => {
         e.preventDefault();

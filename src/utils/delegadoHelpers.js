@@ -1,9 +1,10 @@
+import { getClubId } from './apiHelpers';
+
 /** Normaliza un usuario de /Auth/usuarios como delegado de club. */
 export const getUsuarioRol = (u) =>
     u?.rol || u?.Rol || u?.rolFederacion || u?.RolFederacion || '';
 
-export const getUsuarioClubId = (u) =>
-    u?.idClub ?? u?.IdClub ?? u?.clubId ?? u?.ClubId ?? null;
+export const getUsuarioClubId = (u) => getClubId(u);
 
 export const getUsuarioFederacionId = (u) =>
     u?.idFederacion ?? u?.IdFederacion ?? u?.federacionId ?? u?.FederacionId ?? null;
