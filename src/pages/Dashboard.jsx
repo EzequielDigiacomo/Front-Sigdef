@@ -14,7 +14,7 @@ import { normalizePlan } from '../utils/planHelpers';
 import { formatAuditFriendlyTitle } from '../utils/auditDisplay';
 import './Dashboard.css';
 
-const ACTIVITY_PAGE_SIZE = 4;
+const ACTIVITY_PAGE_SIZE = 10;
 
 const formatFechaHora = (fecha) => {
     if (!fecha) return '—';
@@ -61,6 +61,8 @@ const Dashboard = () => {
     const [federacionNombre, setFederacionNombre] = useState('...');
     const [actividad, setActividad] = useState([]);
     const [activityPage, setActivityPage] = useState(1);
+    const [activityTotalCount, setActivityTotalCount] = useState(0);
+    const [activityTotalPages, setActivityTotalPages] = useState(1);
     const [activityLoading, setActivityLoading] = useState(true);
 
     const [stats, setStats] = useState([
@@ -167,11 +169,19 @@ const Dashboard = () => {
     }, [refreshTrigger]);
 
     useEffect(() => {
+        let cancelled = false;
         const fetchActividad = async () => {
             try {
                 setActivityLoading(true);
-                const data = await api.get('/Auditoria?limit=200');
-                const rows = (Array.isArray(data) ? data : []).map((log) => {
+                const data = await api.get(
+                    `/Auditoria?pageNumber=${activityPage}&pageSize=${ACTIVITY_PAGE_SIZE}`
+                );
+                if (cancelled) return;
+
+                const list = Array.isArray(data)
+                    ? data
+                    : (Array.isArray(data?.items) ? data.items : []);
+                const rows = list.map((log) => {
                     const accion = log.accion ?? log.Accion ?? 'Evento';
                     const detalle = log.detalle ?? log.Detalle ?? '';
                     return {
@@ -182,28 +192,35 @@ const Dashboard = () => {
                         usuario: log.usuario ?? log.Usuario ?? 'Sistema',
                     };
                 });
+
+                const totalCount = Number(data?.totalCount ?? rows.length) || 0;
+                const totalPages = Math.max(
+                    1,
+                    Number(data?.totalPages) || Math.ceil(totalCount / ACTIVITY_PAGE_SIZE) || 1
+                );
+                const serverPage = Number(data?.pageNumber) || activityPage;
+
                 setActividad(rows);
-                setActivityPage(1);
+                setActivityTotalCount(totalCount);
+                setActivityTotalPages(totalPages);
+                if (serverPage !== activityPage) setActivityPage(serverPage);
             } catch (error) {
+                if (cancelled) return;
                 console.error('Error cargando actividad:', error);
                 setActividad([]);
+                setActivityTotalCount(0);
+                setActivityTotalPages(1);
             } finally {
-                setActivityLoading(false);
+                if (!cancelled) setActivityLoading(false);
             }
         };
 
         fetchActividad();
-    }, []);
+        return () => { cancelled = true; };
+    }, [activityPage]);
 
-    const activityTotalPages = Math.max(1, Math.ceil(actividad.length / ACTIVITY_PAGE_SIZE));
     const activityPageSafe = Math.min(activityPage, activityTotalPages);
-    const actividadPagina = useMemo(
-        () => actividad.slice(
-            (activityPageSafe - 1) * ACTIVITY_PAGE_SIZE,
-            activityPageSafe * ACTIVITY_PAGE_SIZE
-        ),
-        [actividad, activityPageSafe]
-    );
+    const actividadPagina = actividad;
 
     const navCards = [
         { label: 'Clubes', icon: Shield, path: '/dashboard/clubes', color: '#3b82f6', description: 'Gestión de clubes y sedes' },
@@ -380,12 +397,12 @@ const Dashboard = () => {
                                 })}
                             </ul>
 
-                            {activityTotalPages > 1 && (
+                            {activityTotalCount > ACTIVITY_PAGE_SIZE && (
                                 <div className="activity-pagination">
                                     <button
                                         type="button"
                                         className="activity-page-btn"
-                                        disabled={activityPageSafe <= 1}
+                                        disabled={activityPageSafe <= 1 || activityLoading}
                                         onClick={() => setActivityPage((p) => Math.max(1, p - 1))}
                                         aria-label="Página anterior"
                                     >
@@ -393,12 +410,12 @@ const Dashboard = () => {
                                     </button>
                                     <span className="activity-page-info">
                                         Página {activityPageSafe} de {activityTotalPages}
-                                        <span className="activity-page-total"> · {actividad.length} registros</span>
+                                        <span className="activity-page-total"> · {activityTotalCount} registros</span>
                                     </span>
                                     <button
                                         type="button"
                                         className="activity-page-btn"
-                                        disabled={activityPageSafe >= activityTotalPages}
+                                        disabled={activityPageSafe >= activityTotalPages || activityLoading}
                                         onClick={() => setActivityPage((p) => Math.min(activityTotalPages, p + 1))}
                                         aria-label="Página siguiente"
                                     >

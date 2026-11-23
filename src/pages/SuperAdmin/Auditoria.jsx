@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
+import Pagination from '../../components/common/Pagination';
 import { Key, Globe, MousePointerClick, Bug, CheckCircle2, Trash2, Save, Minus, Plus } from 'lucide-react';
 import SearchInput from '../../components/common/SearchInput';
 import { api } from '../../services/api';
@@ -13,7 +14,8 @@ import {
 } from '../../utils/auditDisplay';
 
 /** Intervalo de refresco automático de la bitácora (solo con sesión activa). */
-const POLL_MS = 3_000;
+const POLL_MS = 8_000;
+const PAGE_SIZE = 10;
 
 const toInputDate = (date) => {
     const d = new Date(date);
@@ -88,11 +90,31 @@ const mapLogs = (data) =>
             };
         });
 
+const logMatchesSearch = (log, rawQuery) => {
+    const q = String(rawQuery || '').trim().toLowerCase();
+    if (!q) return true;
+    const blob = [
+        log.accion,
+        log.accionLabel,
+        log.detalle,
+        log.detalleRaw,
+        log.usuario,
+        log.modulo,
+        log.ip,
+        log.resultado,
+    ].join(' ').toLowerCase();
+    return blob.includes(q);
+};
+
 const Auditoria = () => {
     const { isAuthenticated } = useAuth();
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
     const [expandedId, setExpandedId] = useState(null);
 
     const [retention, setRetention] = useState({ enabled: false, days: 90, federaciones: [] });
@@ -103,6 +125,15 @@ const Auditoria = () => {
     const [fedBusyId, setFedBusyId] = useState(null);
     const [fedMsg, setFedMsg] = useState('');
     const [fedPurgeOpen, setFedPurgeOpen] = useState(true);
+
+    useEffect(() => {
+        const t = setTimeout(() => setDebouncedSearch(searchTerm.trim()), 350);
+        return () => clearTimeout(t);
+    }, [searchTerm]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [debouncedSearch]);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -116,13 +147,64 @@ const Auditoria = () => {
             if (document.visibilityState === 'hidden') return;
             try {
                 if (!silent) setLoading(true);
-                const data = await api.get('/support/logs?limit=200');
+
+                // Con búsqueda: traemos un lote amplio y filtramos en cliente
+                // (usuario, detalle, acción, módulo, IP) para que coincida sí o sí.
+                if (debouncedSearch) {
+                    let data = await api.get(
+                        `/support/logs?pageNumber=1&pageSize=2000&search=${encodeURIComponent(debouncedSearch)}`
+                    ).catch(() => null);
+                    if (cancelled) return;
+
+                    let list = Array.isArray(data)
+                        ? data
+                        : (Array.isArray(data?.items) ? data.items : []);
+
+                    if (list.length === 0) {
+                        data = await api.get('/support/logs?limit=2000');
+                        if (cancelled) return;
+                        list = Array.isArray(data)
+                            ? data
+                            : (Array.isArray(data?.items) ? data.items : []);
+                    }
+
+                    const filtered = mapLogs(list).filter((l) => logMatchesSearch(l, debouncedSearch));
+                    const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE) || 1);
+                    const pageSafe = Math.min(Math.max(1, page), pages);
+                    setLogs(filtered.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE));
+                    setTotalCount(filtered.length);
+                    setTotalPages(pages);
+                    if (pageSafe !== page) setPage(pageSafe);
+                    return;
+                }
+
+                const params = new URLSearchParams({
+                    pageNumber: String(page),
+                    pageSize: String(PAGE_SIZE),
+                });
+                const data = await api.get(`/support/logs?${params.toString()}`);
                 if (cancelled) return;
-                setLogs(mapLogs(data));
+
+                const isPaged = data && !Array.isArray(data) && Array.isArray(data.items);
+                const list = isPaged ? data.items : (Array.isArray(data) ? data : []);
+                setLogs(mapLogs(list));
+                if (isPaged) {
+                    setTotalCount(Number(data.totalCount) || list.length);
+                    setTotalPages(Math.max(1, Number(data.totalPages) || 1));
+                    const serverPage = Number(data.pageNumber);
+                    if (serverPage && serverPage !== page) setPage(serverPage);
+                } else {
+                    setTotalCount(list.length);
+                    setTotalPages(Math.max(1, Math.ceil(list.length / PAGE_SIZE)));
+                }
             } catch (error) {
                 if (cancelled) return;
                 console.error('Error cargando auditoría:', error);
-                if (!silent) setLogs([]);
+                if (!silent) {
+                    setLogs([]);
+                    setTotalCount(0);
+                    setTotalPages(1);
+                }
             } finally {
                 if (!cancelled && !silent) setLoading(false);
             }
@@ -145,7 +227,7 @@ const Auditoria = () => {
             window.removeEventListener('focus', onFocus);
             document.removeEventListener('visibilitychange', onVisibility);
         };
-    }, [isAuthenticated]);
+    }, [isAuthenticated, page, debouncedSearch]);
 
     useEffect(() => {
         if (!isAuthenticated) return undefined;
@@ -271,19 +353,6 @@ const Auditoria = () => {
             setFedBusyId(null);
         }
     };
-
-    const filteredLogs = logs.filter((log) => {
-        const q = searchTerm.toLowerCase();
-        return (
-            log.accion.toLowerCase().includes(q)
-            || log.accionLabel.toLowerCase().includes(q)
-            || log.detalle.toLowerCase().includes(q)
-            || log.usuario.toLowerCase().includes(q)
-            || (log.modulo || '').toLowerCase().includes(q)
-            || (log.resultado || '').toLowerCase().includes(q)
-            || (log.detalleRaw || '').toLowerCase().includes(q)
-        );
-    });
 
     const getIcon = (tipo) => {
         switch (tipo) {
@@ -636,11 +705,11 @@ const Auditoria = () => {
 
                 {loading ? (
                     <p style={{ color: 'var(--text-secondary)' }}>Cargando registros...</p>
-                ) : filteredLogs.length === 0 ? (
+                ) : logs.length === 0 ? (
                     <p style={{ color: 'var(--text-secondary)' }}>No hay registros de auditoría.</p>
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', minWidth: 0 }}>
-                        {filteredLogs.map((log) => {
+                        {logs.map((log) => {
                             const tone = toneFor(log.tipo);
                             const expanded = expandedId === log.id;
                             return (
@@ -784,6 +853,27 @@ const Auditoria = () => {
                                 </div>
                             );
                         })}
+                        {totalCount > PAGE_SIZE && (
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                flexWrap: 'wrap',
+                                gap: '0.75rem',
+                                marginTop: '0.5rem',
+                                paddingTop: '0.75rem',
+                                borderTop: '1px solid var(--border-color)',
+                            }}>
+                                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    Página {page} de {totalPages} · {totalCount} registros
+                                </span>
+                                <Pagination
+                                    currentPage={page}
+                                    totalPages={totalPages}
+                                    onPageChange={setPage}
+                                />
+                            </div>
+                        )}
                     </div>
                 )}
             </Card>
