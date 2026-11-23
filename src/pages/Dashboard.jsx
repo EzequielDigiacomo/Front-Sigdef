@@ -11,6 +11,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import FichajeService from '../services/fichajeService';
 import { normalizePlan } from '../utils/planHelpers';
+import { formatAuditFriendlyTitle } from '../utils/auditDisplay';
 import './Dashboard.css';
 
 const ACTIVITY_PAGE_SIZE = 4;
@@ -39,27 +40,6 @@ const formatFechaHoraCompact = (fecha) => {
         hour: '2-digit',
         minute: '2-digit',
     });
-};
-
-const labelAccion = (accion = '') => {
-    const map = {
-        LOGIN_SUCCESS: 'Inicio de sesión',
-        LOGIN_FAILED: 'Login fallido',
-        LOGIN_BLOCKED: 'Acceso bloqueado',
-        ACCOUNT_LOCKED: 'Cuenta bloqueada',
-        CREATE_ATHLETE: 'Alta de atleta',
-        UPDATE_ATHLETE: 'Actualización de atleta',
-        DELETE_ATHLETE: 'Baja de atleta',
-        CREATE_COACH: 'Alta de entrenador',
-        CREATE_TUTOR: 'Alta de tutor',
-        CREATE_DELEGATE: 'Alta de delegado',
-        CREATE_USER: 'Alta de usuario',
-        REGISTER_USER: 'Registro de usuario',
-        REGISTRAR_PAGO: 'Pago registrado',
-        TOGGLE_PAGO_CLUB: 'Cambio pago club',
-        TOGGLE_PAGO_ATLETA: 'Cambio pago atleta',
-    };
-    return map[accion] || accion.replaceAll('_', ' ');
 };
 
 const isSecurityEvent = (accion = '') => {
@@ -191,15 +171,17 @@ const Dashboard = () => {
             try {
                 setActivityLoading(true);
                 const data = await api.get('/Auditoria?limit=200');
-                const rows = (Array.isArray(data) ? data : []).map((log) => ({
-                    id: log.id ?? log.Id,
-                    fecha: log.fecha ?? log.Fecha,
-                    accion: log.accion ?? log.Accion ?? 'Evento',
-                    detalle: log.detalle ?? log.Detalle ?? '',
-                    usuario: log.usuario ?? log.Usuario ?? 'Sistema',
-                    modulo: log.modulo ?? log.Modulo ?? 'General',
-                    ip: log.ip ?? log.IP ?? '',
-                }));
+                const rows = (Array.isArray(data) ? data : []).map((log) => {
+                    const accion = log.accion ?? log.Accion ?? 'Evento';
+                    const detalle = log.detalle ?? log.Detalle ?? '';
+                    return {
+                        id: log.id ?? log.Id,
+                        fecha: log.fecha ?? log.Fecha,
+                        accion,
+                        titulo: formatAuditFriendlyTitle(accion, detalle),
+                        usuario: log.usuario ?? log.Usuario ?? 'Sistema',
+                    };
+                });
                 setActividad(rows);
                 setActivityPage(1);
             } catch (error) {
@@ -330,7 +312,7 @@ const Dashboard = () => {
                         Actividad reciente
                     </h2>
                     <p className="section-subtitle">
-                        Eventos de la federación: altas, accesos e intentos fallidos
+                        Resumen de lo que hicieron los usuarios (sin detalle técnico)
                     </p>
                 </div>
 
@@ -346,10 +328,8 @@ const Dashboard = () => {
                                     <thead>
                                         <tr>
                                             <th>Fecha y hora</th>
-                                            <th>Evento</th>
-                                            <th>Detalle</th>
+                                            <th>Qué pasó</th>
                                             <th>Usuario</th>
-                                            <th>Módulo</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -365,12 +345,10 @@ const Dashboard = () => {
                                                     <td>
                                                         <span className={`activity-event ${danger ? 'danger' : ''}`}>
                                                             <Icon size={14} />
-                                                            {labelAccion(row.accion)}
+                                                            {row.titulo}
                                                         </span>
                                                     </td>
-                                                    <td className="activity-detail" title={row.detalle}>{row.detalle || '—'}</td>
                                                     <td>{row.usuario}</td>
-                                                    <td>{row.modulo}</td>
                                                 </tr>
                                             );
                                         })}
@@ -388,19 +366,14 @@ const Dashboard = () => {
                                             <div className="activity-mobile-top">
                                                 <span className={`activity-event ${danger ? 'danger' : ''}`}>
                                                     <Icon size={13} />
-                                                    {labelAccion(row.accion)}
+                                                    {row.titulo}
                                                 </span>
                                                 <time className="activity-datetime" dateTime={row.fecha}>
                                                     {formatFechaHoraCompact(row.fecha)}
                                                 </time>
                                             </div>
-                                            {row.detalle ? (
-                                                <p className="activity-mobile-detail" title={row.detalle}>{row.detalle}</p>
-                                            ) : null}
                                             <div className="activity-mobile-meta">
                                                 <span>{row.usuario || 'Sistema'}</span>
-                                                <span aria-hidden="true">·</span>
-                                                <span>{row.modulo || 'General'}</span>
                                             </div>
                                         </li>
                                     );

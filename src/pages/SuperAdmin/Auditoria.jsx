@@ -1,29 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import Card from '../../components/common/Card';
-import { Key, Globe, MousePointerClick, Bug, CheckCircle2 } from 'lucide-react';
+import Button from '../../components/common/Button';
+import { Key, Globe, MousePointerClick, Bug, CheckCircle2, Trash2, Save, Minus, Plus } from 'lucide-react';
 import SearchInput from '../../components/common/SearchInput';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { fetchFederacionesList } from '../../services/saasService';
+import {
+    AUDIT_ACTION_LABELS,
+    tryParseDetalle,
+    formatAuditTechnicalDetalle,
+} from '../../utils/auditDisplay';
 
 /** Intervalo de refresco automático de la bitácora (solo con sesión activa). */
 const POLL_MS = 3_000;
 
-const ACTION_LABELS = {
-    CLICK_UI: 'Click en pantalla',
-    CLICK_SAVE_DELEGADO: 'Intento guardar delegado',
-    SAVE_DELEGADO_OK: 'Delegado guardado OK',
-    SAVE_DELEGADO_VALIDATION: 'Error validación delegado',
-    SAVE_DELEGADO_FAILED: 'Error al guardar delegado',
-    CLICK_SAVE_ATHLETE: 'Intento guardar atleta',
-    SAVE_ATHLETE_OK: 'Atleta guardado OK',
-    SAVE_ATHLETE_FAILED: 'Error al guardar atleta',
-    SAVE_ATHLETE_VALIDATION: 'Error validación atleta',
-    CLICK_UPLOAD_DOCUMENT: 'Intento cargar documento',
-    UPLOAD_DOCUMENT_FAILED: 'Error al cargar documento',
-    API_ERROR: 'Error de API',
-    FRONTEND_CRASH: 'Crash frontend',
-    LOGIN_SUCCESS: 'Login OK',
-    LOGIN_FAILED: 'Login fallido',
+const toInputDate = (date) => {
+    const d = new Date(date);
+    if (Number.isNaN(d.getTime())) return '';
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+};
+
+const defaultRange = () => {
+    const to = new Date();
+    to.setDate(to.getDate() - 7);
+    const from = new Date();
+    from.setMonth(from.getMonth() - 2);
+    return { from: toInputDate(from), to: toInputDate(to) };
 };
 
 const inferTipo = (accion = '', resultado = '') => {
@@ -52,46 +58,6 @@ const formatFecha = (dateStr) => {
     return date.toLocaleString('es-AR');
 };
 
-const tryParseDetalle = (detalle) => {
-    if (!detalle || typeof detalle !== 'string') return null;
-    const trimmed = detalle.trim();
-    if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return null;
-    try {
-        return JSON.parse(trimmed);
-    } catch {
-        return null;
-    }
-};
-
-const formatDetalle = (detalle) => {
-    const parsed = tryParseDetalle(detalle);
-    if (!parsed || typeof parsed !== 'object') return detalle || '';
-
-    const parts = [];
-    if (parsed.resultado) parts.push(`Resultado: ${parsed.resultado}`);
-    if (Array.isArray(parsed.validationErrors) && parsed.validationErrors.length) {
-        parts.push(parsed.validationErrors.join(' | '));
-    } else if (parsed.message) {
-        parts.push(parsed.message);
-    }
-    if (parsed.label && !parsed.message) parts.push(`Click: ${parsed.label}`);
-    if (parsed.endpoint) parts.push(`${parsed.method || 'REQ'} ${parsed.endpoint}`);
-    if (parsed.httpStatus) parts.push(`HTTP ${parsed.httpStatus}`);
-    if (parsed.path) parts.push(`Pantalla: ${parsed.path}`);
-    if (parsed.lastClick?.label) parts.push(`Último click: ${parsed.lastClick.label}`);
-    if (parsed.documento) parts.push(`DNI: ${parsed.documento}`);
-    if (parsed.nombre || parsed.apellido) {
-        parts.push(`Persona: ${[parsed.nombre, parsed.apellido].filter(Boolean).join(' ')}`);
-    }
-    if (parsed.tipoLabel || parsed.tipoDocumento != null) {
-        parts.push(`Doc: ${parsed.tipoLabel || parsed.tipoDocumento}`);
-    }
-    if (parsed.fileName) parts.push(`Archivo: ${parsed.fileName}`);
-    if (parsed.technicalHint) parts.push(`Detalle: ${parsed.technicalHint}`);
-
-    return parts.length > 0 ? parts.join(' · ') : detalle;
-};
-
 const isForbidNoise = (detalle = '') =>
     detalle.includes('No authentication handler is registered for the scheme');
 
@@ -111,8 +77,8 @@ const mapLogs = (data) =>
                 id: log.id ?? log.Id,
                 tipo: inferTipo(accion, resultado),
                 accion,
-                accionLabel: ACTION_LABELS[accion] || accion,
-                detalle: formatDetalle(detalleRaw),
+                accionLabel: AUDIT_ACTION_LABELS[accion] || accion,
+                detalle: formatAuditTechnicalDetalle(detalleRaw),
                 detalleRaw,
                 resultado,
                 modulo: log.modulo ?? log.Modulo ?? '',
@@ -127,6 +93,16 @@ const Auditoria = () => {
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [expandedId, setExpandedId] = useState(null);
+
+    const [retention, setRetention] = useState({ enabled: false, days: 90, federaciones: [] });
+    const [retentionLoading, setRetentionLoading] = useState(true);
+    const [retentionSaving, setRetentionSaving] = useState(false);
+    const [retentionMsg, setRetentionMsg] = useState('');
+    const [fedRows, setFedRows] = useState([]);
+    const [fedBusyId, setFedBusyId] = useState(null);
+    const [fedMsg, setFedMsg] = useState('');
+    const [fedPurgeOpen, setFedPurgeOpen] = useState(true);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -171,6 +147,131 @@ const Auditoria = () => {
         };
     }, [isAuthenticated]);
 
+    useEffect(() => {
+        if (!isAuthenticated) return undefined;
+        let cancelled = false;
+        (async () => {
+            setRetentionLoading(true);
+            try {
+                const [data, feds] = await Promise.all([
+                    api.get('/support/audit-retention').catch(() => null),
+                    fetchFederacionesList().catch(() => []),
+                ]);
+                if (cancelled) return;
+
+                const fedConfigs = Array.isArray(data?.federaciones) ? data.federaciones : [];
+                setRetention({
+                    enabled: !!data?.enabled,
+                    days: Number(data?.days) > 0 ? Number(data.days) : 90,
+                    federaciones: fedConfigs,
+                });
+
+                const range = defaultRange();
+                const rows = (Array.isArray(feds) ? feds : []).map((f) => {
+                    const id = Number(f.idFederacion ?? f.IdFederacion ?? f.id ?? 0);
+                    const cfg = fedConfigs.find((c) => Number(c.federacionId) === id);
+                    return {
+                        id,
+                        nombre: f.nombre || f.Nombre || `Federación #${id}`,
+                        enabled: !!cfg?.enabled,
+                        days: Number(cfg?.days) > 0 ? Number(cfg.days) : 90,
+                        from: range.from,
+                        to: range.to,
+                    };
+                }).filter((r) => r.id > 0);
+
+                setFedRows(rows);
+            } catch (err) {
+                console.error('Error cargando retención de auditoría:', err);
+            } finally {
+                if (!cancelled) setRetentionLoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [isAuthenticated]);
+
+    const updateFedRow = (id, patch) => {
+        setFedRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+    };
+
+    const saveFedRetention = async (row) => {
+        setFedBusyId(row.id);
+        setFedMsg('');
+        try {
+            const saved = await api.put('/support/audit-retention/federacion', {
+                federacionId: row.id,
+                nombre: row.nombre,
+                enabled: !!row.enabled,
+                days: Number(row.days) || 90,
+            });
+            updateFedRow(row.id, {
+                enabled: !!saved.enabled,
+                days: Number(saved.days) || 90,
+            });
+            setFedMsg(
+                saved.enabled
+                    ? `${row.nombre}: auto-borrado activo (conserva ${saved.days} días).`
+                    : `${row.nombre}: auto-borrado desactivado.`
+            );
+        } catch (err) {
+            setFedMsg(err?.message || `No se pudo guardar la config de ${row.nombre}.`);
+        } finally {
+            setFedBusyId(null);
+        }
+    };
+
+    const purgeFedRange = async (row) => {
+        if (!row.from || !row.to) {
+            setFedMsg('Completá desde / hasta para borrar por rango.');
+            return;
+        }
+        if (row.from > row.to) {
+            setFedMsg('La fecha desde no puede ser posterior a hasta.');
+            return;
+        }
+        const ok = window.confirm(
+            `¿Borrar auditoría de "${row.nombre}" desde ${row.from} hasta ${row.to}?\n\nLo posterior a "hasta" se conserva.`
+        );
+        if (!ok) return;
+
+        setFedBusyId(row.id);
+        setFedMsg('');
+        try {
+            const res = await api.post('/support/audit-retention/purge-federacion', {
+                federacionId: row.id,
+                deleteAll: false,
+                from: row.from,
+                to: row.to,
+            });
+            setFedMsg(res?.message || `${row.nombre}: eliminados ${res?.deleted ?? 0}`);
+        } catch (err) {
+            setFedMsg(err?.message || `No se pudo purgar ${row.nombre}.`);
+        } finally {
+            setFedBusyId(null);
+        }
+    };
+
+    const purgeFedAll = async (row) => {
+        const ok = window.confirm(
+            `¿Borrar TODA la auditoría de "${row.nombre}"?\n\nEsta acción no se puede deshacer.`
+        );
+        if (!ok) return;
+
+        setFedBusyId(row.id);
+        setFedMsg('');
+        try {
+            const res = await api.post('/support/audit-retention/purge-federacion', {
+                federacionId: row.id,
+                deleteAll: true,
+            });
+            setFedMsg(res?.message || `${row.nombre}: eliminados ${res?.deleted ?? 0}`);
+        } catch (err) {
+            setFedMsg(err?.message || `No se pudo borrar todo de ${row.nombre}.`);
+        } finally {
+            setFedBusyId(null);
+        }
+    };
+
     const filteredLogs = logs.filter((log) => {
         const q = searchTerm.toLowerCase();
         return (
@@ -180,6 +281,7 @@ const Auditoria = () => {
             || log.usuario.toLowerCase().includes(q)
             || (log.modulo || '').toLowerCase().includes(q)
             || (log.resultado || '').toLowerCase().includes(q)
+            || (log.detalleRaw || '').toLowerCase().includes(q)
         );
     });
 
@@ -224,6 +326,52 @@ const Auditoria = () => {
         };
     };
 
+    const saveRetention = async () => {
+        setRetentionSaving(true);
+        setRetentionMsg('');
+        try {
+            const saved = await api.put('/support/audit-retention', {
+                enabled: !!retention.enabled,
+                days: Number(retention.days) || 90,
+            });
+            setRetention({
+                enabled: !!saved.enabled,
+                days: Number(saved.days) || 90,
+            });
+            setRetentionMsg(
+                saved.enabled
+                    ? `Retención automática activa: se borran registros de más de ${saved.days} días (revisión diaria).`
+                    : 'Retención automática desactivada. Los registros no se borran solos.'
+            );
+        } catch (err) {
+            setRetentionMsg(err?.message || 'No se pudo guardar la configuración.');
+        } finally {
+            setRetentionSaving(false);
+        }
+    };
+
+    const purgeNow = async () => {
+        const days = Number(retention.days) || 90;
+        const ok = window.confirm(
+            `¿Eliminar ahora todos los registros de auditoría anteriores a ${days} días?`
+        );
+        if (!ok) return;
+
+        setRetentionSaving(true);
+        setRetentionMsg('');
+        try {
+            const res = await api.post('/support/audit-retention/purge', {
+                enabled: !!retention.enabled,
+                days,
+            });
+            setRetentionMsg(res?.message || `Eliminados: ${res?.deleted ?? 0}`);
+        } catch (err) {
+            setRetentionMsg(err?.message || 'No se pudo ejecutar la purga.');
+        } finally {
+            setRetentionSaving(false);
+        }
+    };
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
             <div style={{ minWidth: 0 }}>
@@ -231,9 +379,251 @@ const Auditoria = () => {
                     Bitácora de Auditoría
                 </h2>
                 <p style={{ color: 'var(--text-secondary)', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
-                    Movimientos de usuarios con resultado (OK / validación / error) y detalle del fallo.
+                    Vista técnica para SuperAdmin: endpoint, HTTP, hints y JSON crudo para diagnosticar errores.
+                    La federación solo ve un título amigable en su dashboard.
                 </p>
             </div>
+
+            <Card>
+                <h3 style={{ margin: '0 0 0.35rem', fontSize: '1.05rem', fontWeight: 700 }}>
+                    Retención de registros
+                </h3>
+                <p style={{ margin: '0 0 1rem', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+                    Por defecto los registros <strong>no se borran solos</strong>. Acá definís si se purgan automáticamente
+                    y cada cuántos días. La revisión automática corre una vez al día en el servidor.
+                </p>
+
+                {retentionLoading ? (
+                    <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Cargando configuración...</p>
+                ) : (
+                    <div style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '1rem',
+                        alignItems: 'flex-end',
+                    }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
+                            <input
+                                type="checkbox"
+                                checked={!!retention.enabled}
+                                onChange={(e) => setRetention((r) => ({ ...r, enabled: e.target.checked }))}
+                            />
+                            Borrado automático
+                        </label>
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.85rem' }}>
+                            Conservar últimos (días)
+                            <input
+                                type="number"
+                                min={1}
+                                max={3650}
+                                value={retention.days}
+                                onChange={(e) => setRetention((r) => ({ ...r, days: e.target.value }))}
+                                style={{
+                                    width: 120,
+                                    padding: '0.45rem 0.65rem',
+                                    borderRadius: 8,
+                                    border: '1px solid var(--border-color)',
+                                    background: 'var(--bg-card)',
+                                    color: 'var(--text-primary)',
+                                }}
+                            />
+                        </label>
+                        <Button variant="primary" icon={Save} onClick={saveRetention} isLoading={retentionSaving}>
+                            Guardar
+                        </Button>
+                        <Button variant="secondary" icon={Trash2} onClick={purgeNow} disabled={retentionSaving}>
+                            Purgar ahora
+                        </Button>
+                    </div>
+                )}
+                {retentionMsg ? (
+                    <p style={{ margin: '0.85rem 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        {retentionMsg}
+                    </p>
+                ) : null}
+            </Card>
+
+            <Card>
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.75rem',
+                    marginBottom: fedPurgeOpen ? '0.35rem' : 0,
+                }}>
+                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700 }}>
+                        Purga por federación
+                    </h3>
+                    <button
+                        type="button"
+                        onClick={() => setFedPurgeOpen((v) => !v)}
+                        title={fedPurgeOpen ? 'Minimizar' : 'Expandir'}
+                        aria-label={fedPurgeOpen ? 'Minimizar purga por federación' : 'Expandir purga por federación'}
+                        style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 8,
+                            border: '1px solid var(--border-color)',
+                            background: 'rgba(15, 23, 42, 0.45)',
+                            color: 'var(--text-primary)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            flexShrink: 0,
+                        }}
+                    >
+                        {fedPurgeOpen ? <Minus size={16} /> : <Plus size={16} />}
+                    </button>
+                </div>
+
+                {fedPurgeOpen ? (
+                <>
+                <p style={{ margin: '0 0 1rem', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+                    Configuración independiente por federación. Podés borrar un rango (ej. desde hace 2 meses hasta hace 1 semana)
+                    para conservar lo reciente, o borrar todo. El auto-borrado usa los días a conservar de cada una.
+                </p>
+
+                {retentionLoading ? (
+                    <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Cargando federaciones...</p>
+                ) : fedRows.length === 0 ? (
+                    <p style={{ color: 'var(--text-secondary)', margin: 0 }}>No hay federaciones para configurar.</p>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                        {fedRows.map((row) => {
+                            const busy = fedBusyId === row.id;
+                            return (
+                                <div
+                                    key={row.id}
+                                    style={{
+                                        border: '1px solid var(--border-color)',
+                                        borderRadius: 12,
+                                        padding: '0.9rem 1rem',
+                                        background: 'rgba(15, 23, 42, 0.35)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '0.75rem',
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                        <strong style={{ color: 'var(--text-primary)' }}>{row.nombre}</strong>
+                                        <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                                            ID {row.id}
+                                        </span>
+                                    </div>
+
+                                    <div style={{
+                                        display: 'flex',
+                                        flexWrap: 'wrap',
+                                        gap: '0.75rem 1rem',
+                                        alignItems: 'flex-end',
+                                    }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={!!row.enabled}
+                                                onChange={(e) => updateFedRow(row.id, { enabled: e.target.checked })}
+                                            />
+                                            Auto-borrado
+                                        </label>
+                                        <label style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', fontSize: '0.8rem' }}>
+                                            Conservar (días)
+                                            <input
+                                                type="number"
+                                                min={1}
+                                                max={3650}
+                                                value={row.days}
+                                                onChange={(e) => updateFedRow(row.id, { days: e.target.value })}
+                                                style={{
+                                                    width: 100,
+                                                    padding: '0.4rem 0.55rem',
+                                                    borderRadius: 8,
+                                                    border: '1px solid var(--border-color)',
+                                                    background: 'var(--bg-card)',
+                                                    color: 'var(--text-primary)',
+                                                }}
+                                            />
+                                        </label>
+                                        <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            icon={Save}
+                                            onClick={() => saveFedRetention(row)}
+                                            isLoading={busy}
+                                        >
+                                            Guardar config
+                                        </Button>
+                                    </div>
+
+                                    <div style={{
+                                        display: 'flex',
+                                        flexWrap: 'wrap',
+                                        gap: '0.75rem 1rem',
+                                        alignItems: 'flex-end',
+                                    }}>
+                                        <label style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', fontSize: '0.8rem' }}>
+                                            Borrar desde
+                                            <input
+                                                type="date"
+                                                value={row.from}
+                                                onChange={(e) => updateFedRow(row.id, { from: e.target.value })}
+                                                style={{
+                                                    padding: '0.4rem 0.55rem',
+                                                    borderRadius: 8,
+                                                    border: '1px solid var(--border-color)',
+                                                    background: 'var(--bg-card)',
+                                                    color: 'var(--text-primary)',
+                                                }}
+                                            />
+                                        </label>
+                                        <label style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', fontSize: '0.8rem' }}>
+                                            Borrar hasta
+                                            <input
+                                                type="date"
+                                                value={row.to}
+                                                onChange={(e) => updateFedRow(row.id, { to: e.target.value })}
+                                                style={{
+                                                    padding: '0.4rem 0.55rem',
+                                                    borderRadius: 8,
+                                                    border: '1px solid var(--border-color)',
+                                                    background: 'var(--bg-card)',
+                                                    color: 'var(--text-primary)',
+                                                }}
+                                            />
+                                        </label>
+                                        <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            icon={Trash2}
+                                            onClick={() => purgeFedRange(row)}
+                                            disabled={busy}
+                                        >
+                                            Borrar rango
+                                        </Button>
+                                        <Button
+                                            variant="danger"
+                                            size="sm"
+                                            icon={Trash2}
+                                            onClick={() => purgeFedAll(row)}
+                                            disabled={busy}
+                                        >
+                                            Borrar todo
+                                        </Button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {fedMsg ? (
+                    <p style={{ margin: '0.85rem 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        {fedMsg}
+                    </p>
+                ) : null}
+                </>
+                ) : null}
+            </Card>
 
             <Card>
                 <div style={{ marginBottom: '1.5rem', minWidth: 0 }}>
@@ -252,6 +642,7 @@ const Auditoria = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', minWidth: 0 }}>
                         {filteredLogs.map((log) => {
                             const tone = toneFor(log.tipo);
+                            const expanded = expandedId === log.id;
                             return (
                                 <div key={log.id} style={{
                                     display: 'flex',
@@ -332,6 +723,46 @@ const Auditoria = () => {
                                             }}>
                                                 {log.detalle}
                                             </p>
+                                            {log.detalleRaw ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setExpandedId(expanded ? null : log.id)}
+                                                    style={{
+                                                        marginTop: '0.35rem',
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        color: 'var(--primary)',
+                                                        fontSize: '0.78rem',
+                                                        fontWeight: 600,
+                                                        cursor: 'pointer',
+                                                        padding: 0,
+                                                    }}
+                                                >
+                                                    {expanded ? 'Ocultar JSON' : 'Ver JSON técnico'}
+                                                </button>
+                                            ) : null}
+                                            {expanded ? (
+                                                <pre style={{
+                                                    marginTop: '0.5rem',
+                                                    padding: '0.65rem',
+                                                    borderRadius: 8,
+                                                    background: 'rgba(15, 23, 42, 0.55)',
+                                                    border: '1px solid var(--border-color)',
+                                                    fontSize: '0.72rem',
+                                                    overflow: 'auto',
+                                                    maxHeight: 220,
+                                                    whiteSpace: 'pre-wrap',
+                                                    wordBreak: 'break-word',
+                                                    color: 'var(--text-secondary)',
+                                                }}>
+                                                    {(() => {
+                                                        const parsed = tryParseDetalle(log.detalleRaw);
+                                                        return parsed
+                                                            ? JSON.stringify(parsed, null, 2)
+                                                            : log.detalleRaw;
+                                                    })()}
+                                                </pre>
+                                            ) : null}
                                         </div>
 
                                         <div style={{
