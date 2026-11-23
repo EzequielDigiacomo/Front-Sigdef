@@ -34,11 +34,28 @@ export async function updatePlan(id, { precio, descuentoAnualPorcentaje, maxAtle
 }
 
 export async function fetchFederacionesList() {
-    const [feds, planes] = await Promise.all([
+    const [feds, planes, status] = await Promise.all([
         api.get('/Federaciones'),
         fetchPlanes().catch(() => []),
+        api.get('/saas/clubes-status').catch(() => []),
     ]);
-    return (feds || []).map((f) => mapFederacionFromApi(f, planes));
+    const statusById = new Map(
+        (status || []).map((s) => {
+            const mapped = mapFederacionFromStatus(s);
+            return [String(mapped.idFederacion), mapped];
+        })
+    );
+    return (feds || []).map((f) => {
+        const mapped = mapFederacionFromApi(f, planes);
+        const st = statusById.get(String(mapped.idFederacion));
+        if (!st) return mapped;
+        return {
+            ...mapped,
+            atletasRegistrados: st.atletasRegistrados ?? mapped.atletasRegistrados ?? 0,
+            maxAtletas: st.maxAtletas ?? mapped.maxAtletas ?? -1,
+            clubesAfiliados: st.clubesAfiliados ?? mapped.clubesAfiliados,
+        };
+    });
 }
 
 export async function fetchFederacionesStatus() {

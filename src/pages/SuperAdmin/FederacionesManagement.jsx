@@ -5,7 +5,7 @@ import { fetchFederacionesList, fetchPlanes } from '../../services/saasService';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import SearchInput from '../../components/common/SearchInput';
-import { Plus, Edit, Trash2, Globe, Mail, Phone, ShieldCheck, ShieldAlert, Award, LogIn, Settings, X, XCircle, Check, Calendar } from 'lucide-react';
+import { Plus, Edit, Trash2, Globe, Mail, Phone, ShieldCheck, ShieldAlert, Award, LogIn, Settings, X, XCircle, Check, Calendar, Users } from 'lucide-react';
 import Modal from '../../components/common/Modal';
 
 const FederacionesManagement = ({ planesOnly = false }) => {
@@ -373,46 +373,32 @@ const FederacionesManagement = ({ planesOnly = false }) => {
                                             cursor: 'pointer'
                                         }}
                                     >
-                                        {/* Badge de Plan */}
-                                        <div style={{
-                                            position: 'absolute',
-                                            top: '1rem',
-                                            right: '1rem',
-                                            display: 'flex',
-                                            gap: '0.5rem',
-                                            alignItems: 'center'
-                                        }}>
-                                            <span style={{
-                                                backgroundColor: fed.plan.includes('L') || fed.plan.includes('Enterprise') ? 'rgba(59, 130, 246, 0.1)' : (fed.plan.includes('M') || fed.plan.includes('Premium') ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)'),
-                                                color: fed.plan.includes('L') || fed.plan.includes('Enterprise') ? 'var(--primary)' : (fed.plan.includes('M') || fed.plan.includes('Premium') ? 'var(--success)' : 'var(--warning)'),
-                                                fontSize: '0.75rem',
-                                                padding: '0.2rem 0.6rem',
-                                                borderRadius: '20px',
-                                                fontWeight: 'bold',
-                                                border: '1px solid rgba(var(--primary-rgb), 0.2)'
-                                            }}>
-                                                {fed.plan}
-                                            </span>
-                                        </div>
-
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                                 <div style={{
-                                                    width: '45px',
-                                                    height: '45px',
+                                                    minWidth: '45px',
+                                                    minHeight: '45px',
+                                                    width: 'fit-content',
+                                                    height: 'fit-content',
+                                                    padding: '0.4rem 0.55rem',
                                                     borderRadius: 'var(--radius-md)',
                                                     backgroundColor: 'rgba(59, 130, 246, 0.1)',
                                                     color: 'var(--primary)',
-                                                    display: 'flex',
+                                                    display: 'inline-flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
                                                     fontWeight: 'bold',
-                                                    fontSize: '1.1rem'
+                                                    fontSize: '0.95rem',
+                                                    letterSpacing: '0.02em',
+                                                    whiteSpace: 'nowrap',
+                                                    lineHeight: 1.1,
+                                                    boxSizing: 'border-box',
+                                                    flexShrink: 0,
                                                 }}>
                                                     {fed.sigla}
                                                 </div>
                                                 <div>
-                                                    <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-primary)', paddingRight: '5rem' }}>
+                                                    <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
                                                         {fed.nombre}
                                                     </h3>
                                                     <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{fed.pais}</p>
@@ -427,6 +413,19 @@ const FederacionesManagement = ({ planesOnly = false }) => {
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                     <Phone size={16} />
                                                     <span>{fed.telefono}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <Users size={16} />
+                                                    <span>
+                                                        Atletas:{' '}
+                                                        <strong style={{ color: 'var(--text-primary)' }}>
+                                                            {Number(fed.atletasRegistrados ?? 0).toLocaleString('es-AR')}
+                                                            /
+                                                            {Number(fed.maxAtletas) < 0
+                                                                ? '∞'
+                                                                : Number(fed.maxAtletas ?? 0).toLocaleString('es-AR')}
+                                                        </strong>
+                                                    </span>
                                                 </div>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                     <Award size={16} />
@@ -451,26 +450,40 @@ const FederacionesManagement = ({ planesOnly = false }) => {
                                             paddingTop: '1rem',
                                             borderTop: '1px solid var(--border-color)'
                                         }}>
-                                            <button 
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleToggleActivo(fed.idFederacion);
-                                                }}
-                                                style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '0.35rem',
-                                                    fontSize: '0.8rem',
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.4rem' }}>
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleToggleActivo(fed.idFederacion);
+                                                    }}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.35rem',
+                                                        fontSize: '0.8rem',
+                                                        fontWeight: 'bold',
+                                                        color: fed.activo ? 'var(--success)' : 'var(--danger)',
+                                                        cursor: 'pointer',
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        padding: 0,
+                                                    }}
+                                                >
+                                                    {fed.activo ? <ShieldCheck size={16} /> : <ShieldAlert size={16} />}
+                                                    <span>{fed.activo ? 'Activo' : 'Suspendido'}</span>
+                                                </button>
+                                                <span style={{
+                                                    backgroundColor: fed.plan.includes('L') || fed.plan.includes('Enterprise') ? 'rgba(59, 130, 246, 0.1)' : (fed.plan.includes('M') || fed.plan.includes('Premium') ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)'),
+                                                    color: fed.plan.includes('L') || fed.plan.includes('Enterprise') ? 'var(--primary)' : (fed.plan.includes('M') || fed.plan.includes('Premium') ? 'var(--success)' : 'var(--warning)'),
+                                                    fontSize: '0.75rem',
+                                                    padding: '0.2rem 0.6rem',
+                                                    borderRadius: '20px',
                                                     fontWeight: 'bold',
-                                                    color: fed.activo ? 'var(--success)' : 'var(--danger)',
-                                                    cursor: 'pointer',
-                                                    background: 'none',
-                                                    border: 'none'
-                                                }}
-                                            >
-                                                {fed.activo ? <ShieldCheck size={16} /> : <ShieldAlert size={16} />}
-                                                <span>{fed.activo ? 'Activo' : 'Suspendido'}</span>
-                                            </button>
+                                                    border: '1px solid rgba(var(--primary-rgb), 0.2)',
+                                                }}>
+                                                    {fed.plan}
+                                                </span>
+                                            </div>
 
                                             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
                                                 {/* Botón principal: Ingresar al dashboard de la federación */}

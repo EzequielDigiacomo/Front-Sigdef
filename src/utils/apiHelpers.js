@@ -156,6 +156,11 @@ export const mapFederacionFromApi = (f, planes = []) => {
         || planes[0]
         || { nombre: 'Sin plan', precio: 0 };
 
+    const maxAtletasRaw = pick(plan, 'maxAtletas', 'MaxAtletas');
+    const maxAtletas = maxAtletasRaw === undefined || maxAtletasRaw === null
+        ? -1
+        : Number(maxAtletasRaw);
+
     return {
         idFederacion: id,
         nombre: pick(f, 'nombre', 'Nombre') || 'Federación',
@@ -166,6 +171,8 @@ export const mapFederacionFromApi = (f, planes = []) => {
         planSaaSId,
         plan: pick(plan, 'nombre', 'Nombre') || 'Sin plan',
         costoMensual: Number(pick(plan, 'precio', 'Precio') ?? 0),
+        maxAtletas: Number.isFinite(maxAtletas) ? maxAtletas : -1,
+        atletasRegistrados: Number(pick(f, 'atletasRegistrados', 'AtletasRegistrados') ?? 0),
         estado: pick(f, 'activo', 'Activo') !== false ? 'Activo' : 'Suspendido',
         fechaAltaPlan: pick(f, 'fechaAltaPlan', 'FechaAltaPlan'),
         fechaVencimientoPlan: pick(f, 'fechaVencimientoPlan', 'FechaVencimientoPlan'),
@@ -213,7 +220,11 @@ export const mapFederacionFromStatus = (c) => {
         bloqueadaPorFaltaDePago: bloqueado,
         planAlDia,
         clubesAfiliados: pick(c, 'clubesAfiliadosCount', 'ClubesAfiliadosCount') ?? 0,
-        atletasRegistrados: pick(c, 'atletasRegistrados', 'AtletasRegistrados') ?? 0,
+        atletasRegistrados: Number(pick(c, 'atletasRegistrados', 'AtletasRegistrados') ?? 0),
+        maxAtletas: (() => {
+            const n = Number(pick(c, 'maxAtletas', 'MaxAtletas'));
+            return Number.isFinite(n) ? n : -1;
+        })(),
     };
 };
 
