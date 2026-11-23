@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import Pagination from '../../components/common/Pagination';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
 import { Key, Globe, MousePointerClick, Bug, CheckCircle2, Trash2, Save, Minus, Plus } from 'lucide-react';
 import SearchInput from '../../components/common/SearchInput';
 import { api } from '../../services/api';
@@ -125,6 +126,48 @@ const Auditoria = () => {
     const [fedBusyId, setFedBusyId] = useState(null);
     const [fedMsg, setFedMsg] = useState('');
     const [fedPurgeOpen, setFedPurgeOpen] = useState(true);
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        confirmText: 'Confirmar',
+        type: 'danger',
+        action: null,
+    });
+    const [feedbackModal, setFeedbackModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'success',
+    });
+
+    const openConfirm = ({ title, message, confirmText = 'Confirmar', type = 'danger', action }) => {
+        setConfirmModal({ isOpen: true, title, message, confirmText, type, action });
+    };
+
+    const closeConfirm = () => {
+        if (retentionSaving || fedBusyId) return;
+        setConfirmModal((m) => ({ ...m, isOpen: false, action: null }));
+    };
+
+    const showFeedback = (type, title, message) => {
+        setFeedbackModal({ isOpen: true, type, title, message });
+    };
+
+    const closeFeedback = () => {
+        setFeedbackModal((m) => ({ ...m, isOpen: false }));
+    };
+
+    const runConfirmAction = async () => {
+        const action = confirmModal.action;
+        if (!action) return;
+        try {
+            await action();
+            setConfirmModal((m) => ({ ...m, isOpen: false, action: null }));
+        } catch {
+            /* el action ya muestra feedback de error */
+        }
+    };
 
     useEffect(() => {
         const t = setTimeout(() => setDebouncedSearch(searchTerm.trim()), 350);
@@ -290,68 +333,86 @@ const Auditoria = () => {
                 enabled: !!saved.enabled,
                 days: Number(saved.days) || 90,
             });
-            setFedMsg(
-                saved.enabled
-                    ? `${row.nombre}: auto-borrado activo (conserva ${saved.days} días).`
-                    : `${row.nombre}: auto-borrado desactivado.`
-            );
+            const msg = saved.enabled
+                ? `${row.nombre}: auto-borrado activo (conserva ${saved.days} días).`
+                : `${row.nombre}: auto-borrado desactivado.`;
+            setFedMsg(msg);
+            showFeedback('success', 'Configuración guardada', msg);
         } catch (err) {
-            setFedMsg(err?.message || `No se pudo guardar la config de ${row.nombre}.`);
+            const msg = err?.message || `No se pudo guardar la config de ${row.nombre}.`;
+            setFedMsg(msg);
+            showFeedback('danger', 'No se pudo completar', msg);
         } finally {
             setFedBusyId(null);
         }
     };
 
-    const purgeFedRange = async (row) => {
+    const askPurgeFedRange = (row) => {
         if (!row.from || !row.to) {
-            setFedMsg('Completá desde / hasta para borrar por rango.');
+            showFeedback('info', 'Fechas incompletas', 'Completá desde / hasta para borrar por rango.');
             return;
         }
         if (row.from > row.to) {
-            setFedMsg('La fecha desde no puede ser posterior a hasta.');
+            showFeedback('danger', 'Rango inválido', 'La fecha desde no puede ser posterior a hasta.');
             return;
         }
-        const ok = window.confirm(
-            `¿Borrar auditoría de "${row.nombre}" desde ${row.from} hasta ${row.to}?\n\nLo posterior a "hasta" se conserva.`
-        );
-        if (!ok) return;
-
-        setFedBusyId(row.id);
-        setFedMsg('');
-        try {
-            const res = await api.post('/support/audit-retention/purge-federacion', {
-                federacionId: row.id,
-                deleteAll: false,
-                from: row.from,
-                to: row.to,
-            });
-            setFedMsg(res?.message || `${row.nombre}: eliminados ${res?.deleted ?? 0}`);
-        } catch (err) {
-            setFedMsg(err?.message || `No se pudo purgar ${row.nombre}.`);
-        } finally {
-            setFedBusyId(null);
-        }
+        openConfirm({
+            title: 'Borrar auditoría por rango',
+            message: `¿Borrar auditoría de "${row.nombre}" desde ${row.from} hasta ${row.to}? Lo posterior a "hasta" se conserva.`,
+            confirmText: 'Borrar rango',
+            type: 'danger',
+            action: async () => {
+                setFedBusyId(row.id);
+                setFedMsg('');
+                try {
+                    const res = await api.post('/support/audit-retention/purge-federacion', {
+                        federacionId: row.id,
+                        deleteAll: false,
+                        from: row.from,
+                        to: row.to,
+                    });
+                    const msg = res?.message || `${row.nombre}: eliminados ${res?.deleted ?? 0}`;
+                    setFedMsg(msg);
+                    showFeedback('success', 'Proceso completado', msg);
+                } catch (err) {
+                    const msg = err?.message || `No se pudo purgar ${row.nombre}.`;
+                    setFedMsg(msg);
+                    showFeedback('danger', 'No se pudo completar', msg);
+                    throw err;
+                } finally {
+                    setFedBusyId(null);
+                }
+            },
+        });
     };
 
-    const purgeFedAll = async (row) => {
-        const ok = window.confirm(
-            `¿Borrar TODA la auditoría de "${row.nombre}"?\n\nEsta acción no se puede deshacer.`
-        );
-        if (!ok) return;
-
-        setFedBusyId(row.id);
-        setFedMsg('');
-        try {
-            const res = await api.post('/support/audit-retention/purge-federacion', {
-                federacionId: row.id,
-                deleteAll: true,
-            });
-            setFedMsg(res?.message || `${row.nombre}: eliminados ${res?.deleted ?? 0}`);
-        } catch (err) {
-            setFedMsg(err?.message || `No se pudo borrar todo de ${row.nombre}.`);
-        } finally {
-            setFedBusyId(null);
-        }
+    const askPurgeFedAll = (row) => {
+        openConfirm({
+            title: 'Borrar toda la auditoría',
+            message: `¿Borrar TODA la auditoría de "${row.nombre}"? Esta acción no se puede deshacer.`,
+            confirmText: 'Borrar todo',
+            type: 'danger',
+            action: async () => {
+                setFedBusyId(row.id);
+                setFedMsg('');
+                try {
+                    const res = await api.post('/support/audit-retention/purge-federacion', {
+                        federacionId: row.id,
+                        deleteAll: true,
+                    });
+                    const msg = res?.message || `${row.nombre}: eliminados ${res?.deleted ?? 0}`;
+                    setFedMsg(msg);
+                    showFeedback('success', 'Proceso completado', msg);
+                } catch (err) {
+                    const msg = err?.message || `No se pudo borrar todo de ${row.nombre}.`;
+                    setFedMsg(msg);
+                    showFeedback('danger', 'No se pudo completar', msg);
+                    throw err;
+                } finally {
+                    setFedBusyId(null);
+                }
+            },
+        });
     };
 
     const getIcon = (tipo) => {
@@ -407,80 +468,104 @@ const Auditoria = () => {
                 enabled: !!saved.enabled,
                 days: Number(saved.days) || 90,
             });
-            setRetentionMsg(
-                saved.enabled
-                    ? `Retención automática activa: se borran registros de más de ${saved.days} días (revisión diaria).`
-                    : 'Retención automática desactivada. Los registros no se borran solos.'
-            );
+            const msg = saved.enabled
+                ? `Retención automática activa: se borran registros de más de ${saved.days} días (revisión diaria).`
+                : 'Retención automática desactivada. Los registros no se borran solos.';
+            setRetentionMsg(msg);
+            showFeedback('success', 'Configuración guardada', msg);
         } catch (err) {
-            setRetentionMsg(err?.message || 'No se pudo guardar la configuración.');
+            const msg = err?.message || 'No se pudo guardar la configuración.';
+            setRetentionMsg(msg);
+            showFeedback('danger', 'No se pudo completar', msg);
         } finally {
             setRetentionSaving(false);
         }
     };
 
-    const purgeNow = async () => {
+    const askPurgeNow = () => {
         const days = Number(retention.days) || 90;
-        const ok = window.confirm(
-            `¿Eliminar ahora todos los registros de auditoría anteriores a ${days} días?`
-        );
-        if (!ok) return;
-
-        setRetentionSaving(true);
-        setRetentionMsg('');
-        try {
-            const res = await api.post('/support/audit-retention/purge', {
-                enabled: !!retention.enabled,
-                days,
-            });
-            setRetentionMsg(res?.message || `Eliminados: ${res?.deleted ?? 0}`);
-        } catch (err) {
-            setRetentionMsg(err?.message || 'No se pudo ejecutar la purga.');
-        } finally {
-            setRetentionSaving(false);
-        }
+        openConfirm({
+            title: 'Purgar auditoría global',
+            message: `¿Eliminar ahora todos los registros de auditoría anteriores a ${days} días?`,
+            confirmText: 'Purgar ahora',
+            type: 'danger',
+            action: async () => {
+                setRetentionSaving(true);
+                setRetentionMsg('');
+                try {
+                    const res = await api.post('/support/audit-retention/purge', {
+                        enabled: !!retention.enabled,
+                        days,
+                    });
+                    const msg = res?.message || `Eliminados: ${res?.deleted ?? 0}`;
+                    setRetentionMsg(msg);
+                    showFeedback('success', 'Proceso completado', msg);
+                } catch (err) {
+                    const msg = err?.message || 'No se pudo ejecutar la purga.';
+                    setRetentionMsg(msg);
+                    showFeedback('danger', 'No se pudo completar', msg);
+                    throw err;
+                } finally {
+                    setRetentionSaving(false);
+                }
+            },
+        });
     };
 
-    const truncateAll = async () => {
-        const ok = window.confirm(
-            '¿VACIAR TODA la tabla de auditoría?\n\nSe eliminan TODOS los registros y se libera espacio en disco (TRUNCATE).\nEsta acción no se puede deshacer.'
-        );
-        if (!ok) return;
-        const ok2 = window.confirm('Confirmación final: ¿borrar completamente la auditoría global?');
-        if (!ok2) return;
-
-        setRetentionSaving(true);
-        setRetentionMsg('');
-        try {
-            const res = await api.post('/support/audit-retention/truncate-all');
-            setRetentionMsg(res?.message || 'Auditoría vaciada.');
-            setLogs([]);
-            setTotalCount(0);
-            setTotalPages(1);
-            setPage(1);
-        } catch (err) {
-            setRetentionMsg(err?.message || 'No se pudo vaciar la auditoría.');
-        } finally {
-            setRetentionSaving(false);
-        }
+    const askTruncateAll = () => {
+        openConfirm({
+            title: 'Vaciar toda la auditoría',
+            message: 'Se eliminan TODOS los registros y se libera espacio en disco (TRUNCATE). Esta acción no se puede deshacer.',
+            confirmText: 'Vaciar todo',
+            type: 'danger',
+            action: async () => {
+                setRetentionSaving(true);
+                setRetentionMsg('');
+                try {
+                    const res = await api.post('/support/audit-retention/truncate-all');
+                    const msg = res?.message || 'Auditoría vaciada.';
+                    setRetentionMsg(msg);
+                    setLogs([]);
+                    setTotalCount(0);
+                    setTotalPages(1);
+                    setPage(1);
+                    showFeedback('success', 'Proceso completado', msg);
+                } catch (err) {
+                    const msg = err?.message || 'No se pudo vaciar la auditoría.';
+                    setRetentionMsg(msg);
+                    showFeedback('danger', 'No se pudo completar', msg);
+                    throw err;
+                } finally {
+                    setRetentionSaving(false);
+                }
+            },
+        });
     };
 
-    const vacuumSpace = async () => {
-        const ok = window.confirm(
-            '¿Liberar espacio en disco de la tabla Auditoria?\n\nEjecuta VACUUM FULL (puede tardar unos segundos y bloquear la tabla un momento). No borra registros vivos: solo reclama el espacio de los DELETE ya hechos.'
-        );
-        if (!ok) return;
-
-        setRetentionSaving(true);
-        setRetentionMsg('');
-        try {
-            const res = await api.post('/support/audit-retention/vacuum');
-            setRetentionMsg(res?.message || 'Espacio liberado con VACUUM.');
-        } catch (err) {
-            setRetentionMsg(err?.message || 'No se pudo liberar espacio.');
-        } finally {
-            setRetentionSaving(false);
-        }
+    const askVacuumSpace = () => {
+        openConfirm({
+            title: 'Liberar espacio en disco',
+            message: 'Ejecuta VACUUM FULL sobre Auditoria (puede tardar unos segundos). No borra registros vivos: solo reclama el espacio de los DELETE ya hechos.',
+            confirmText: 'Liberar espacio',
+            type: 'info',
+            action: async () => {
+                setRetentionSaving(true);
+                setRetentionMsg('');
+                try {
+                    const res = await api.post('/support/audit-retention/vacuum');
+                    const msg = res?.message || 'Espacio liberado con VACUUM.';
+                    setRetentionMsg(msg);
+                    showFeedback('success', 'Proceso completado', msg);
+                } catch (err) {
+                    const msg = err?.message || 'No se pudo liberar espacio.';
+                    setRetentionMsg(msg);
+                    showFeedback('danger', 'No se pudo completar', msg);
+                    throw err;
+                } finally {
+                    setRetentionSaving(false);
+                }
+            },
+        });
     };
 
     return (
@@ -542,13 +627,13 @@ const Auditoria = () => {
                         <Button variant="primary" icon={Save} onClick={saveRetention} isLoading={retentionSaving}>
                             Guardar
                         </Button>
-                        <Button variant="secondary" icon={Trash2} onClick={purgeNow} disabled={retentionSaving}>
+                        <Button variant="secondary" icon={Trash2} onClick={askPurgeNow} disabled={retentionSaving}>
                             Purgar ahora
                         </Button>
-                        <Button variant="secondary" onClick={vacuumSpace} disabled={retentionSaving}>
+                        <Button variant="secondary" onClick={askVacuumSpace} disabled={retentionSaving}>
                             Liberar espacio (VACUUM)
                         </Button>
-                        <Button variant="danger" icon={Trash2} onClick={truncateAll} disabled={retentionSaving}>
+                        <Button variant="danger" icon={Trash2} onClick={askTruncateAll} disabled={retentionSaving}>
                             Vaciar todo y liberar espacio
                         </Button>
                     </div>
@@ -712,7 +797,7 @@ const Auditoria = () => {
                                             variant="secondary"
                                             size="sm"
                                             icon={Trash2}
-                                            onClick={() => purgeFedRange(row)}
+                                            onClick={() => askPurgeFedRange(row)}
                                             disabled={busy}
                                         >
                                             Borrar rango
@@ -721,7 +806,7 @@ const Auditoria = () => {
                                             variant="danger"
                                             size="sm"
                                             icon={Trash2}
-                                            onClick={() => purgeFedAll(row)}
+                                            onClick={() => askPurgeFedAll(row)}
                                             disabled={busy}
                                         >
                                             Borrar todo
@@ -925,6 +1010,29 @@ const Auditoria = () => {
                     </div>
                 )}
             </Card>
+
+            <ConfirmationModal
+                isOpen={confirmModal.isOpen}
+                onClose={closeConfirm}
+                onConfirm={runConfirmAction}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                confirmText={confirmModal.confirmText}
+                cancelText="Cancelar"
+                type={confirmModal.type}
+                isLoading={retentionSaving || !!fedBusyId}
+            />
+
+            <ConfirmationModal
+                isOpen={feedbackModal.isOpen}
+                onClose={closeFeedback}
+                onConfirm={closeFeedback}
+                title={feedbackModal.title}
+                message={feedbackModal.message}
+                confirmText="Entendido"
+                type={feedbackModal.type === 'danger' ? 'danger' : feedbackModal.type === 'info' ? 'info' : 'success'}
+                showCancel={false}
+            />
         </div>
     );
 };
