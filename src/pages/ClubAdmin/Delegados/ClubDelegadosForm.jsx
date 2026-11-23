@@ -13,6 +13,11 @@ import { validateRequiredFields } from '../../../utils/formFieldErrors';
 import useFormFieldErrors from '../../../hooks/useFormFieldErrors';
 import FieldError from '../../../components/forms/FieldError';
 import FormErrorsBanner from '../../../components/forms/FormErrorsBanner';
+import AtletaPendingPhotos, {
+    emptyAtletaPendingPhotos,
+    uploadPendingAtletaPhotos,
+    formatPhotosUploadNote,
+} from '../../../components/forms/AtletaPendingPhotos';
 import {
     mapPersonaToDelegadoForm,
     pickPersonaId,
@@ -66,6 +71,7 @@ const ClubDelegadosForm = () => {
 
     const [participanteId, setParticipanteId] = useState(null);
     const [personaFound, setPersonaFound] = useState(false);
+    const [pendingPhotos, setPendingPhotos] = useState(emptyAtletaPendingPhotos);
     const searchTimer = useRef(null);
     const {
         fieldErrors,
@@ -325,9 +331,12 @@ const ClubDelegadosForm = () => {
                 }).catch(() => {});
             }
 
-            const okMsg = personaFound
+            const photosNote = pid
+                ? formatPhotosUploadNote(await uploadPendingAtletaPhotos(pid, pendingPhotos))
+                : '';
+            const okMsg = `${personaFound
                 ? 'Delegado guardado. La persona puede ser entrenador y delegado a la vez.'
-                : 'Delegado guardado correctamente.';
+                : 'Delegado guardado correctamente.'}${photosNote}`;
             trackFormOutcome({
                 entity: 'Delegado',
                 outcome: 'ok',
@@ -449,6 +458,12 @@ const ClubDelegadosForm = () => {
                             <input name="direccion" value={formData.direccion} onChange={handleChange} className={`form-input ${fieldErrors.direccion ? 'error' : ''}`} />
                             <FieldError message={fieldErrors.direccion} />
                         </div>
+
+                        <AtletaPendingPhotos
+                            value={pendingPhotos}
+                            onChange={setPendingPhotos}
+                            entityLabel="delegado"
+                        />
                     </div>
 
                     <div className="form-actions">

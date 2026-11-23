@@ -13,6 +13,11 @@ import { validateRequiredFields } from '../../../utils/formFieldErrors';
 import useFormFieldErrors from '../../../hooks/useFormFieldErrors';
 import FieldError from '../../../components/forms/FieldError';
 import FormErrorsBanner from '../../../components/forms/FormErrorsBanner';
+import AtletaPendingPhotos, {
+    emptyAtletaPendingPhotos,
+    uploadPendingAtletaPhotos,
+    formatPhotosUploadNote,
+} from '../../../components/forms/AtletaPendingPhotos';
 import {
     mapPersonaToDelegadoForm as mapPersonaToForm,
     pickPersonaId,
@@ -81,6 +86,7 @@ const DelegadosForm = () => {
         type: 'info',
         shouldNavigate: false,
     });
+    const [pendingPhotos, setPendingPhotos] = useState(emptyAtletaPendingPhotos);
     const {
         fieldErrors,
         clearFieldError,
@@ -476,9 +482,12 @@ const DelegadosForm = () => {
                 }
             }
 
-            const okMsg = personaFound || pid
+            const photosNote = pid
+                ? formatPhotosUploadNote(await uploadPendingAtletaPhotos(pid, pendingPhotos))
+                : '';
+            const okMsg = `${personaFound || pid
                 ? 'Delegado guardado. La persona puede ser entrenador y delegado a la vez.'
-                : 'Delegado guardado correctamente.';
+                : 'Delegado guardado correctamente.'}${photosNote}`;
             trackFormOutcome({
                 entity: 'Delegado',
                 outcome: 'ok',
@@ -664,6 +673,13 @@ const DelegadosForm = () => {
                             />
                             <FieldError message={fieldErrors.direccion} />
                         </div>
+
+                        <AtletaPendingPhotos
+                            value={pendingPhotos}
+                            onChange={setPendingPhotos}
+                            forceAllowImages
+                            entityLabel="delegado"
+                        />
 
                         <h3 className="form-section-title">Datos del Delegado</h3>
 

@@ -11,6 +11,11 @@ import { validateRequiredFields } from '../../../utils/formFieldErrors';
 import useFormFieldErrors from '../../../hooks/useFormFieldErrors';
 import FieldError from '../../../components/forms/FieldError';
 import FormErrorsBanner from '../../../components/forms/FormErrorsBanner';
+import AtletaPendingPhotos, {
+    emptyAtletaPendingPhotos,
+    uploadPendingAtletaPhotos,
+    formatPhotosUploadNote,
+} from '../../../components/forms/AtletaPendingPhotos';
 import '../../../styles/CompactForm.css';
 
 const FIELD_LABELS = {
@@ -71,6 +76,7 @@ const EntrenadoresForm = () => {
         type: 'info',
         shouldNavigate: false,
     });
+    const [pendingPhotos, setPendingPhotos] = useState(emptyAtletaPendingPhotos);
 
     const {
         fieldErrors,
@@ -309,11 +315,12 @@ const EntrenadoresForm = () => {
         try {
             const personaPayload = buildPersonaPayload();
 
+            let idPersona = id ? parseInt(id, 10) : null;
+
             if (id) {
                 await api.put(`/Persona/${id}`, personaPayload);
-                await api.put(`/Entrenador/${id}`, buildEntrenadorPayload(parseInt(id, 10)));
+                await api.put(`/Entrenador/${id}`, buildEntrenadorPayload(idPersona));
             } else {
-                let idPersona = null;
                 try {
                     const personaExistente = await api.get(
                         `/Persona/documento/${formData.documento}`,
@@ -347,12 +354,18 @@ const EntrenadoresForm = () => {
                 await api.post('/Entrenador', buildEntrenadorPayload(parseInt(idPersona, 10)));
             }
 
+            const photosNote = idPersona
+                ? formatPhotosUploadNote(
+                    await uploadPendingAtletaPhotos(idPersona, pendingPhotos)
+                )
+                : '';
+
             setModalConfig({
                 isOpen: true,
                 title: 'Éxito',
-                message: id
+                message: `${id
                     ? 'Entrenador actualizado correctamente.'
-                    : 'Entrenador creado correctamente.',
+                    : 'Entrenador creado correctamente.'}${photosNote}`,
                 type: 'success',
                 shouldNavigate: true,
             });
@@ -486,6 +499,13 @@ const EntrenadoresForm = () => {
                             />
                             <FieldError message={fieldErrors.direccion} />
                         </div>
+
+                        <AtletaPendingPhotos
+                            value={pendingPhotos}
+                            onChange={setPendingPhotos}
+                            forceAllowImages
+                            entityLabel="entrenador"
+                        />
 
                         <h3 className="form-section-title">Club</h3>
                         <div className="form-group">

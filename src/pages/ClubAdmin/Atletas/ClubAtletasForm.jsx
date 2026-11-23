@@ -13,6 +13,12 @@ import { validateRequiredFields, mapApiFieldErrorsWithTutor } from '../../../uti
 import useFormFieldErrors from '../../../hooks/useFormFieldErrors';
 import FieldError from '../../../components/forms/FieldError';
 import FormErrorsBanner from '../../../components/forms/FormErrorsBanner';
+import AtletaPendingPhotos, {
+    emptyAtletaPendingPhotos,
+    uploadPendingAtletaPhotos,
+    formatPhotosUploadNote,
+} from '../../../components/forms/AtletaPendingPhotos';
+import { getParticipanteId } from '../../../utils/atletaUtils';
 import './ClubAtletas.css';
 import '../../../styles/CompactForm.css';
 
@@ -71,6 +77,8 @@ const ClubAtletasForm = () => {
         existe: false,
         idPersona: null,
     });
+
+    const [pendingPhotos, setPendingPhotos] = useState(emptyAtletaPendingPhotos);
 
     const [modalConfig, setModalConfig] = useState({
         isOpen: false,
@@ -407,7 +415,15 @@ const ClubAtletasForm = () => {
             console.log('🚀 Enviando registro atómico:', payload);
             
             // Usamos el nuevo endpoint atómico
-            await api.post('/Atleta/full', payload);
+            const response = await api.post('/Atleta/full', payload);
+            const personaId = getParticipanteId(response) ?? (id ? parseInt(id, 10) : null);
+
+            let photosNote = '';
+            if (personaId) {
+                photosNote = formatPhotosUploadNote(
+                    await uploadPendingAtletaPhotos(personaId, pendingPhotos)
+                );
+            }
 
             trackFormOutcome({
                 entity: 'Atleta',
@@ -419,7 +435,7 @@ const ClubAtletasForm = () => {
             setModalConfig({
                 isOpen: true,
                 title: 'Éxito',
-                message: 'Atleta enviado a revisión federativa. Quedará pendiente hasta que la federación lo apruebe.',
+                message: `Atleta enviado a revisión federativa. Quedará pendiente hasta que la federación lo apruebe.${photosNote}`,
                 type: 'success',
                 shouldNavigate: true
             });
@@ -514,6 +530,12 @@ const ClubAtletasForm = () => {
                             <input name="direccion" value={formData.direccion} onChange={handleChange} className={`form-input ${fieldErrors.direccion ? 'error' : ''}`} />
                             <FieldError message={fieldErrors.direccion} />
                         </div>
+
+                        <AtletaPendingPhotos
+                            value={pendingPhotos}
+                            onChange={setPendingPhotos}
+                            entityLabel="atleta"
+                        />
 
                         {esMenor && (
                             <>

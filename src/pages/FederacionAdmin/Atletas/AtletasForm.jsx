@@ -12,6 +12,11 @@ import { validateRequiredFields, mapApiFieldErrorsWithTutor } from '../../../uti
 import useFormFieldErrors from '../../../hooks/useFormFieldErrors';
 import FieldError from '../../../components/forms/FieldError';
 import FormErrorsBanner from '../../../components/forms/FormErrorsBanner';
+import AtletaPendingPhotos, {
+    emptyAtletaPendingPhotos,
+    uploadPendingAtletaPhotos,
+    formatPhotosUploadNote,
+} from '../../../components/forms/AtletaPendingPhotos';
 import './Atletas.css';
 import '../../../styles/CompactForm.css';
 
@@ -81,7 +86,7 @@ const AtletasForm = () => {
     });
 
     const [tutorSearchStatus, setTutorSearchStatus] = useState('idle'); // idle, loading, found, not_found
-
+    const [pendingPhotos, setPendingPhotos] = useState(emptyAtletaPendingPhotos);
 
     const [resultModal, setResultModal] = useState({
         open: false,
@@ -526,6 +531,13 @@ const AtletasForm = () => {
                 }
             }
 
+            let photosNote = '';
+            if (idPersona) {
+                photosNote = formatPhotosUploadNote(
+                    await uploadPendingAtletaPhotos(idPersona, pendingPhotos)
+                );
+            }
+
             trackFormOutcome({
                 entity: 'Atleta',
                 outcome: 'ok',
@@ -537,7 +549,7 @@ const AtletasForm = () => {
                 open: true,
                 type: 'success',
                 title: '¡Éxito!',
-                message: 'El atleta ha sido guardado correctamente.'
+                message: `El atleta ha sido guardado correctamente.${photosNote}`
             });
         } catch (error) {
             console.error('Error guardando:', error);
@@ -658,6 +670,13 @@ const AtletasForm = () => {
                             <input name="direccion" value={formData.direccion} onChange={handleChange} className={`form-input ${fieldErrors.direccion ? 'error' : ''}`} />
                             <FieldError message={fieldErrors.direccion} />
                         </div>
+
+                        <AtletaPendingPhotos
+                            value={pendingPhotos}
+                            onChange={setPendingPhotos}
+                            forceAllowImages
+                            entityLabel="atleta"
+                        />
 
                         {esMenor && (
                             <>

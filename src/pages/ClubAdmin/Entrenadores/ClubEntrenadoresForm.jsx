@@ -12,6 +12,11 @@ import { validateRequiredFields } from '../../../utils/formFieldErrors';
 import useFormFieldErrors from '../../../hooks/useFormFieldErrors';
 import FieldError from '../../../components/forms/FieldError';
 import FormErrorsBanner from '../../../components/forms/FormErrorsBanner';
+import AtletaPendingPhotos, {
+    emptyAtletaPendingPhotos,
+    uploadPendingAtletaPhotos,
+    formatPhotosUploadNote,
+} from '../../../components/forms/AtletaPendingPhotos';
 import '../../../styles/CompactForm.css';
 
 const FIELD_LABELS = {
@@ -62,6 +67,7 @@ const ClubEntrenadoresForm = () => {
         type: 'info',
         shouldNavigate: false
     });
+    const [pendingPhotos, setPendingPhotos] = useState(emptyAtletaPendingPhotos);
 
     const {
         fieldErrors,
@@ -235,10 +241,17 @@ const ClubEntrenadoresForm = () => {
                 await api.post('/Entrenador', entrenadorPayload);
             }
 
+            let photosNote = '';
+            if (idPersona) {
+                photosNote = formatPhotosUploadNote(
+                    await uploadPendingAtletaPhotos(idPersona, pendingPhotos)
+                );
+            }
+
             setModalConfig({
                 isOpen: true,
                 title: 'Éxito',
-                message: 'Entrenador guardado exitosamente!',
+                message: `Entrenador guardado exitosamente!${photosNote}`,
                 type: 'success',
                 shouldNavigate: true
             });
@@ -337,6 +350,12 @@ const ClubEntrenadoresForm = () => {
                             <input name="direccion" value={formData.direccion} onChange={handleChange} className={`form-input ${fieldErrors.direccion ? 'error' : ''}`} />
                             <FieldError message={fieldErrors.direccion} />
                         </div>
+
+                        <AtletaPendingPhotos
+                            value={pendingPhotos}
+                            onChange={setPendingPhotos}
+                            entityLabel="entrenador"
+                        />
 
                         <h3 className="form-section-title">Datos del Entrenador</h3>
                         <div className="form-group">
