@@ -5,7 +5,7 @@ import Card from '../components/common/Card';
 import AtletasCupoBar from '../components/common/AtletasCupoBar';
 import {
     Users, Shield, DollarSign, Award, Trophy, Briefcase, UserCheck,
-    ChevronLeft, ChevronRight, Activity, AlertTriangle, KeyRound, UserPlus, ClipboardList,
+    Activity, AlertTriangle, KeyRound, UserPlus, ClipboardList,
     ArrowRightLeft, ClipboardCheck, ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -14,7 +14,8 @@ import { normalizePlan } from '../utils/planHelpers';
 import { formatAuditFriendlyTitle } from '../utils/auditDisplay';
 import './Dashboard.css';
 
-const ACTIVITY_PAGE_SIZE = 10;
+/** Resumen corto en dashboard federación (la bitácora completa está en SuperAdmin). */
+const ACTIVITY_PREVIEW_SIZE = 5;
 
 const formatFechaHora = (fecha) => {
     if (!fecha) return '—';
@@ -60,9 +61,6 @@ const Dashboard = () => {
     const navigate = useNavigate();
     const [federacionNombre, setFederacionNombre] = useState('...');
     const [actividad, setActividad] = useState([]);
-    const [activityPage, setActivityPage] = useState(1);
-    const [activityTotalCount, setActivityTotalCount] = useState(0);
-    const [activityTotalPages, setActivityTotalPages] = useState(1);
     const [activityLoading, setActivityLoading] = useState(true);
 
     const [stats, setStats] = useState([
@@ -169,19 +167,14 @@ const Dashboard = () => {
     }, [refreshTrigger]);
 
     useEffect(() => {
-        let cancelled = false;
         const fetchActividad = async () => {
             try {
                 setActivityLoading(true);
-                const data = await api.get(
-                    `/Auditoria?pageNumber=${activityPage}&pageSize=${ACTIVITY_PAGE_SIZE}`
-                );
-                if (cancelled) return;
-
+                const data = await api.get(`/Auditoria?limit=${ACTIVITY_PREVIEW_SIZE}`);
                 const list = Array.isArray(data)
                     ? data
                     : (Array.isArray(data?.items) ? data.items : []);
-                const rows = list.map((log) => {
+                const rows = list.slice(0, ACTIVITY_PREVIEW_SIZE).map((log) => {
                     const accion = log.accion ?? log.Accion ?? 'Evento';
                     const detalle = log.detalle ?? log.Detalle ?? '';
                     return {
@@ -192,34 +185,18 @@ const Dashboard = () => {
                         usuario: log.usuario ?? log.Usuario ?? 'Sistema',
                     };
                 });
-
-                const totalCount = Number(data?.totalCount ?? rows.length) || 0;
-                const totalPages = Math.max(
-                    1,
-                    Number(data?.totalPages) || Math.ceil(totalCount / ACTIVITY_PAGE_SIZE) || 1
-                );
-                const serverPage = Number(data?.pageNumber) || activityPage;
-
                 setActividad(rows);
-                setActivityTotalCount(totalCount);
-                setActivityTotalPages(totalPages);
-                if (serverPage !== activityPage) setActivityPage(serverPage);
             } catch (error) {
-                if (cancelled) return;
                 console.error('Error cargando actividad:', error);
                 setActividad([]);
-                setActivityTotalCount(0);
-                setActivityTotalPages(1);
             } finally {
-                if (!cancelled) setActivityLoading(false);
+                setActivityLoading(false);
             }
         };
 
         fetchActividad();
-        return () => { cancelled = true; };
-    }, [activityPage]);
+    }, []);
 
-    const activityPageSafe = Math.min(activityPage, activityTotalPages);
     const actividadPagina = actividad;
 
     const navCards = [
@@ -396,33 +373,6 @@ const Dashboard = () => {
                                     );
                                 })}
                             </ul>
-
-                            {activityTotalCount > ACTIVITY_PAGE_SIZE && (
-                                <div className="activity-pagination">
-                                    <button
-                                        type="button"
-                                        className="activity-page-btn"
-                                        disabled={activityPageSafe <= 1 || activityLoading}
-                                        onClick={() => setActivityPage((p) => Math.max(1, p - 1))}
-                                        aria-label="Página anterior"
-                                    >
-                                        <ChevronLeft size={16} />
-                                    </button>
-                                    <span className="activity-page-info">
-                                        Página {activityPageSafe} de {activityTotalPages}
-                                        <span className="activity-page-total"> · {activityTotalCount} registros</span>
-                                    </span>
-                                    <button
-                                        type="button"
-                                        className="activity-page-btn"
-                                        disabled={activityPageSafe >= activityTotalPages || activityLoading}
-                                        onClick={() => setActivityPage((p) => Math.min(activityTotalPages, p + 1))}
-                                        aria-label="Página siguiente"
-                                    >
-                                        <ChevronRight size={16} />
-                                    </button>
-                                </div>
-                            )}
                         </>
                     )}
                 </Card>
