@@ -3,6 +3,10 @@ import Card from '../../components/common/Card';
 import { Key, Globe, MousePointerClick, Bug, CheckCircle2 } from 'lucide-react';
 import SearchInput from '../../components/common/SearchInput';
 import { api } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
+
+/** Intervalo de refresco automático de la bitácora (solo con sesión activa). */
+const POLL_MS = 3_000;
 
 const ACTION_LABELS = {
     CLICK_UI: 'Click en pantalla',
@@ -88,54 +92,84 @@ const formatDetalle = (detalle) => {
     return parts.length > 0 ? parts.join(' · ') : detalle;
 };
 
+const isForbidNoise = (detalle = '') =>
+    detalle.includes('No authentication handler is registered for the scheme');
+
+const mapLogs = (data) =>
+    (data || [])
+        .filter((log) => {
+            const accion = log.accion ?? log.Accion ?? '';
+            const detalle = log.detalle ?? log.Detalle ?? '';
+            return !(accion === 'ERROR_FATAL' && isForbidNoise(detalle));
+        })
+        .map((log) => {
+            const accion = log.accion ?? log.Accion ?? 'Evento';
+            const detalleRaw = log.detalle ?? log.Detalle ?? '';
+            const parsed = tryParseDetalle(detalleRaw) || {};
+            const resultado = parsed.resultado || '';
+            return {
+                id: log.id ?? log.Id,
+                tipo: inferTipo(accion, resultado),
+                accion,
+                accionLabel: ACTION_LABELS[accion] || accion,
+                detalle: formatDetalle(detalleRaw),
+                detalleRaw,
+                resultado,
+                modulo: log.modulo ?? log.Modulo ?? '',
+                fecha: formatFecha(log.fecha ?? log.Fecha),
+                usuario: log.usuario ?? log.Usuario ?? 'Sistema',
+                ip: log.ip ?? log.IP ?? '',
+            };
+        });
+
 const Auditoria = () => {
+    const { isAuthenticated } = useAuth();
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
-        const loadLogs = async () => {
-            try {
-                setLoading(true);
-                const data = await api.get('/support/logs?limit=200');
-                const isForbidNoise = (detalle = '') =>
-                    detalle.includes('No authentication handler is registered for the scheme');
+        if (!isAuthenticated) {
+            setLoading(false);
+            return undefined;
+        }
 
-                setLogs((data || [])
-                    .filter((log) => {
-                        const accion = log.accion ?? log.Accion ?? '';
-                        const detalle = log.detalle ?? log.Detalle ?? '';
-                        return !(accion === 'ERROR_FATAL' && isForbidNoise(detalle));
-                    })
-                    .map((log) => {
-                        const accion = log.accion ?? log.Accion ?? 'Evento';
-                        const detalleRaw = log.detalle ?? log.Detalle ?? '';
-                        const parsed = tryParseDetalle(detalleRaw) || {};
-                        const resultado = parsed.resultado || '';
-                        return {
-                            id: log.id ?? log.Id,
-                            tipo: inferTipo(accion, resultado),
-                            accion,
-                            accionLabel: ACTION_LABELS[accion] || accion,
-                            detalle: formatDetalle(detalleRaw),
-                            detalleRaw,
-                            resultado,
-                            modulo: log.modulo ?? log.Modulo ?? '',
-                            fecha: formatFecha(log.fecha ?? log.Fecha),
-                            usuario: log.usuario ?? log.Usuario ?? 'Sistema',
-                            ip: log.ip ?? log.IP ?? '',
-                        };
-                    }));
+        let cancelled = false;
+
+        const loadLogs = async ({ silent = false } = {}) => {
+            if (document.visibilityState === 'hidden') return;
+            try {
+                if (!silent) setLoading(true);
+                const data = await api.get('/support/logs?limit=200');
+                if (cancelled) return;
+                setLogs(mapLogs(data));
             } catch (error) {
+                if (cancelled) return;
                 console.error('Error cargando auditoría:', error);
-                setLogs([]);
+                if (!silent) setLogs([]);
             } finally {
-                setLoading(false);
+                if (!cancelled && !silent) setLoading(false);
             }
         };
 
-        loadLogs();
-    }, []);
+        loadLogs({ silent: false });
+        const id = setInterval(() => loadLogs({ silent: true }), POLL_MS);
+
+        const onFocus = () => loadLogs({ silent: true });
+        const onVisibility = () => {
+            if (document.visibilityState === 'visible') loadLogs({ silent: true });
+        };
+
+        window.addEventListener('focus', onFocus);
+        document.addEventListener('visibilitychange', onVisibility);
+
+        return () => {
+            cancelled = true;
+            clearInterval(id);
+            window.removeEventListener('focus', onFocus);
+            document.removeEventListener('visibilitychange', onVisibility);
+        };
+    }, [isAuthenticated]);
 
     const filteredLogs = logs.filter((log) => {
         const q = searchTerm.toLowerCase();
