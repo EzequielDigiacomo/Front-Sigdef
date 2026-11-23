@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { NavLink } from 'react-router-dom';
-import { LogOut, User, Menu, LayoutDashboard, Users, UserCheck, Award, Shield, Mail, ArrowRightLeft } from 'lucide-react';
+import { LogOut, User, Menu, LayoutDashboard, Users, UserCheck, Award, Shield, Mail, ArrowRightLeft, ClipboardList } from 'lucide-react';
 import Button from '../common/Button';
 import ThemeToggle from '../common/ThemeToggle';
 import useUnreadMessages from '../../hooks/useUnreadMessages';
@@ -16,10 +16,11 @@ const NavbarClub = ({ toggleSidebar, hideSidebarToggle }) => {
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/club' },
         { icon: Users, label: 'Atletas', path: '/club/atletas' },
-        { icon: ArrowRightLeft, label: 'Traspasos', path: '/club/traspasos', showBadge: true, badgeCount: pendingCount, hasBadge: hasPending },
         { icon: UserCheck, label: 'Tutores', path: '/club/tutores' },
         { icon: Award, label: 'Entrenadores', path: '/club/entrenadores' },
         { icon: Shield, label: 'Delegados', path: '/club/delegados' },
+        { icon: ClipboardList, label: 'Inscripciones', path: '/club/registro-inscripciones' },
+        { icon: ArrowRightLeft, label: 'Traspasos', path: '/club/traspasos', showBadge: true, badgeCount: pendingCount, hasBadge: hasPending },
         { icon: Mail, label: 'Mensajes', path: '/club/mensajes', showBadge: true },
     ];
 

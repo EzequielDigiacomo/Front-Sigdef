@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { api } from '../../../services/api';
 import { useNavigate } from 'react-router-dom';
@@ -9,6 +9,7 @@ import FormField from '../../../components/forms/FormField';
 import Modal from '../../../components/common/Modal';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import DataTable from '../../../components/common/DataTable';
+import Pagination from '../../../components/common/Pagination';
 import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
 import DocumentUploadModal from '../../../components/common/DocumentUploadModal';
@@ -19,6 +20,8 @@ import { buildAtletaUpdatePayload, getParticipanteId } from '../../../utils/atle
 import { matchesSearch } from '../../../utils/searchUtils';
 import { getClubId, sameClubId } from '../../../utils/apiHelpers';
 import './ClubAtletas.css';
+
+const PAGE_SIZE = 10;
 
 const ESTADO_PAGO_PAGADO = 1;
 const ESTADO_PAGO_PENDIENTE = 0;
@@ -45,6 +48,7 @@ const ClubAtletas = () => {
     const [atletas, setAtletas] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
     const [selectedAtleta, setSelectedAtleta] = useState(null);
     const [atletaDetails, setAtletaDetails] = useState(null);
     const [loadingDetails, setLoadingDetails] = useState(false);
@@ -542,15 +546,34 @@ const ClubAtletas = () => {
         return formatCategoria({ categoria: atletaOrCategoria });
     };
 
-    const filteredAtletas = atletas.filter((atleta) =>
-        matchesSearch(
-            searchTerm,
-            atleta.nombrePersona,
-            atleta.documento,
-            atleta.categoriaNombre,
-            formatCategoria(atleta),
-        )
+    const filteredAtletas = useMemo(
+        () =>
+            atletas.filter((atleta) =>
+                matchesSearch(
+                    searchTerm,
+                    atleta.nombrePersona,
+                    atleta.documento,
+                    atleta.categoriaNombre,
+                    formatCategoria(atleta),
+                )
+            ),
+        [atletas, searchTerm]
     );
+
+    const totalPages = Math.max(1, Math.ceil(filteredAtletas.length / PAGE_SIZE));
+    const pageSafe = Math.min(currentPage, totalPages);
+    const paginatedAtletas = useMemo(
+        () =>
+            filteredAtletas.slice(
+                (pageSafe - 1) * PAGE_SIZE,
+                pageSafe * PAGE_SIZE
+            ),
+        [filteredAtletas, pageSafe]
+    );
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
 
     if (loading) return <div className="loading-container"><div className="spinner"></div></div>;
 
@@ -577,10 +600,10 @@ const ClubAtletas = () => {
 
                 {isNative ? (
                     <div className="mobile-list-container">
-                        {filteredAtletas.length === 0 ? (
+                        {paginatedAtletas.length === 0 ? (
                             <p className="text-center">Sin resultados</p>
                         ) : (
-                            filteredAtletas.map(atleta => (
+                            paginatedAtletas.map(atleta => (
                                 <MobileCard 
                                     key={atleta.idPersona}
                                     title={atleta.nombrePersona}
@@ -720,7 +743,7 @@ const ClubAtletas = () => {
                                 )
                             },
                         ]}
-                        data={filteredAtletas}
+                        data={paginatedAtletas}
                         loading={loading}
                         onRowClick={handleCardClick}
                         actions={(atleta) => (
@@ -748,6 +771,21 @@ const ClubAtletas = () => {
                             </div>
                         )}
                     />
+                )}
+
+                {filteredAtletas.length > 0 && (
+                    <div className="club-atletas-pagination">
+                        <p className="club-atletas-page-info">
+                            Mostrando {(pageSafe - 1) * PAGE_SIZE + 1}–
+                            {Math.min(pageSafe * PAGE_SIZE, filteredAtletas.length)} de{' '}
+                            {filteredAtletas.length}
+                        </p>
+                        <Pagination
+                            currentPage={pageSafe}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                        />
+                    </div>
                 )}
             </Card>
 
