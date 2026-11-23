@@ -441,6 +441,48 @@ const Auditoria = () => {
         }
     };
 
+    const truncateAll = async () => {
+        const ok = window.confirm(
+            '¿VACIAR TODA la tabla de auditoría?\n\nSe eliminan TODOS los registros y se libera espacio en disco (TRUNCATE).\nEsta acción no se puede deshacer.'
+        );
+        if (!ok) return;
+        const ok2 = window.confirm('Confirmación final: ¿borrar completamente la auditoría global?');
+        if (!ok2) return;
+
+        setRetentionSaving(true);
+        setRetentionMsg('');
+        try {
+            const res = await api.post('/support/audit-retention/truncate-all');
+            setRetentionMsg(res?.message || 'Auditoría vaciada.');
+            setLogs([]);
+            setTotalCount(0);
+            setTotalPages(1);
+            setPage(1);
+        } catch (err) {
+            setRetentionMsg(err?.message || 'No se pudo vaciar la auditoría.');
+        } finally {
+            setRetentionSaving(false);
+        }
+    };
+
+    const vacuumSpace = async () => {
+        const ok = window.confirm(
+            '¿Liberar espacio en disco de la tabla Auditoria?\n\nEjecuta VACUUM FULL (puede tardar unos segundos y bloquear la tabla un momento). No borra registros vivos: solo reclama el espacio de los DELETE ya hechos.'
+        );
+        if (!ok) return;
+
+        setRetentionSaving(true);
+        setRetentionMsg('');
+        try {
+            const res = await api.post('/support/audit-retention/vacuum');
+            setRetentionMsg(res?.message || 'Espacio liberado con VACUUM.');
+        } catch (err) {
+            setRetentionMsg(err?.message || 'No se pudo liberar espacio.');
+        } finally {
+            setRetentionSaving(false);
+        }
+    };
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
             <div style={{ minWidth: 0 }}>
@@ -502,6 +544,12 @@ const Auditoria = () => {
                         </Button>
                         <Button variant="secondary" icon={Trash2} onClick={purgeNow} disabled={retentionSaving}>
                             Purgar ahora
+                        </Button>
+                        <Button variant="secondary" onClick={vacuumSpace} disabled={retentionSaving}>
+                            Liberar espacio (VACUUM)
+                        </Button>
+                        <Button variant="danger" icon={Trash2} onClick={truncateAll} disabled={retentionSaving}>
+                            Vaciar todo y liberar espacio
                         </Button>
                     </div>
                 )}
