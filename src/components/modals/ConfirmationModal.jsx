@@ -1,6 +1,7 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, CheckCircle, Info, X } from 'lucide-react';
-import Button from './Button';
+import Button from '../common/Button';
 import './ConfirmationModal.css';
 
 const ConfirmationModal = ({
@@ -38,7 +39,7 @@ const ConfirmationModal = ({
         }
     };
 
-    return (
+    return createPortal(
         <div className="confirmation-modal-overlay" onClick={onClose}>
             <div className="confirmation-modal-content glass-panel" onClick={e => e.stopPropagation()}>
                 <button className="modal-close-btn" onClick={onClose}>
@@ -72,7 +73,8 @@ const ConfirmationModal = ({
                     </Button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

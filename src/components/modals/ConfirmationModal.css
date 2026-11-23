@@ -8,7 +8,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1100;
+    /* Por encima de Modal (2000) para que alertas/confirmaciones queden al frente */
+    z-index: 3000;
     backdrop-filter: blur(4px);
     animation: fadeIn 0.2s ease-out;
 }
