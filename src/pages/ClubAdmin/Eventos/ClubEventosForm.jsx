@@ -68,7 +68,7 @@ const ClubEventosForm = () => {
                 tieneCronometraje: data.tieneCronometraje || false,
                 requiereCertificadoMedico: data.requiereCertificadoMedico || false,
                 observaciones: data.observaciones || '',
-                distancias: data.distancias || [],
+                distancias: data.pruebas || data.Pruebas || data.distancias || [],
                 estado: data.estado || 'PROGRAMADO'
             });
         } catch (error) {

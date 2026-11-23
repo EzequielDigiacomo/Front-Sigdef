@@ -108,7 +108,7 @@ const MainLayoutSuper = () => {
     };
 
     return (
-        <div className="app-container">
+        <div className={`app-container superadmin-layout ${!isDesktop ? 'is-mobile-super' : ''}`}>
             <aside
                 className={`sidebar glass-panel ${sidebarVisible ? 'open' : ''}`}
                 style={{
@@ -197,31 +197,18 @@ const MainLayoutSuper = () => {
                 />
             )}
 
-            {!isDesktop && !sidebarOpen && (
-                <button
-                    type="button"
-                    className="menu-toggle"
-                    onClick={() => setSidebarOpen(true)}
-                    aria-label="Abrir menú"
-                    style={{
-                        position: 'fixed',
-                        top: '0.75rem',
-                        left: '0.75rem',
-                        zIndex: 99,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: 'var(--radius-md)',
-                        backgroundColor: 'var(--bg-secondary)',
-                        border: 'var(--glass-border)',
-                        cursor: 'pointer',
-                        boxShadow: 'var(--shadow-md)',
-                    }}
-                >
-                    <Menu size={18} color="var(--text-secondary)" />
-                </button>
+            {!isDesktop && (
+                <header className="super-mobile-topbar">
+                    <button
+                        type="button"
+                        className="menu-toggle"
+                        onClick={() => setSidebarOpen(true)}
+                        aria-label="Abrir menú"
+                    >
+                        <Menu size={18} color="var(--text-secondary)" />
+                    </button>
+                    <span className="super-mobile-topbar-title text-gradient">SIGDEF SaaS</span>
+                </header>
             )}
 
             <div
@@ -230,13 +217,18 @@ const MainLayoutSuper = () => {
                     paddingLeft: isDesktop ? '220px' : '0',
                     transition: 'padding 0.3s ease',
                     minHeight: '100vh',
+                    overflowX: 'hidden',
+                    width: '100%',
+                    maxWidth: '100%',
                 }}
             >
                 <main className="page-content container" style={{
-                    padding: isDesktop ? '0.85rem 1rem 1.5rem' : '3rem 1rem 1.5rem',
-                    maxWidth: '1600px',
+                    padding: isDesktop ? '0.85rem 1rem 1.5rem' : undefined,
+                    maxWidth: isDesktop ? '1600px' : '100%',
                     margin: '0 auto',
                     width: '100%',
+                    minWidth: 0,
+                    overflowX: 'hidden',
                 }}>
                     <Outlet />
                 </main>

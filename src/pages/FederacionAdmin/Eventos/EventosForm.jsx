@@ -125,15 +125,15 @@ const EventosForm = () => {
             const data = await api.get(`/Evento/${id}`);
 
             const tipoEventoStr = getKeyByValue(tipoEventoMap, data.tipoEvento) || 'CarreraOficial';
-            // Backend devuelve 'distancias' (EventoResponseDto.Distancias)
-            const distanciasRaw = data.distancias || [];
+            // Backend actual: EventoResponseDto.Pruebas (compat: distancias)
+            const distanciasRaw = data.pruebas || data.Pruebas || data.distancias || [];
             const distanciasStr = distanciasRaw.map(d => ({
                 ...d,
+                idEventoPrueba: d.idEventoPrueba ?? d.IdEventoPrueba,
                 // Map backend properties to form state
-                distancia: getKeyByValue(distanciaRegataMap, d.distanciaRegata) || 'DoscientosMetros',
-                categoria: d.categoriaEdad, // Backend EventoDistanciaDto.CategoriaEdad -> form categoria
-                sexo: d.sexoCompetencia,    // Backend EventoDistanciaDto.SexoCompetencia -> form sexo
-                // tipoBote matches
+                distancia: getKeyByValue(distanciaRegataMap, d.distanciaRegata ?? d.DistanciaRegata) || 'DoscientosMetros',
+                categoria: d.categoriaEdad ?? d.CategoriaEdad,
+                sexo: d.sexoCompetencia ?? d.SexoCompetencia,
             }));
 
             setFormData({

@@ -128,9 +128,16 @@ const TutoresList = () => {
     const executeAddTutor = async () => {
         if (!selectedPersonToAdd) return;
         try {
+            const participanteId = selectedPersonToAdd.idPersona
+                ?? selectedPersonToAdd.ParticipanteId
+                ?? selectedPersonToAdd.participanteId;
+            const tipoTutor = PARENTESCO_MAP[selectedTutorType] || 'Padre';
             await api.post('/Tutor', {
-                IdPersona: selectedPersonToAdd.idPersona,
-                TipoTutor: PARENTESCO_MAP[selectedTutorType]
+                participanteId,
+                ParticipanteId: participanteId,
+                idPersona: participanteId,
+                tipoTutor,
+                TipoTutor: tipoTutor,
             });
             setShowConfirmAddModal(false);
             setShowAddExistingModal(false);

@@ -7,6 +7,7 @@ import PageHeader from '../../../components/common/PageHeader';
 import { Plus, Trash2, Edit, Eye, UserCog, X, Award, Users } from 'lucide-react';
 import { getCategoriaLabel, normalizeCategoriaId } from '../../../utils/enums';
 import { withFederationScope } from '../../../utils/apiHelpers';
+import { buildAtletaUpdatePayload } from '../../../utils/atletaUtils';
 import AddAtletaSeleccionModal from './components/AddAtletaSeleccionModal';
 import AssignCoachModal from './components/AssignCoachModal';
 
@@ -186,11 +187,13 @@ const SeleccionCategoriaDetalle = () => {
                 );
 
                 try {
-                    await api.put('/Atleta', {
-                        ...athlete,
-                        perteneceSeleccion: false,
-                        categoria: 0,
-                    });
+                    await api.put(
+                        `/Atleta/${athleteId}`,
+                        buildAtletaUpdatePayload(athlete, {
+                            perteneceSeleccion: false,
+                            categoria: 0,
+                        })
+                    );
                 } catch (error) {
                     console.error('Error removing athlete:', error);
                     setAthletes((prev) =>

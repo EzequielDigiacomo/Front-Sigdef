@@ -167,14 +167,15 @@ const InscripcionesForm = () => {
         setAtletasSeleccionados([]);
     };
 
-    const parseConfigStr = (str) => {
-        if (!str) return null;
-        const parts = str.split('|');
-        return {
-            distancia: parseInt(parts[0]),
-            categoria: parseInt(parts[1]),
-            sexo: parts[2] && parts[2] !== 'null' ? parseInt(parts[2]) : null
-        };
+    const getEventoPruebas = () => {
+        if (!eventoDetalle) return [];
+        return (
+            eventoDetalle.pruebas
+            || eventoDetalle.Pruebas
+            || eventoDetalle.distancias
+            || eventoDetalle.Distancias
+            || []
+        );
     };
 
     const handleSubmit = async (e) => {
@@ -198,15 +199,19 @@ const InscripcionesForm = () => {
         setLoading(true);
         try {
             const fechaISO = new Date(formData.fechaInscripcion + 'T00:00:00Z').toISOString();
-            const promesas = atletasSeleccionados.map(atleta => {
-                const config = parseConfigStr(atleta.selectedConfigStr);
+            const promesas = atletasSeleccionados.map((atleta) => {
+                const participanteId = atleta.participanteId
+                    ?? atleta.ParticipanteId
+                    ?? atleta.idPersona
+                    ?? atleta.IdPersona;
+                const idEventoPrueba = parseInt(atleta.selectedConfigStr, 10);
                 return api.post('/Inscripcion', {
-                    IdAtleta: atleta.idPersona,
-                    IdEvento: parseInt(formData.idEvento),
+                    participanteId,
+                    ParticipanteId: participanteId,
+                    idEventoPrueba,
+                    IdEventoPrueba: idEventoPrueba,
+                    fechaInscripcion: fechaISO,
                     FechaInscripcion: fechaISO,
-                    Categoria: config.categoria,
-                    Distancia: config.distancia, // Assuming backend accepts this
-                    Sexo: config.sexo // Assuming backend accepts this
                 });
             });
             await Promise.all(promesas);
@@ -235,22 +240,28 @@ const InscripcionesForm = () => {
     };
 
     const getAvailableOptions = () => {
-        if (!eventoDetalle || !eventoDetalle.distancias) return [];
-        return eventoDetalle.distancias.map(d => {
-            const distLabel = getDistanciaShortLabel(d.distanciaRegata || d.distancia);
-            // Fix: Check for categoriaEdad, then categoria. Ensure we pass the value, not the whole object if it was malformed.
-            const catValue = d.categoriaEdad !== undefined ? d.categoriaEdad : d.categoria;
-            const catLabel = getCategoriaEdadLabel(catValue); // This uses CATEGORIA_EDAD_MAP
+        const pruebas = getEventoPruebas();
+        return pruebas
+            .map((d) => {
+                const idEventoPrueba = d.idEventoPrueba ?? d.IdEventoPrueba;
+                if (!idEventoPrueba) return null;
 
-            // Fix Sex Label logic
-            const sexValue = d.sexoCompetencia !== undefined ? d.sexoCompetencia : d.sexo;
-            const sexLabel = sexValue !== null && sexValue !== undefined ? getSexoLabel(sexValue) : 'Mixto';
+                const distLabel = getDistanciaShortLabel(
+                    d.distanciaRegata ?? d.DistanciaRegata ?? d.distancia ?? d.Distancia
+                );
+                const catValue = d.categoriaEdad ?? d.CategoriaEdad ?? d.categoria ?? d.Categoria;
+                const catLabel = getCategoriaEdadLabel(catValue);
+                const sexValue = d.sexoCompetencia ?? d.SexoCompetencia ?? d.sexo ?? d.Sexo;
+                const sexLabel =
+                    sexValue !== null && sexValue !== undefined ? getSexoLabel(sexValue) : 'Mixto';
+                const boteLabel = d.tipoBoteNombre || d.TipoBoteNombre || '';
 
-            return {
-                value: `${d.distanciaRegata || d.distancia}|${catValue}|${sexValue}`,
-                label: `${distLabel} - ${catLabel} (${sexLabel})`
-            };
-        });
+                return {
+                    value: String(idEventoPrueba),
+                    label: `${distLabel} - ${catLabel} (${sexLabel})${boteLabel ? ` · ${boteLabel}` : ''}`,
+                };
+            })
+            .filter(Boolean);
     };
 
     const options = getAvailableOptions();

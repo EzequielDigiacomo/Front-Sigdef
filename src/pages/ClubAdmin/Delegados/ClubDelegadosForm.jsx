@@ -325,9 +325,13 @@ const ClubDelegadosForm = () => {
             if (pid) {
                 await api.post('/DelegadoClub', {
                     participanteId: pid,
+                    ParticipanteId: pid,
                     idRol: 3,
+                    IdRol: 3,
                     idFederacion: formData.idFederacion || user?.idFederacion || null,
+                    IdFederacion: formData.idFederacion || user?.idFederacion || null,
                     idClub: parseInt(clubId, 10),
+                    IdClub: parseInt(clubId, 10),
                 }).catch(() => {});
             }
 

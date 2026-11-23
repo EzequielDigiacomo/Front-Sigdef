@@ -23,6 +23,33 @@ const formatRelativeTime = (dateStr) => {
     return date.toLocaleString('es-AR');
 };
 
+/** Resume detalles JSON largos para no romper el layout móvil. */
+const summarizeDetalle = (detalle) => {
+    if (!detalle || typeof detalle !== 'string') return detalle || '';
+    const trimmed = detalle.trim();
+    if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+        return trimmed.length > 140 ? `${trimmed.slice(0, 140)}…` : trimmed;
+    }
+    try {
+        const parsed = JSON.parse(trimmed);
+        const parts = [];
+        if (parsed.resultado) parts.push(parsed.resultado);
+        if (parsed.message) parts.push(parsed.message);
+        else if (parsed.label) parts.push(parsed.label);
+        if (parsed.endpoint) parts.push(`${parsed.method || ''} ${parsed.endpoint}`.trim());
+        const summary = parts.filter(Boolean).join(' · ') || trimmed;
+        return summary.length > 140 ? `${summary.slice(0, 140)}…` : summary;
+    } catch {
+        return trimmed.length > 140 ? `${trimmed.slice(0, 140)}…` : trimmed;
+    }
+};
+
+const breakLongText = {
+    overflowWrap: 'anywhere',
+    wordBreak: 'break-word',
+    minWidth: 0,
+};
+
 const mapFederacionFromStatus = (c) => ({
     idFederacion: c.idFederacion,
     nombre: c.nombre,
@@ -132,7 +159,7 @@ const SuperDashboard = () => {
                         .map((log) => ({
                         id: log.id ?? log.Id,
                         accion: log.accion ?? log.Accion ?? 'Evento',
-                        detalle: log.detalle ?? log.Detalle ?? '',
+                        detalle: summarizeDetalle(log.detalle ?? log.Detalle ?? ''),
                         fecha: formatRelativeTime(log.fecha ?? log.Fecha),
                         usuario: log.usuario ?? log.Usuario ?? 'Sistema',
                         ip: log.ip ?? log.IP ?? '',
@@ -177,11 +204,11 @@ const SuperDashboard = () => {
     }
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.65rem' }}>
-                <div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.65rem', minWidth: 0 }}>
+                <div style={{ ...breakLongText, flex: '1 1 200px' }}>
                     <h1 className="text-gradient" style={{ fontSize: '1.35rem', fontWeight: '800', marginBottom: '0.1rem' }}>Consola de Superadmin</h1>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Monitoreo global de federaciones, rendimiento y suscripciones SaaS.</p>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', ...breakLongText }}>Monitoreo global de federaciones, rendimiento y suscripciones SaaS.</p>
                 </div>
                 <Button variant="primary" onClick={() => navigate('/superadmin/federaciones/nueva')} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.45rem 0.75rem' }}>
                     <Plus size={15} />
@@ -204,8 +231,10 @@ const SuperDashboard = () => {
 
             <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                gap: '0.65rem'
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))',
+                gap: '0.65rem',
+                width: '100%',
+                minWidth: 0,
             }}>
                 <div className="glass-panel" style={{ ...cardBase, cursor: 'pointer' }} onClick={() => navigate('/superadmin/federaciones')}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -283,14 +312,16 @@ const SuperDashboard = () => {
 
             <div style={{
                 display: 'grid',
-                gridTemplateColumns: '2fr 1fr',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
                 gap: '0.65rem',
-                alignItems: 'stretch'
+                alignItems: 'stretch',
+                width: '100%',
+                minWidth: 0,
             }}>
-                <div className="glass-panel" style={{ padding: '0.85rem', display: 'flex', flexDirection: 'column' }}>
+                <div className="glass-panel" style={{ padding: '0.85rem', display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
                     <div style={{ marginBottom: '0.65rem' }}>
                         <h3 style={sectionTitle}>Evolución de Registros en el Ecosistema</h3>
-                        <p style={sectionSub}>Altas de atletas federados por mes (últimos 6 meses)</p>
+                        <p style={{ ...sectionSub, ...breakLongText }}>Altas de atletas federados por mes (últimos 6 meses)</p>
                     </div>
 
                     <div style={{ flex: 1, width: '100%', minHeight: '150px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -321,7 +352,7 @@ const SuperDashboard = () => {
                     </div>
                 </div>
 
-                <div className="glass-panel" style={{ padding: '0.85rem', display: 'flex', flexDirection: 'column' }}>
+                <div className="glass-panel" style={{ padding: '0.85rem', display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
                     <h3 style={{ ...sectionTitle, marginBottom: '0.65rem' }}>Planes Activos</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', flex: 1, justifyContent: 'flex-start' }}>
                         {distribucionPlanes.length === 0 ? (
@@ -350,14 +381,16 @@ const SuperDashboard = () => {
 
             <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-                gap: '0.65rem'
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+                gap: '0.65rem',
+                width: '100%',
+                minWidth: 0,
             }}>
-                <div className="glass-panel" style={{ padding: '0.85rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
-                        <div>
+                <div className="glass-panel" style={{ padding: '0.85rem', minWidth: 0, overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.65rem', minWidth: 0 }}>
+                        <div style={breakLongText}>
                             <h3 style={sectionTitle}>Federaciones Contratantes</h3>
-                            <p style={sectionSub}>Lista de inquilinos actuales en la plataforma.</p>
+                            <p style={{ ...sectionSub, ...breakLongText }}>Lista de inquilinos actuales en la plataforma.</p>
                         </div>
                         <span 
                             onClick={() => navigate('/superadmin/federaciones')} 
@@ -375,14 +408,17 @@ const SuperDashboard = () => {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
+                                gap: '0.5rem',
                                 padding: '0.45rem 0.55rem',
                                 border: '1px solid var(--border-color)',
                                 borderRadius: 'var(--radius-sm)',
+                                minWidth: 0,
                             }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flex: 1 }}>
                                     <div style={{
                                         width: '30px',
                                         height: '30px',
+                                        flexShrink: 0,
                                         borderRadius: 'var(--radius-sm)',
                                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
                                         color: 'var(--primary)',
@@ -394,9 +430,9 @@ const SuperDashboard = () => {
                                     }}>
                                         {fed.sigla}
                                     </div>
-                                    <div>
-                                        <h4 style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--text-primary)', margin: 0 }}>{fed.nombre}</h4>
-                                        <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>Alta: {fed.fechaRegistro} • Plan: {fed.plan}</span>
+                                    <div style={breakLongText}>
+                                        <h4 style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--text-primary)', margin: 0, ...breakLongText }}>{fed.nombre}</h4>
+                                        <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', ...breakLongText }}>Alta: {fed.fechaRegistro} • Plan: {fed.plan}</span>
                                     </div>
                                 </div>
                                 <span style={{
@@ -414,31 +450,33 @@ const SuperDashboard = () => {
                     </div>
                 </div>
 
-                <div className="glass-panel" style={{ padding: '0.85rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
-                        <div>
+                <div className="glass-panel" style={{ padding: '0.85rem', minWidth: 0, overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.65rem', minWidth: 0 }}>
+                        <div style={breakLongText}>
                             <h3 style={sectionTitle}>Actividades Recientes</h3>
-                            <p style={sectionSub}>Log de seguridad global de la SaaS multi-tenant.</p>
+                            <p style={{ ...sectionSub, ...breakLongText }}>Log de seguridad global de la SaaS multi-tenant.</p>
                         </div>
                         <span 
                             onClick={() => navigate('/superadmin/auditoria')} 
-                            style={{ color: 'var(--primary)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.1rem' }}
+                            style={{ color: 'var(--primary)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.1rem', flexShrink: 0 }}
                         >
                             Ver Todo <ArrowUpRight size={12} />
                         </span>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', minWidth: 0 }}>
                         {auditLogs.length === 0 ? (
                             <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Sin actividad registrada.</p>
                         ) : auditLogs.map((log) => (
                             <div key={log.id} style={{
                                 display: 'flex',
-                                alignItems: 'center',
+                                alignItems: 'flex-start',
                                 gap: '0.5rem',
                                 padding: '0.45rem 0.55rem',
                                 border: '1px solid var(--border-color)',
-                                borderRadius: 'var(--radius-sm)'
+                                borderRadius: 'var(--radius-sm)',
+                                minWidth: 0,
+                                overflow: 'hidden',
                             }}>
                                 <div style={{
                                     color: log.accion.includes('Bloqueo') || log.accion.includes('Error') || log.accion.includes('FAILED') ? 'var(--danger)' : 'var(--primary)',
@@ -447,16 +485,17 @@ const SuperDashboard = () => {
                                     borderRadius: '50%',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    justifyContent: 'center'
+                                    justifyContent: 'center',
+                                    flexShrink: 0,
                                 }}>
                                     <Activity size={13} />
                                 </div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
-                                        <h4 style={{ fontSize: '0.78rem', fontWeight: 'bold', color: 'var(--text-primary)', margin: 0 }}>{log.accion}</h4>
-                                        <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{log.fecha}</span>
+                                <div style={{ flex: 1, minWidth: 0, ...breakLongText }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', alignItems: 'flex-start' }}>
+                                        <h4 style={{ fontSize: '0.78rem', fontWeight: 'bold', color: 'var(--text-primary)', margin: 0, ...breakLongText }}>{log.accion}</h4>
+                                        <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', flexShrink: 0 }}>{log.fecha}</span>
                                     </div>
-                                    <p style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: '0.05rem' }}>
+                                    <p style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: '0.05rem', ...breakLongText }}>
                                         {log.detalle} • <strong style={{ color: 'var(--primary)' }}>{log.usuario}</strong> ({log.ip})
                                     </p>
                                 </div>
@@ -466,12 +505,12 @@ const SuperDashboard = () => {
                 </div>
             </div>
 
-            <div className="glass-panel" style={{ padding: '0.85rem' }}>
+            <div className="glass-panel" style={{ padding: '0.85rem', minWidth: 0, maxWidth: '100%', overflow: 'hidden' }}>
                 <div style={{ marginBottom: '0.65rem' }}>
                     <h3 style={sectionTitle}>Grilla de Precios de Referencia (SaaS)</h3>
-                    <p style={sectionSub}>Valores oficiales de suscripción mensual y pago anual con descuento del 20%.</p>
+                    <p style={{ ...sectionSub, ...breakLongText }}>Valores oficiales de suscripción mensual y pago anual con descuento del 20%.</p>
                 </div>
-                <div style={{ overflowX: 'auto' }}>
+                <div style={{ overflowX: 'auto', maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '560px' }}>
                         <thead>
                             <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '0.7rem' }}>

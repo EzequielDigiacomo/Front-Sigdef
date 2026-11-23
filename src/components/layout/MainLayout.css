@@ -72,6 +72,64 @@
     }
 }
 
+/* Superadmin: barra fija del menú hamburguesa + sin scroll lateral */
+.super-mobile-topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 99;
+    height: var(--super-mobile-topbar-h, 52px);
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0 0.75rem;
+    padding-top: env(safe-area-inset-top, 0);
+    background: var(--bg-primary);
+    border-bottom: var(--glass-border);
+    box-shadow: var(--shadow-sm);
+}
+
+.super-mobile-topbar .menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: var(--radius-md);
+    background-color: var(--bg-secondary);
+    border: var(--glass-border);
+    cursor: pointer;
+    box-shadow: var(--shadow-md);
+}
+
+.super-mobile-topbar-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.app-container.superadmin-layout.is-mobile-super .main-content {
+    overflow-x: hidden;
+    max-width: 100vw;
+}
+
+.app-container.superadmin-layout.is-mobile-super .page-content.container {
+    padding-top: calc(var(--super-mobile-topbar-h, 52px) + env(safe-area-inset-top, 0px) + 0.75rem) !important;
+    padding-left: var(--mobile-page-gutter, 1.15rem) !important;
+    padding-right: var(--mobile-page-gutter, 1.15rem) !important;
+    padding-bottom: 1.5rem !important;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+}
+
+.app-container.superadmin-layout .page-content > * {
+    min-width: 0;
+    max-width: 100%;
+}
+
 .app-container.no-nav .container {
     max-width: 1200px;
 }

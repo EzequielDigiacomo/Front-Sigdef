@@ -29,7 +29,13 @@ const DistanciasList = () => {
         try {
             const eventoData = await api.get(`/Evento/${eventoId}`);
             setEvento(eventoData);
-            setDistancias(eventoData.distancias || eventoData.eventoDistancias || []);
+            setDistancias(
+                eventoData.pruebas
+                || eventoData.Pruebas
+                || eventoData.distancias
+                || eventoData.eventoDistancias
+                || []
+            );
         } catch (error) {
             console.error('Error cargando distancias:', error);
         } finally {

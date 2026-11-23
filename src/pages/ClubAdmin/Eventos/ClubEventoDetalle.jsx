@@ -30,12 +30,21 @@ const ClubEventoDetalle = () => {
             setIsProcessingPayment(true);
             const precio = evento.precioBase || 0; // Usar precio del evento
 
+            const participanteId =
+                inscripcion.participanteId
+                ?? inscripcion.ParticipanteId
+                ?? inscripcion.idAtleta
+                ?? inscripcion.IdAtleta;
+            const idClub = user.idClub || user.IdClub || user.clubId;
             const pagoData = {
                 concepto: `Inscripción Evento: ${evento.nombre} - Atleta: ${inscripcion.nombreCompleto}`,
                 monto: precio,
-                idClub: user.idClub, // Fix: Usa el club del usuario que está pagando
-                idPersona: inscripcion.idAtleta,
-                estado: 0 // Pendiente
+                idClub,
+                IdClub: idClub,
+                participanteId,
+                ParticipanteId: participanteId,
+                estado: 0,
+                Estado: 0,
             };
 
             // NOTA: Si el pago es a la Federación, el IdClub debería ser el de la Federación o null/0.
@@ -248,7 +257,10 @@ const ClubEventoDetalle = () => {
                     </Card>
 
                     {/* New Card for Distances/Categories Configuration */}
-                    {(evento.distancias && evento.distancias.length > 0) && (
+                    {(() => {
+                        const pruebas = evento.pruebas || evento.Pruebas || evento.distancias || [];
+                        if (!pruebas.length) return null;
+                        return (
                         <Card className="detail-card">
                             <h3><Route size={20} /> Categorías y Distancias</h3>
                             <div className="table-responsive">
@@ -261,18 +273,19 @@ const ClubEventoDetalle = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {evento.distancias.map((d, idx) => (
-                                            <tr key={idx}>
-                                                <td>{getDistanciaShortLabel(d.distancia)}</td>
-                                                <td>{getCategoriaEdadLabel(d.categoria)}</td>
-                                                <td>{d.sexo ? getSexoLabel(d.sexo) : 'Mixto/Todos'}</td>
+                                        {pruebas.map((d, idx) => (
+                                            <tr key={d.idEventoPrueba ?? d.IdEventoPrueba ?? idx}>
+                                                <td>{getDistanciaShortLabel(d.distanciaRegata ?? d.distancia ?? d.DistanciaRegata)}</td>
+                                                <td>{getCategoriaEdadLabel(d.categoriaEdad ?? d.categoria ?? d.CategoriaEdad)}</td>
+                                                <td>{(d.sexoCompetencia ?? d.sexo) != null ? getSexoLabel(d.sexoCompetencia ?? d.sexo) : 'Mixto/Todos'}</td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
                             </div>
                         </Card>
-                    )}
+                        );
+                    })()}
                 </div>
 
                 <div className="evento-inscritos-column">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
 import { api } from '../../../services/api';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
@@ -10,6 +11,7 @@ import { validateRequiredFields } from '../../../utils/formFieldErrors';
 import useFormFieldErrors from '../../../hooks/useFormFieldErrors';
 import FieldError from '../../../components/forms/FieldError';
 import FormErrorsBanner from '../../../components/forms/FormErrorsBanner';
+import { toUserFacingErrorMessage } from '../../../utils/friendlyError';
 import '../../../styles/CompactForm.css';
 
 const FIELD_LABELS = {
@@ -31,6 +33,7 @@ const TutoresForm = () => {
     const { id, fedId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
+    const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [clubes, setClubes] = useState([]);
     const [atletas, setAtletas] = useState([]);
@@ -385,7 +388,9 @@ const TutoresForm = () => {
                 await api.put(`/Persona/${id}`, personaPayload);
                 await api.put(`/Tutor/${id}`, {
                     participanteId: parseInt(id, 10),
+                    ParticipanteId: parseInt(id, 10),
                     tipoTutor: tipoTutorLabel,
+                    TipoTutor: tipoTutorLabel,
                 });
             } else {
                 const personaResponse = await api.post('/Persona', personaPayload);
@@ -397,7 +402,9 @@ const TutoresForm = () => {
 
                 await api.post('/Tutor', {
                     participanteId: idPersona,
+                    ParticipanteId: idPersona,
                     tipoTutor: tipoTutorLabel,
+                    TipoTutor: tipoTutorLabel,
                 });
             }
 
@@ -426,9 +433,18 @@ const TutoresForm = () => {
             goBack();
         } catch (error) {
             console.error('Error guardando:', error);
-            const mapped = applyApiError(error, { parentesco: 'tipoTutor', Parentesco: 'tipoTutor', TipoTutor: 'tipoTutor' });
+            const mapped = applyApiError(error, {
+                parentesco: 'tipoTutor',
+                Parentesco: 'tipoTutor',
+                TipoTutor: 'tipoTutor',
+                ParticipanteId: 'documento',
+                participanteId: 'documento',
+            });
             if (!Object.keys(mapped).length) {
-                alert('Error al guardar el tutor. Verifica los datos e intenta nuevamente.');
+                alert(toUserFacingErrorMessage(error, {
+                    role: user?.role || (fedId ? 'SUPERADMIN' : 'FEDERACION'),
+                    fallback: 'No se pudo guardar el tutor. Revisá los datos e intentá nuevamente.',
+                }));
             }
         } finally {
             setLoading(false);

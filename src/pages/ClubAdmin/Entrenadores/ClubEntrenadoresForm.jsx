@@ -17,6 +17,7 @@ import AtletaPendingPhotos, {
     uploadPendingAtletaPhotos,
     formatPhotosUploadNote,
 } from '../../../components/forms/AtletaPendingPhotos';
+import { toUserFacingErrorMessage } from '../../../utils/friendlyError';
 import '../../../styles/CompactForm.css';
 
 const FIELD_LABELS = {
@@ -273,7 +274,10 @@ const ClubEntrenadoresForm = () => {
                 setModalConfig({
                     isOpen: true,
                     title: 'Error',
-                    message: 'Error al guardar. Revisa la consola para más detalles.',
+                    message: toUserFacingErrorMessage(error, {
+                        role: user?.role,
+                        fallback: 'No se pudo guardar el entrenador. Revisá los datos e intentá nuevamente.',
+                    }),
                     type: 'danger',
                     shouldNavigate: false
                 });

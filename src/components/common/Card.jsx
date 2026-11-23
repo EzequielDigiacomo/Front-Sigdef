@@ -9,7 +9,9 @@ const Card = ({ children, className = '', title, actions, onClick }) => {
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '1rem',
-                cursor: onClick ? 'pointer' : 'default'
+                cursor: onClick ? 'pointer' : 'default',
+                minWidth: 0,
+                maxWidth: '100%',
             }}
             onClick={onClick}
         >

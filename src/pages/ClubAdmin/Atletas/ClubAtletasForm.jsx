@@ -19,6 +19,7 @@ import AtletaPendingPhotos, {
     formatPhotosUploadNote,
 } from '../../../components/forms/AtletaPendingPhotos';
 import { getParticipanteId } from '../../../utils/atletaUtils';
+import { toUserFacingErrorMessage } from '../../../utils/friendlyError';
 import './ClubAtletas.css';
 import '../../../styles/CompactForm.css';
 
@@ -460,7 +461,10 @@ const ClubAtletasForm = () => {
                 setModalConfig({
                     isOpen: true,
                     title: 'Error al guardar',
-                    message: error.message || 'Error al procesar la solicitud. Revisa la consola.',
+                    message: toUserFacingErrorMessage(error, {
+                        role: user?.role,
+                        fallback: 'No se pudo guardar el atleta. Revisá los datos e intentá nuevamente.',
+                    }),
                     type: 'danger',
                     shouldNavigate: false
                 });

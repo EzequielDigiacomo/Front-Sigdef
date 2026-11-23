@@ -848,23 +848,36 @@ const ClubDetalles = () => {
                                                     // Como no hay endpoint OneDelegado fácil sin saber ID, usamos el IDPersona que tenemos
 
                                                     const fullDelegadoResponse = await api.get(`/DelegadoClub`);
-                                                    const targetDelegado = fullDelegadoResponse.find(d => d.idPersona === delegado.idPersona);
+                                                    const targetDelegado = (Array.isArray(fullDelegadoResponse) ? fullDelegadoResponse : [])
+                                                        .find((d) =>
+                                                            Number(d.participanteId ?? d.ParticipanteId ?? d.idPersona ?? d.IdPersona)
+                                                            === Number(delegado.idPersona)
+                                                        );
 
                                                     if (targetDelegado) {
+                                                        const participanteId = Number(
+                                                            targetDelegado.participanteId
+                                                            ?? targetDelegado.ParticipanteId
+                                                            ?? targetDelegado.idPersona
+                                                            ?? delegado.idPersona
+                                                        );
+                                                        const idRol = Number(targetDelegado.idRol ?? targetDelegado.IdRol ?? 3);
+                                                        const idFederacion = targetDelegado.idFederacion
+                                                            ?? targetDelegado.IdFederacion
+                                                            ?? null;
+                                                        const idClub = parseInt(id, 10);
                                                         const payload = {
-                                                            idPersona: targetDelegado.idPersona,
-                                                            idRol: targetDelegado.idRol,
-                                                            idFederacion: targetDelegado.idFederacion,
-                                                            idClub: parseInt(id) // ASIGNAMOS EL CLUB
+                                                            participanteId,
+                                                            ParticipanteId: participanteId,
+                                                            idRol,
+                                                            IdRol: idRol,
+                                                            idFederacion,
+                                                            IdFederacion: idFederacion,
+                                                            idClub,
+                                                            IdClub: idClub,
                                                         };
 
-                                                        // Nota: El endpoint PUT espera un ID en la URL.
-                                                        // ¿Es el ID de la tabla DelegadoClub o IdPersona?
-                                                        // Asumiendo que la PK es IdPersona o hay un ID autoincremental.
-                                                        // En el DTO se ve IdPersona. Asumimos llave compuesta o IdPersona como clave.
-                                                        // Si el endpoint es PUT /DelegadoClub/{idPersona}
-
-                                                        await api.put(`/DelegadoClub/${delegado.idPersona}`, payload);
+                                                        await api.put(`/DelegadoClub/${participanteId}`, payload);
 
                                                         setConfirmModalState(prev => ({
                                                             ...prev,

@@ -242,7 +242,17 @@ const RegisterPersonForm = ({ onUserCreated }) => {
                     ParticipanteId: currentIdPersona,
                     idPersona: currentIdPersona,
                     idClub: clubIdInt > 0 ? clubIdInt : null,
-                    licencia: formData.licencia || "N/A"
+                    IdClub: clubIdInt > 0 ? clubIdInt : null,
+                    licencia: formData.licencia || 'N/A',
+                    perteneceSeleccion: false,
+                    becadoEnard: false,
+                    BecadoEnard: false,
+                    becadoSdn: false,
+                    BecadoSdn: false,
+                    montoBeca: 0,
+                    MontoBeca: 0,
+                    presentoAptoMedico: false,
+                    PresentoAptoMedico: false,
                 });
             }
 

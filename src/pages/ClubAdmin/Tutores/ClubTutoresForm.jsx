@@ -12,6 +12,7 @@ import { validateRequiredFields } from '../../../utils/formFieldErrors';
 import useFormFieldErrors from '../../../hooks/useFormFieldErrors';
 import FieldError from '../../../components/forms/FieldError';
 import FormErrorsBanner from '../../../components/forms/FormErrorsBanner';
+import { toUserFacingErrorMessage } from '../../../utils/friendlyError';
 import '../../../styles/CompactForm.css';
 
 const FIELD_LABELS = {
@@ -273,18 +274,21 @@ const ClubTutoresForm = () => {
                 sexoId: parseInt(formData.sexo)
             };
 
-            const tutorPayload = {
-                idPersona: 0,
-                tipoTutor: PARENTESCO_MAP[formData.tipoTutor] || 'Padre'
-            };
+            const buildTutorPayload = (personaId) => ({
+                participanteId: personaId,
+                ParticipanteId: personaId,
+                idPersona: personaId,
+                tipoTutor: PARENTESCO_MAP[formData.tipoTutor] || 'Padre',
+                TipoTutor: PARENTESCO_MAP[formData.tipoTutor] || 'Padre',
+            });
 
             let idPersona = null;
 
             if (id) {
 
                 await api.put(`/Persona/${id}`, personaPayload);
-                await api.put(`/Tutor/${id}`, { ...tutorPayload, idPersona: parseInt(id) });
-                idPersona = parseInt(id);
+                idPersona = parseInt(id, 10);
+                await api.put(`/Tutor/${id}`, buildTutorPayload(idPersona));
 
             } else {
 
@@ -305,10 +309,7 @@ const ClubTutoresForm = () => {
                             console.log('⚠️ Persona ya es tutor, actualizando...');
 
                             await api.put(`/Persona/${idPersona}`, personaPayload);
-                            await api.put(`/Tutor/${idPersona}`, {
-                                ...tutorPayload,
-                                idPersona: idPersona
-                            });
+                            await api.put(`/Tutor/${idPersona}`, buildTutorPayload(idPersona));
 
                         } catch (tutorError) {
 
@@ -318,10 +319,7 @@ const ClubTutoresForm = () => {
 
                             console.log('➕ Persona existe pero no es tutor, creando tutor...');
                             await api.put(`/Persona/${idPersona}`, personaPayload);
-                            await api.post('/Tutor', {
-                                ...tutorPayload,
-                                idPersona: idPersona
-                            });
+                            await api.post('/Tutor', buildTutorPayload(idPersona));
                         }
                     }
                 } catch (searchError) {
@@ -336,10 +334,7 @@ const ClubTutoresForm = () => {
                     idPersona = nuevaPersona.participanteId || nuevaPersona.ParticipanteId || nuevaPersona.idPersona || nuevaPersona.IdPersona;
 
                     console.log('➕ Creando tutor...');
-                    await api.post('/Tutor', {
-                        ...tutorPayload,
-                        idPersona: idPersona
-                    });
+                    await api.post('/Tutor', buildTutorPayload(idPersona));
                 }
             }
 
@@ -375,24 +370,24 @@ const ClubTutoresForm = () => {
         } catch (error) {
             console.error('Error guardando:', error);
 
-            const mapped = applyApiError(error, { parentesco: 'tipoTutor', Parentesco: 'tipoTutor', TipoTutor: 'tipoTutor' });
+            const mapped = applyApiError(error, {
+                parentesco: 'tipoTutor',
+                Parentesco: 'tipoTutor',
+                TipoTutor: 'tipoTutor',
+                ParticipanteId: 'documento',
+                participanteId: 'documento',
+            });
             if (Object.keys(mapped).length) {
                 return;
-            }
-
-            let errorMessage = 'Error al guardar. Revisa la consola para más detalles.';
-            if (error.message.includes('ya tiene otro rol asignado') ||
-                error.message.includes('ya tiene el rol de')) {
-                errorMessage = `Error: ${error.message}\n\nUna persona no puede tener múltiples roles en el sistema.`;
-            } else if (error.message.includes('Ya existe') ||
-                error.message.includes('Tutor con')) {
-                errorMessage = 'Error: ' + error.message;
             }
 
             setModalConfig({
                 isOpen: true,
                 title: 'Error',
-                message: errorMessage,
+                message: toUserFacingErrorMessage(error, {
+                    role: user?.role,
+                    fallback: 'No se pudo guardar el tutor. Revisá los datos e intentá nuevamente.',
+                }),
                 type: 'danger',
                 shouldNavigate: false
             });

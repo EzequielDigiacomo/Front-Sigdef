@@ -123,4 +123,30 @@ export const toFriendlyErrorMessage = (errorOrMessage, opts = {}) => {
     return fallback;
 };
 
+/**
+ * Texto de contacto según el rol del usuario.
+ * Club → federación; Federación/SuperAdmin → administrador general.
+ */
+export const getSupportContactHint = (role) => {
+    const r = String(role || '').toUpperCase();
+    if (r === 'CLUB') {
+        return 'Si el problema continúa, contactá a la federación.';
+    }
+    if (r === 'FEDERACION' || r === 'SUPERADMIN') {
+        return 'Si el problema continúa, contactá al administrador general.';
+    }
+    return 'Si el problema continúa, contactá al administrador.';
+};
+
+/**
+ * Mensaje amigable + hint de contacto para errores que no son de campos del formulario.
+ */
+export const toUserFacingErrorMessage = (errorOrMessage, opts = {}) => {
+    const base = toFriendlyErrorMessage(errorOrMessage, opts);
+    const hint = getSupportContactHint(opts.role);
+    if (!hint) return base;
+    if (/contactá|contacte|contactar/i.test(base)) return base;
+    return `${base} ${hint}`;
+};
+
 export default toFriendlyErrorMessage;

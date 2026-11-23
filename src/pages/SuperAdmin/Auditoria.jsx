@@ -225,16 +225,18 @@ const Auditoria = () => {
     };
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-            <div>
-                <h2 className="text-gradient" style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '0.25rem' }}>Bitácora de Auditoría</h2>
-                <p style={{ color: 'var(--text-secondary)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
+            <div style={{ minWidth: 0 }}>
+                <h2 className="text-gradient" style={{ fontSize: 'clamp(1.35rem, 5vw, 2rem)', fontWeight: '800', marginBottom: '0.25rem', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+                    Bitácora de Auditoría
+                </h2>
+                <p style={{ color: 'var(--text-secondary)', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                     Movimientos de usuarios con resultado (OK / validación / error) y detalle del fallo.
                 </p>
             </div>
 
             <Card>
-                <div style={{ marginBottom: '1.5rem' }}>
+                <div style={{ marginBottom: '1.5rem', minWidth: 0 }}>
                     <SearchInput
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -247,18 +249,20 @@ const Auditoria = () => {
                 ) : filteredLogs.length === 0 ? (
                     <p style={{ color: 'var(--text-secondary)' }}>No hay registros de auditoría.</p>
                 ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', minWidth: 0 }}>
                         {filteredLogs.map((log) => {
                             const tone = toneFor(log.tipo);
                             return (
                                 <div key={log.id} style={{
                                     display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '1rem',
-                                    padding: '1rem',
+                                    alignItems: 'flex-start',
+                                    gap: '0.75rem',
+                                    padding: '0.85rem',
                                     border: `1px solid ${tone.border}`,
                                     borderRadius: 'var(--radius-md)',
                                     backgroundColor: tone.bg,
+                                    minWidth: 0,
+                                    overflow: 'hidden',
                                 }}>
                                     <div style={{
                                         color: tone.color,
@@ -268,14 +272,29 @@ const Auditoria = () => {
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
+                                        flexShrink: 0,
                                     }}>
                                         {getIcon(log.tipo)}
                                     </div>
 
-                                    <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
-                                        <div style={{ minWidth: '250px', flex: 1 }}>
+                                    <div style={{
+                                        flex: 1,
+                                        display: 'flex',
+                                        flexWrap: 'wrap',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'flex-start',
+                                        gap: '0.75rem',
+                                        minWidth: 0,
+                                    }}>
+                                        <div style={{ flex: '1 1 180px', minWidth: 0 }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                                <h4 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                                                <h4 style={{
+                                                    fontSize: '0.95rem',
+                                                    fontWeight: 'bold',
+                                                    color: 'var(--text-primary)',
+                                                    overflowWrap: 'anywhere',
+                                                    wordBreak: 'break-word',
+                                                }}>
                                                     {log.accionLabel}
                                                 </h4>
                                                 <span style={{
@@ -308,12 +327,24 @@ const Auditoria = () => {
                                                     : 'var(--text-secondary)',
                                                 marginTop: '0.25rem',
                                                 fontWeight: (log.tipo === 'Error' || log.tipo === 'Validación') ? 600 : 400,
+                                                overflowWrap: 'anywhere',
+                                                wordBreak: 'break-word',
                                             }}>
                                                 {log.detalle}
                                             </p>
                                         </div>
 
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', fontSize: '0.8rem', color: 'var(--text-secondary)', minWidth: '150px' }}>
+                                        <div style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'flex-start',
+                                            fontSize: '0.8rem',
+                                            color: 'var(--text-secondary)',
+                                            flex: '0 1 auto',
+                                            minWidth: 0,
+                                            overflowWrap: 'anywhere',
+                                            wordBreak: 'break-word',
+                                        }}>
                                             <span>Usuario: <strong style={{ color: 'var(--primary)' }}>{log.usuario}</strong></span>
                                             <span>IP: {log.ip}</span>
                                             <span style={{ fontSize: '0.75rem', marginTop: '0.1rem' }}>{log.fecha}</span>
