@@ -15,6 +15,7 @@ import { useDevice } from '../../../hooks/useDevice';
 import MobileCard from '../../../components/common/MobileCard';
 import PageHeader from '../../../components/common/PageHeader';
 import '../Atletas/Atletas.css';
+import './TutoresList.css';
 import { PARENTESCO_MAP } from '../../../utils/enums';
 
 const TutoresList = () => {
@@ -579,7 +580,7 @@ const TutoresList = () => {
                     }}
                     title="Detalles del Tutor"
                     footer={
-                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                        <div className="tutor-detail-footer">
                             <Button variant="secondary" onClick={() => exportTutorToExcel(selectedTutorForDetails)}>
                                 <FileText size={18} /> Exportar Excel
                             </Button>
@@ -601,7 +602,7 @@ const TutoresList = () => {
                         </div>
                     }
                 >
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', padding: '1rem' }}>
+                    <div className="tutor-detail-grid">
                         <div>
                             <label className="detail-label">Nombre Completo</label>
                             <div className="detail-value">
@@ -620,47 +621,39 @@ const TutoresList = () => {
                             <label className="detail-label">Email</label>
                             <div className="detail-value">{selectedTutorForDetails.email || selectedTutorForDetails.persona?.email || '-'}</div>
                         </div>
-                        <div style={{ gridColumn: '1 / -1' }}>
+                        <div className="tutor-detail-atletas">
                             <label className="detail-label">Atletas Representados</label>
                             <div className="detail-value">
                                 {(() => {
                                     const atletasRep = getAtletasRepresentados(selectedTutorForDetails.idPersona);
                                     return atletasRep.length > 0 ? (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                        <div className="tutor-detail-atletas-list">
                                             {atletasRep.map((atleta, idx) => (
                                                 <div
                                                     key={idx}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    className="tutor-atleta-card"
                                                     onClick={() => {
                                                         setShowDetailsModal(false);
                                                         handleEditAtleta(atleta.idPersona);
                                                     }}
-                                                    style={{
-                                                        padding: '0.75rem',
-                                                        backgroundColor: 'var(--bg-secondary)',
-                                                        borderRadius: '4px',
-                                                        border: '1px solid var(--border-color)',
-                                                        cursor: 'pointer',
-                                                        transition: 'all 0.2s ease'
-                                                    }}
-                                                    onMouseEnter={(e) => {
-                                                        e.currentTarget.style.backgroundColor = 'var(--primary-light)';
-                                                        e.currentTarget.style.borderColor = 'var(--primary)';
-                                                        e.currentTarget.style.transform = 'translateX(4px)';
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
-                                                        e.currentTarget.style.borderColor = 'var(--border-color)';
-                                                        e.currentTarget.style.transform = 'translateX(0)';
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' || e.key === ' ') {
+                                                            e.preventDefault();
+                                                            setShowDetailsModal(false);
+                                                            handleEditAtleta(atleta.idPersona);
+                                                        }
                                                     }}
                                                 >
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                        <div>
+                                                    <div className="tutor-atleta-card-row">
+                                                        <div className="tutor-atleta-card-info">
                                                             <strong>{atleta.nombrePersona}</strong><br />
-                                                            <small style={{ color: 'var(--text-secondary)' }}>
+                                                            <small>
                                                                 DNI: {atleta.documento} | Club: {atleta.nombreClub || '-'}
                                                             </small>
                                                         </div>
-                                                        <div style={{ color: 'var(--primary)', fontSize: '0.875rem' }}>
+                                                        <div className="tutor-atleta-card-link">
                                                             Ver detalles →
                                                         </div>
                                                     </div>

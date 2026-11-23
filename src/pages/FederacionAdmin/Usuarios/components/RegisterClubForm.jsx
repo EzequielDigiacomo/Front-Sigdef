@@ -8,6 +8,7 @@ import { validateRequiredFields } from '../../../../utils/formFieldErrors';
 import useFormFieldErrors from '../../../../hooks/useFormFieldErrors';
 import FieldError from '../../../../components/forms/FieldError';
 import FormErrorsBanner from '../../../../components/forms/FormErrorsBanner';
+import PasswordInput from '../../../../components/forms/PasswordInput';
 import '../../../../styles/CompactForm.css';
 
 const FIELD_LABELS = {
@@ -216,8 +217,7 @@ const RegisterClubForm = ({ onUserCreated }) => {
                 <div className="form-row">
                     <div className="form-group">
                         <label htmlFor="password">Contraseña</label>
-                        <input
-                            type="text"
+                        <PasswordInput
                             id="password"
                             name="password"
                             value={formData.password}
@@ -225,13 +225,13 @@ const RegisterClubForm = ({ onUserCreated }) => {
                             className={`form-input ${fieldErrors.password ? 'error' : ''}`}
                             aria-invalid={!!fieldErrors.password}
                             disabled={!clubLoginAllowed}
+                            autoComplete="new-password"
                         />
                         <FieldError message={fieldErrors.password} />
                     </div>
-                    <div className="form-group" style={{ marginBottom: '1rem' }}    >
+                    <div className="form-group" style={{ marginBottom: '1rem' }}>
                         <label htmlFor="confirmPassword">Confirmar Contraseña</label>
-                        <input
-                            type="text"
+                        <PasswordInput
                             id="confirmPassword"
                             name="confirmPassword"
                             value={formData.confirmPassword}
@@ -239,6 +239,7 @@ const RegisterClubForm = ({ onUserCreated }) => {
                             className={`form-input ${fieldErrors.confirmPassword ? 'error' : ''}`}
                             aria-invalid={!!fieldErrors.confirmPassword}
                             disabled={!clubLoginAllowed}
+                            autoComplete="new-password"
                         />
                         <FieldError message={fieldErrors.confirmPassword} />
                     </div>

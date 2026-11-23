@@ -4,6 +4,7 @@ import { api } from '../../services/api';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import FormField from '../../components/forms/FormField';
+import PasswordInput from '../../components/forms/PasswordInput';
 import { Save, ArrowLeft, ShieldAlert } from 'lucide-react';
 import useFormFieldErrors from '../../hooks/useFormFieldErrors';
 import FieldError from '../../components/forms/FieldError';
@@ -353,28 +354,28 @@ const FederacionesForm = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                                 <div className="form-group">
                                     <label htmlFor="adminPassword">Contraseña *</label>
-                                    <input
-                                        type="password"
+                                    <PasswordInput
                                         id="adminPassword"
                                         className={`form-input ${errors.adminPassword ? 'error' : ''}`}
                                         value={form.adminPassword}
                                         onChange={(e) => { setForm(prev => ({ ...prev, adminPassword: e.target.value })); clearFieldError('adminPassword'); }}
                                         placeholder="Mínimo 6 caracteres"
                                         required
+                                        autoComplete="new-password"
                                     />
                                     <FieldError message={errors.adminPassword} />
                                 </div>
 
                                 <div className="form-group">
                                     <label htmlFor="confirmAdminPassword">Confirmar Contraseña *</label>
-                                    <input
-                                        type="password"
+                                    <PasswordInput
                                         id="confirmAdminPassword"
                                         className={`form-input ${errors.confirmAdminPassword ? 'error' : ''}`}
                                         value={form.confirmAdminPassword}
                                         onChange={(e) => { setForm(prev => ({ ...prev, confirmAdminPassword: e.target.value })); clearFieldError('confirmAdminPassword'); }}
                                         placeholder="Repetir contraseña"
                                         required
+                                        autoComplete="new-password"
                                     />
                                     <FieldError message={errors.confirmAdminPassword} />
                                 </div>

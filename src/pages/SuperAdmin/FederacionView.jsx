@@ -6,7 +6,10 @@ import {
     UserCheck, Lock, Eye, AlertCircle, Building2, ClipboardList, ArrowRightLeft, Key,
     ClipboardCheck, ShieldCheck,
 } from 'lucide-react';
-import { withFederationScope, getClubFederationId, getClubId } from '../../utils/apiHelpers';
+import { withFederationScope, getClubFederationId, getClubId, pick } from '../../utils/apiHelpers';
+import { fetchPlanes } from '../../services/saasService';
+import { normalizePlan } from '../../utils/planHelpers';
+import AtletasCupoBar from '../../components/common/AtletasCupoBar';
 
 // Banner visual que recuerda que el SuperAdmin está viendo una federación ajena
 const SuperAdminContextBanner = ({ federacionNombre, onBack }) => (
@@ -144,6 +147,7 @@ const FederacionView = () => {
     const [loading, setLoading] = useState(true);
     const [federacion, setFederacion] = useState(null);
     const [stats, setStats] = useState({ atletas: null, clubes: null, deuda: null });
+    const [cupo, setCupo] = useState({ maxAtletas: -1, planNombre: '' });
     const [error, setError] = useState(null);
 
     useEffect(() => {
@@ -156,10 +160,11 @@ const FederacionView = () => {
         setError(null);
         try {
             // Cargar federación + datos de la fed en paralelo
-            const [fedData, atletasData, clubesData] = await Promise.all([
+            const [fedData, atletasData, clubesData, planesData] = await Promise.all([
                 api.get(`/Federaciones/${fedId}`).catch(() => null),
                 api.get(withFederationScope('/Atleta', fedId)).catch(() => []),
-                api.get(withFederationScope('/Clubes', fedId)).catch(() => [])
+                api.get(withFederationScope('/Clubes', fedId)).catch(() => []),
+                fetchPlanes().catch(() => []),
             ]);
 
             setFederacion(fedData);
@@ -180,6 +185,16 @@ const FederacionView = () => {
                 if (aFed === String(fedId)) return true;
                 const aClub = getClubId(a);
                 return clubIds.includes(aClub);
+            });
+
+            const planSaaSId = pick(fedData, 'planSaaSId', 'PlanSaaSId') ?? 1;
+            const rawPlan = (Array.isArray(planesData) ? planesData : [])
+                .find((p) => Number(pick(p, 'id', 'Id')) === Number(planSaaSId));
+            const plan = normalizePlan(rawPlan || { id: planSaaSId });
+
+            setCupo({
+                maxAtletas: plan?.maxAtletas ?? -1,
+                planNombre: plan?.nombre || '',
             });
 
             setStats({
@@ -243,13 +258,28 @@ const FederacionView = () => {
             <SuperAdminContextBanner federacionNombre={fedNombre} onBack={goBack} />
 
             {/* Header */}
-            <div>
-                <h1 className="text-gradient" style={{ fontSize: '2rem', fontWeight: '800', margin: 0 }}>
-                    {fedNombre}
-                </h1>
-                <p style={{ color: 'var(--text-secondary)', marginTop: '0.3rem' }}>
-                    Administración general de la federación — modo supervisión SuperAdmin.
-                </p>
+            <div style={{
+                display: 'flex',
+                alignItems: 'flex-end',
+                justifyContent: 'space-between',
+                gap: '1rem 1.5rem',
+                flexWrap: 'wrap',
+            }}>
+                <div style={{ minWidth: 0, flex: '1 1 auto' }}>
+                    <h1 className="text-gradient" style={{ fontSize: '2rem', fontWeight: '800', margin: 0 }}>
+                        {fedNombre}
+                    </h1>
+                    <p style={{ color: 'var(--text-secondary)', marginTop: '0.3rem' }}>
+                        Administración general de la federación — modo supervisión SuperAdmin.
+                    </p>
+                </div>
+                <AtletasCupoBar
+                    className="fed-view-cupo-bar"
+                    style={{ flex: '0 1 640px', width: 'min(100%, 640px)' }}
+                    actual={stats.atletas ?? 0}
+                    maxAtletas={cupo.maxAtletas}
+                    planNombre={cupo.planNombre}
+                />
             </div>
 
             {/* KPIs */}

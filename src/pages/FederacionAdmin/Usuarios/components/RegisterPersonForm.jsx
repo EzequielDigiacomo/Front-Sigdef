@@ -9,6 +9,7 @@ import { validateRequiredFields } from '../../../../utils/formFieldErrors';
 import useFormFieldErrors from '../../../../hooks/useFormFieldErrors';
 import FieldError from '../../../../components/forms/FieldError';
 import FormErrorsBanner from '../../../../components/forms/FormErrorsBanner';
+import PasswordInput from '../../../../components/forms/PasswordInput';
 import '../../../../styles/CompactForm.css';
 import './RegisterPersonForm.css';
 
@@ -396,13 +397,27 @@ const RegisterPersonForm = ({ onUserCreated }) => {
 
                         <div className="form-group">
                             <label>Contraseña *</label>
-                            <input type="text" name="password" value={formData.password} onChange={handleChange} className={`form-input ${fieldErrors.password ? 'error' : ''}`} aria-invalid={!!fieldErrors.password} />
+                            <PasswordInput
+                                name="password"
+                                value={formData.password}
+                                onChange={handleChange}
+                                className={`form-input ${fieldErrors.password ? 'error' : ''}`}
+                                aria-invalid={!!fieldErrors.password}
+                                autoComplete="new-password"
+                            />
                             <FieldError message={fieldErrors.password} />
                         </div>
 
                         <div className="form-group">
                             <label>Confirmar Contraseña *</label>
-                            <input type="text" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} className={`form-input ${fieldErrors.confirmPassword ? 'error' : ''}`} aria-invalid={!!fieldErrors.confirmPassword} />
+                            <PasswordInput
+                                name="confirmPassword"
+                                value={formData.confirmPassword}
+                                onChange={handleChange}
+                                className={`form-input ${fieldErrors.confirmPassword ? 'error' : ''}`}
+                                aria-invalid={!!fieldErrors.confirmPassword}
+                                autoComplete="new-password"
+                            />
                             <FieldError message={fieldErrors.confirmPassword} />
                         </div>
                     </div>

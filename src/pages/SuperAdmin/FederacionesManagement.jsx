@@ -567,14 +567,11 @@ const FederacionesManagement = ({ planesOnly = false }) => {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '0.5rem' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                                 <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Plan de Suscripción</label>
-                                <select 
-                                    value={selectedFedConfig.planSaaSId ?? selectedFedConfig.PlanSaaSId ?? 1} 
+                                <select
+                                    className="form-input"
+                                    value={selectedFedConfig.planSaaSId ?? selectedFedConfig.PlanSaaSId ?? 1}
                                     onChange={(e) => handleAsignarPlan(selectedFedConfig.idFederacion, parseInt(e.target.value, 10))}
                                     disabled={updatingSaaS}
-                                    style={{
-                                        width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid var(--border-color)',
-                                        backgroundColor: 'rgba(0,0,0,0.3)', color: 'var(--text-primary)', fontSize: '0.85rem'
-                                    }}
                                 >
                                     {planes.map((p) => {
                                         const planId = p.id ?? p.Id;
@@ -588,14 +585,11 @@ const FederacionesManagement = ({ planesOnly = false }) => {
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                                 <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Frecuencia de Pago</label>
-                                <select 
-                                    value={selectedFedConfig.frecuenciaPago || 'Mensual'} 
+                                <select
+                                    className="form-input"
+                                    value={selectedFedConfig.frecuenciaPago || 'Mensual'}
                                     onChange={(e) => handleUpdateInlineField(selectedFedConfig.idFederacion, 'frecuenciaPago', e.target.value)}
                                     disabled={updatingSaaS}
-                                    style={{
-                                        width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid var(--border-color)',
-                                        backgroundColor: 'rgba(0,0,0,0.3)', color: 'var(--text-primary)', fontSize: '0.85rem'
-                                    }}
                                 >
                                     <option value="Mensual">Mensual</option>
                                     <option value="Anual">Anual</option>
@@ -616,16 +610,13 @@ const FederacionesManagement = ({ planesOnly = false }) => {
                                         setLocalDateValues(v => ({ ...v, fechaAltaPlan: '' }));
                                     }}
                                     disabled={updatingSaaS}
-                                    style={{
-                                        width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid var(--border-color)',
-                                        backgroundColor: 'rgba(0,0,0,0.3)', color: 'var(--text-primary)', fontSize: '0.85rem'
-                                    }}
+                                    className="form-input"
                                 />
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                                 <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Vencimiento de Suscripción</label>
-                                <input 
+                                <input
                                     type="date"
                                     value={localDateValues.fechaVencimientoPlan !== '' ? localDateValues.fechaVencimientoPlan : (selectedFedConfig.fechaVencimientoPlan ? selectedFedConfig.fechaVencimientoPlan.split('T')[0] : '')}
                                     onFocus={() => setLocalDateValues(v => ({ ...v, fechaVencimientoPlan: selectedFedConfig.fechaVencimientoPlan ? selectedFedConfig.fechaVencimientoPlan.split('T')[0] : '' }))}
@@ -637,28 +628,24 @@ const FederacionesManagement = ({ planesOnly = false }) => {
                                         setLocalDateValues(v => ({ ...v, fechaVencimientoPlan: '' }));
                                     }}
                                     disabled={updatingSaaS}
-                                    style={{
-                                        width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid var(--border-color)',
-                                        backgroundColor: 'rgba(0,0,0,0.3)', color: 'var(--text-primary)', fontSize: '0.85rem'
-                                    }}
+                                    className="form-input"
                                 />
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                                 <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Estado de Pago / Acceso</label>
-                                <select 
-                                    value={selectedFedConfig.bloqueadaPorFaltaDePago ? 'Bloqueado' : 'AlDia'} 
+                                <select
+                                    className="form-input"
+                                    value={selectedFedConfig.bloqueadaPorFaltaDePago ? 'Bloqueado' : 'AlDia'}
                                     onChange={(e) => handleUpdateInlineField(selectedFedConfig.idFederacion, 'bloqueadaPorFaltaDePago', e.target.value === 'Bloqueado')}
                                     disabled={updatingSaaS}
                                     style={{
-                                        width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid var(--border-color)',
-                                        backgroundColor: 'rgba(0,0,0,0.3)', fontSize: '0.85rem',
                                         color: selectedFedConfig.bloqueadaPorFaltaDePago ? '#EF4444' : '#10B981',
-                                        fontWeight: 'bold'
+                                        fontWeight: 'bold',
                                     }}
                                 >
-                                     <option value="AlDia" style={{ color: '#10B981' }}>Habilitado (Al día)</option>
-                                     <option value="Bloqueado" style={{ color: '#EF4444' }}>Suspendido por Falta de Pago</option>
+                                    <option value="AlDia">Habilitado (Al día)</option>
+                                    <option value="Bloqueado">Suspendido por Falta de Pago</option>
                                 </select>
                             </div>
 

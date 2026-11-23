@@ -15,6 +15,11 @@
 }
 
 .dashboard-compact .dash-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem 1.5rem;
+    flex-wrap: wrap;
     margin-bottom: 1rem;
 }
 
@@ -25,6 +30,11 @@
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--text-secondary);
+}
+
+.dashboard-compact .dash-title-block {
+    min-width: 0;
+    flex: 1 1 auto;
 }
 
 .dashboard-compact .dash-title-block h1 {
@@ -38,6 +48,13 @@
     margin: 0.25rem 0 0;
     font-size: 0.95rem;
     color: var(--text-secondary);
+}
+
+.dashboard-compact .dash-cupo-bar {
+    flex: 0 1 640px;
+    width: min(100%, 640px);
+    margin: 0;
+    padding: 0.65rem 0.85rem;
 }
 
 .dashboard-compact .dash-stats {

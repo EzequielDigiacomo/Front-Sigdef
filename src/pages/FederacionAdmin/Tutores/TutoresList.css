@@ -1,0 +1,119 @@
+/* Detalle de tutor: layout adaptable a mobile */
+
+.tutor-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem 1.25rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.tutor-detail-grid .detail-label {
+    font-size: 0.7rem;
+    margin-bottom: 2px;
+    display: block;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.tutor-detail-grid .detail-value {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    word-break: break-word;
+}
+
+.tutor-detail-atletas {
+    grid-column: 1 / -1;
+}
+
+.tutor-detail-atletas-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.tutor-atleta-card {
+    padding: 0.75rem;
+    background-color: var(--bg-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.tutor-atleta-card:hover,
+.tutor-atleta-card:focus-visible {
+    background-color: var(--primary-light, rgba(59, 130, 246, 0.12));
+    border-color: var(--primary);
+    outline: none;
+}
+
+.tutor-atleta-card-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.tutor-atleta-card-info {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.tutor-atleta-card-info small {
+    color: var(--text-secondary);
+}
+
+.tutor-atleta-card-link {
+    color: var(--primary);
+    font-size: 0.875rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.tutor-detail-footer {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.tutor-detail-footer > * {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+}
+
+@media (max-width: 640px) {
+    .tutor-detail-grid {
+        grid-template-columns: 1fr;
+        gap: 0.85rem;
+    }
+
+    .tutor-detail-footer {
+        flex-direction: column-reverse;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    .tutor-detail-footer > * {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .tutor-atleta-card-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.35rem;
+    }
+
+    .tutor-atleta-card-link {
+        align-self: flex-end;
+    }
+}

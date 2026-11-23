@@ -7,6 +7,7 @@ import { api } from '../../../../services/api';
 import Modal from '../../../../components/common/Modal';
 import Button from '../../../../components/common/Button';
 import ConfirmationModal from '../../../../components/common/ConfirmationModal';
+import PasswordInput from '../../../../components/forms/PasswordInput';
 import { getClubId } from '../../../../utils/apiHelpers';
 import './UserTable.css';
 
@@ -331,10 +332,9 @@ const UserTable = ({ users, clubs = [], onUserUpdated }) => {
                         <label htmlFor="edit-newPassword">
                             Nueva contraseña <span className="text-danger">*</span>
                         </label>
-                        <input
+                        <PasswordInput
                             id="edit-newPassword"
                             name="newPassword"
-                            type="password"
                             className="form-input"
                             value={passwordForm.newPassword}
                             onChange={handlePasswordChange}
@@ -348,10 +348,9 @@ const UserTable = ({ users, clubs = [], onUserUpdated }) => {
                         <label htmlFor="edit-confirmPassword">
                             Confirmar contraseña <span className="text-danger">*</span>
                         </label>
-                        <input
+                        <PasswordInput
                             id="edit-confirmPassword"
                             name="confirmPassword"
-                            type="password"
                             className="form-input"
                             value={passwordForm.confirmPassword}
                             onChange={handlePasswordChange}

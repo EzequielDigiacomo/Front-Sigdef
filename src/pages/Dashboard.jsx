@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import Card from '../components/common/Card';
+import AtletasCupoBar from '../components/common/AtletasCupoBar';
 import {
     Users, Shield, DollarSign, Award, Trophy, Briefcase, UserCheck,
     ChevronLeft, ChevronRight, Activity, AlertTriangle, KeyRound, UserPlus, ClipboardList,
@@ -9,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import FichajeService from '../services/fichajeService';
+import { normalizePlan } from '../utils/planHelpers';
 import './Dashboard.css';
 
 const ACTIVITY_PAGE_SIZE = 4;
@@ -127,6 +129,12 @@ const Dashboard = () => {
     ]);
     const [loading, setLoading] = useState(true);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [atletasActual, setAtletasActual] = useState(0);
+
+    const plan = useMemo(
+        () => normalizePlan(user?.plan || user?.Plan),
+        [user?.plan, user?.Plan]
+    );
 
     useEffect(() => {
         const fetchFederacion = async () => {
@@ -151,13 +159,15 @@ const Dashboard = () => {
                     FichajeService.getResumen().catch(() => null),
                 ]);
 
-                const totalAtletas = atletasData.length;
-                const totalClubes = clubesData.length;
-                const atletasConDeuda = atletasData.filter((a) => (a.estadoPago || a.EstadoPago) === 2).length;
+                const totalAtletas = Array.isArray(atletasData) ? atletasData.length : 0;
+                const totalClubes = Array.isArray(clubesData) ? clubesData.length : 0;
+                const atletasConDeuda = (Array.isArray(atletasData) ? atletasData : [])
+                    .filter((a) => (a.estadoPago || a.EstadoPago) === 2).length;
                 const pendientes = resumen?.pendientesFichaje ?? resumen?.PendientesFichaje ?? '...';
                 const habilitados = resumen?.habilitados ?? resumen?.Habilitados ?? '...';
                 const aptosPorVencer = resumen?.aptosPorVencer ?? resumen?.AptosPorVencer ?? '...';
 
+                setAtletasActual(totalAtletas);
                 setStats([
                     { label: 'Total Atletas', value: totalAtletas, icon: Users, color: 'var(--primary)', route: '/dashboard/atletas' },
                     { label: 'Clubes Registrados', value: totalClubes, icon: Shield, color: 'var(--success)', route: '/dashboard/clubes' },
@@ -259,6 +269,13 @@ const Dashboard = () => {
                         {user?.nombreCompleto || user?.username || 'Administrador'}
                     </p>
                 </div>
+                <AtletasCupoBar
+                    className="dash-cupo-bar"
+                    actual={atletasActual}
+                    maxAtletas={plan?.maxAtletas ?? -1}
+                    planNombre={plan?.nombre || ''}
+                    loading={loading}
+                />
             </header>
 
             <div className="stats-grid dash-stats">

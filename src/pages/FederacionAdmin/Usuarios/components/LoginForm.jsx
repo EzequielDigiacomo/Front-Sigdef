@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Save, Eye, EyeOff, User } from 'lucide-react';
+import React, { useEffect, useMemo } from 'react';
+import { Save, User } from 'lucide-react';
 import Button from '../../../../components/common/Button';
+import PasswordInput from '../../../../components/forms/PasswordInput';
 import { useAuth } from '../../../../context/AuthContext';
 import { pick, getClubId } from '../../../../utils/apiHelpers';
 import {
@@ -30,8 +31,6 @@ const LoginForm = ({
 }) => {
     const { user } = useAuth();
     const isSuper = user?.role === 'SUPERADMIN';
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const targetFedId = initialData.federacionId || effectiveFedId || '';
 
@@ -205,51 +204,29 @@ const LoginForm = ({
                             </div>
                             <div className="form-group">
                                 <label htmlFor="login-password">Contraseña *</label>
-                                <div className="login-password-wrap">
-                                    <input
-                                        id="login-password"
-                                        className="form-input"
-                                        type={showPassword ? 'text' : 'password'}
-                                        name="password"
-                                        value={initialData.password}
-                                        onChange={(e) => onChange('password', e.target.value)}
-                                        required
-                                        minLength={6}
-                                        autoComplete="new-password"
-                                    />
-                                    <button
-                                        type="button"
-                                        className="login-eye-btn"
-                                        onClick={() => setShowPassword((v) => !v)}
-                                        title={showPassword ? 'Ocultar' : 'Mostrar'}
-                                    >
-                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                    </button>
-                                </div>
+                                <PasswordInput
+                                    id="login-password"
+                                    className="form-input"
+                                    name="password"
+                                    value={initialData.password}
+                                    onChange={(e) => onChange('password', e.target.value)}
+                                    required
+                                    minLength={6}
+                                    autoComplete="new-password"
+                                />
                             </div>
                             <div className="form-group">
                                 <label htmlFor="login-confirm">Confirmar contraseña *</label>
-                                <div className="login-password-wrap">
-                                    <input
-                                        id="login-confirm"
-                                        className="form-input"
-                                        type={showConfirmPassword ? 'text' : 'password'}
-                                        name="confirmPassword"
-                                        value={initialData.confirmPassword}
-                                        onChange={(e) => onChange('confirmPassword', e.target.value)}
-                                        required
-                                        minLength={6}
-                                        autoComplete="new-password"
-                                    />
-                                    <button
-                                        type="button"
-                                        className="login-eye-btn"
-                                        onClick={() => setShowConfirmPassword((v) => !v)}
-                                        title={showConfirmPassword ? 'Ocultar' : 'Mostrar'}
-                                    >
-                                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                    </button>
-                                </div>
+                                <PasswordInput
+                                    id="login-confirm"
+                                    className="form-input"
+                                    name="confirmPassword"
+                                    value={initialData.confirmPassword}
+                                    onChange={(e) => onChange('confirmPassword', e.target.value)}
+                                    required
+                                    minLength={6}
+                                    autoComplete="new-password"
+                                />
                             </div>
                         </section>
 
@@ -280,50 +257,30 @@ const LoginForm = ({
                         </h4>
                         <div className="form-group">
                             <label htmlFor="login-new-password">Nueva contraseña *</label>
-                            <div className="login-password-wrap">
-                                <input
-                                    id="login-new-password"
-                                    className="form-input"
-                                    type={showPassword ? 'text' : 'password'}
-                                    name="newPassword"
-                                    value={initialData.newPassword}
-                                    onChange={(e) => onChange('newPassword', e.target.value)}
-                                    required
-                                    minLength={6}
-                                    autoFocus
-                                    autoComplete="new-password"
-                                />
-                                <button
-                                    type="button"
-                                    className="login-eye-btn"
-                                    onClick={() => setShowPassword((v) => !v)}
-                                >
-                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                </button>
-                            </div>
+                            <PasswordInput
+                                id="login-new-password"
+                                className="form-input"
+                                name="newPassword"
+                                value={initialData.newPassword}
+                                onChange={(e) => onChange('newPassword', e.target.value)}
+                                required
+                                minLength={6}
+                                autoFocus
+                                autoComplete="new-password"
+                            />
                         </div>
                         <div className="form-group">
                             <label htmlFor="login-confirm-new">Confirmar nueva contraseña *</label>
-                            <div className="login-password-wrap">
-                                <input
-                                    id="login-confirm-new"
-                                    className="form-input"
-                                    type={showConfirmPassword ? 'text' : 'password'}
-                                    name="confirmNewPassword"
-                                    value={initialData.confirmNewPassword}
-                                    onChange={(e) => onChange('confirmNewPassword', e.target.value)}
-                                    required
-                                    minLength={6}
-                                    autoComplete="new-password"
-                                />
-                                <button
-                                    type="button"
-                                    className="login-eye-btn"
-                                    onClick={() => setShowConfirmPassword((v) => !v)}
-                                >
-                                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                </button>
-                            </div>
+                            <PasswordInput
+                                id="login-confirm-new"
+                                className="form-input"
+                                name="confirmNewPassword"
+                                value={initialData.confirmNewPassword}
+                                onChange={(e) => onChange('confirmNewPassword', e.target.value)}
+                                required
+                                minLength={6}
+                                autoComplete="new-password"
+                            />
                         </div>
                     </section>
                 ) : (

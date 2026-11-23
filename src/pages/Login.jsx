@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/common/Button';
-import { Eye, EyeOff, HelpCircle, Send } from 'lucide-react';
+import PasswordInput from '../components/forms/PasswordInput';
+import { HelpCircle, Send } from 'lucide-react';
 import { useDevice } from '../hooks/useDevice';
 import Modal from '../components/common/Modal';
 import { api } from '../services/api';
@@ -14,7 +15,6 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
     const [showForgotModal, setShowForgotModal] = useState(false);
     const [forgotUsername, setForgotUsername] = useState('');
     const [forgotNota, setForgotNota] = useState('');
@@ -116,26 +116,15 @@ const Login = () => {
 
                     <div className="form-group">
                         <label htmlFor="password">Contraseña</label>
-                        <div className="password-input-wrapper">
-                            <input
-                                type={showPassword ? 'text' : 'password'}
-                                id="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Ingrese su contraseña"
-                                required
-                                className="form-input"
-                                autoComplete="current-password"
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="password-toggle-btn"
-                                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                            >
-                                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                            </button>
-                        </div>
+                        <PasswordInput
+                            id="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Ingrese su contraseña"
+                            required
+                            className="form-input"
+                            autoComplete="current-password"
+                        />
                     </div>
 
                     {error && <div className="error-message">{error}</div>}
