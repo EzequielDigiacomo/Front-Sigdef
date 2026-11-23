@@ -94,19 +94,65 @@ const ClubTutores = () => {
             const tutoresFiltrados = (Array.isArray(allTutores) ? allTutores : [])
                 .map((t) => {
                     const idPersona = Number(getTutorId(t));
+                    const persona = t.participante || t.Participante || {};
                     return {
                         ...t,
                         idPersona,
                         nombrePersona: t.nombrePersona || t.NombrePersona || '',
-                        email: t.email || t.Email || '',
-                        telefono: t.telefono || t.Telefono || '',
-                        direccion: t.direccion || t.Direccion || '',
+                        documento:
+                            t.documento
+                            || t.Documento
+                            || persona.documento
+                            || persona.Documento
+                            || persona.dni
+                            || persona.Dni
+                            || '',
+                        email: t.email || t.Email || persona.email || persona.Email || '',
+                        telefono: t.telefono || t.Telefono || persona.telefono || persona.Telefono || '',
+                        direccion:
+                            t.direccion
+                            || t.Direccion
+                            || persona.direccion
+                            || persona.Direccion
+                            || '',
                         atletaVinculado: (tutorAtletasMap.get(idPersona) || []).join(', '),
                     };
                 })
                 .filter((t) => myClubTutorIds.has(t.idPersona));
 
-            setTutores(tutoresFiltrados);
+            // Completar dirección/DNI desde Persona si el listado de Tutor no los trae
+            const enriquecidos = await Promise.all(
+                tutoresFiltrados.map(async (tutor) => {
+                    if (tutor.direccion && tutor.documento) return tutor;
+                    try {
+                        const persona = await api.get(`/Persona/${tutor.idPersona}`, {
+                            silentErrors: true,
+                        });
+                        if (!persona) return tutor;
+                        return {
+                            ...tutor,
+                            documento:
+                                tutor.documento
+                                || persona.documento
+                                || persona.Documento
+                                || persona.dni
+                                || persona.Dni
+                                || '',
+                            direccion:
+                                tutor.direccion
+                                || persona.direccion
+                                || persona.Direccion
+                                || '',
+                            email: tutor.email || persona.email || persona.Email || '',
+                            telefono: tutor.telefono || persona.telefono || persona.Telefono || '',
+                        };
+                    } catch {
+                        return tutor;
+                    }
+                })
+            );
+
+            setTutores(enriquecidos);
         } catch (error) {
             console.error('Error al cargar tutores:', error);
         } finally {
@@ -178,7 +224,7 @@ const ClubTutores = () => {
 
             <Card>
                 <div className="filters-bar">
-                    <FormField icon={Search} placeholder="Buscar por nombre..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} variant="dark-focused" />
+                    <FormField icon={Search} placeholder="Buscar por nombre o DNI..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} variant="dark-focused" />
                 </div>
             </Card>
 
@@ -187,28 +233,33 @@ const ClubTutores = () => {
                     {
                         key: 'nombrePersona',
                         label: 'Nombre',
-                        render: (value, row) => value || 'Sin Nombre'
+                        render: (value) => value || 'Sin Nombre',
+                    },
+                    {
+                        key: 'documento',
+                        label: 'DNI',
+                        render: (value) => value || '-',
                     },
                     {
                         key: 'atletaVinculado',
                         label: 'Atleta Asignado',
-                        render: (value) => value || '-' // New Column
+                        render: (value) => value || '-',
                     },
                     {
                         key: 'telefono',
                         label: 'Teléfono',
-                        render: (value) => value || '-'
+                        render: (value) => value || '-',
                     },
                     {
                         key: 'email',
                         label: 'Email',
-                        render: (value) => value || '-'
+                        render: (value) => value || '-',
                     },
                     {
                         key: 'direccion',
                         label: 'Dirección',
-                        render: (value) => value || '-'
-                    }
+                        render: (value) => value || '-',
+                    },
                 ]}
                 data={filteredTutores}
                 loading={loading}

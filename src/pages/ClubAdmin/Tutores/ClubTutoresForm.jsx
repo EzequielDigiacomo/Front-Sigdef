@@ -291,49 +291,54 @@ const ClubTutoresForm = () => {
                 await api.put(`/Tutor/${id}`, buildTutorPayload(idPersona));
 
             } else {
+                const resolvePersonaId = (p) =>
+                    p?.participanteId ?? p?.ParticipanteId ?? p?.idPersona ?? p?.IdPersona ?? null;
 
                 let personaExistente = null;
-
                 try {
-                    console.log(`🔍 Buscando persona con DNI ${formData.documento}...`);
                     personaExistente = await api.get(`/Persona/documento/${formData.documento}`, {
-                        silentErrors: true
+                        silentErrors: true,
                     });
-
-                    if (personaExistente && personaExistente.idPersona) {
-                        idPersona = personaExistente.idPersona;
-                        console.log('✅ Persona encontrada con ID:', idPersona);
-
-                        try {
-                            const tutorExistente = await api.get(`/Tutor/${idPersona}`);
-                            console.log('⚠️ Persona ya es tutor, actualizando...');
-
-                            await api.put(`/Persona/${idPersona}`, personaPayload);
-                            await api.put(`/Tutor/${idPersona}`, buildTutorPayload(idPersona));
-
-                        } catch (tutorError) {
-
-                            if (personaExistente.tipoPersona && personaExistente.tipoPersona !== 'Persona Base') {
-                                throw new Error(`Esta persona ya tiene el rol de: ${personaExistente.tipoPersona}. No se puede asignar como tutor.`);
-                            }
-
-                            console.log('➕ Persona existe pero no es tutor, creando tutor...');
-                            await api.put(`/Persona/${idPersona}`, personaPayload);
-                            await api.post('/Tutor', buildTutorPayload(idPersona));
-                        }
-                    }
                 } catch (searchError) {
+                    // 404 con mensaje de DNI bloqueado / no disponible → no crear
+                    const msg = String(searchError?.message || searchError?.rawMessage || '');
+                    if (/no está disponible|privilegiad|administrador/i.test(msg) || searchError?.status === 403) {
+                        throw searchError;
+                    }
+                    // Otros 404 de lookup: se crea persona nueva
+                    personaExistente = null;
+                }
 
-                    console.log('ℹ️ Persona no encontrada, se creará nueva');
+                const existingId = resolvePersonaId(personaExistente);
+                if (existingId) {
+                    idPersona = Number(existingId);
 
+                    let yaEsTutor = false;
+                    try {
+                        await api.get(`/Tutor/${idPersona}`, { silentErrors: true });
+                        yaEsTutor = true;
+                    } catch {
+                        yaEsTutor = false;
+                    }
+
+                    if (yaEsTutor) {
+                        await api.put(`/Persona/${idPersona}`, personaPayload);
+                        await api.put(`/Tutor/${idPersona}`, buildTutorPayload(idPersona));
+                    } else {
+                        const tipo = personaExistente.tipoPersona || personaExistente.TipoPersona;
+                        if (tipo && tipo !== 'Persona Base') {
+                            throw new Error(
+                                `Esta persona ya tiene el rol de: ${tipo}. No se puede asignar como tutor.`
+                            );
+                        }
+                        await api.put(`/Persona/${idPersona}`, personaPayload);
+                        await api.post('/Tutor', buildTutorPayload(idPersona));
+                    }
                 }
 
                 if (!idPersona) {
-                    console.log('➕ Creando nueva persona...');
                     const nuevaPersona = await api.post('/Persona', personaPayload);
-                    idPersona = nuevaPersona.participanteId || nuevaPersona.ParticipanteId || nuevaPersona.idPersona || nuevaPersona.IdPersona;
-
-                    console.log('➕ Creando tutor...');
+                    idPersona = resolvePersonaId(nuevaPersona);
                     await api.post('/Tutor', buildTutorPayload(idPersona));
                 }
             }
