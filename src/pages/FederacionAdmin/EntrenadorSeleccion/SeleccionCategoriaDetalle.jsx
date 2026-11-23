@@ -14,6 +14,8 @@ import AssignCoachModal from './components/AssignCoachModal';
 import DocumentUploadModal from '../../../components/common/DocumentUploadModal';
 import DocumentViewerModal from '../../../components/common/DocumentViewerModal';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
+import AtletaDetailModal from '../Atletas/components/AtletaDetailModal';
+import EntrenadorDetailModal from '../Entrenadores/components/EntrenadorDetailModal';
 import './SeleccionCategoriaDetalle.css';
 import './EntrenadorSeleccion.css';
 
@@ -35,6 +37,12 @@ const SeleccionCategoriaDetalle = () => {
     const [showViewerModal, setShowViewerModal] = useState(false);
     const [selectedAthleteForViewer, setSelectedAthleteForViewer] = useState(null);
 
+    // Ficha completa (móvil / click en fila o chip)
+    const [selectedAthleteDetail, setSelectedAthleteDetail] = useState(null);
+    const [showAthleteDetailModal, setShowAthleteDetailModal] = useState(false);
+    const [selectedCoachDetail, setSelectedCoachDetail] = useState(null);
+    const [showCoachDetailModal, setShowCoachDetailModal] = useState(false);
+
     // Confirmation Modal State
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [confirmationConfig, setConfirmationConfig] = useState({
@@ -49,6 +57,25 @@ const SeleccionCategoriaDetalle = () => {
     const baseSelecciones = fedId
         ? `/superadmin/federacion/${fedId}/selecciones`
         : '/dashboard/selecciones';
+    const detailReturnPath = fedId
+        ? `/superadmin/federacion/${fedId}/selecciones/categoria/${categoryId}`
+        : `/dashboard/selecciones/categoria/${categoryId}`;
+
+    const openAthleteDetail = (athlete) => {
+        setSelectedAthleteDetail(athlete);
+        setShowAthleteDetailModal(true);
+    };
+
+    const openCoachDetail = (coach) => {
+        setSelectedCoachDetail({
+            ...coach,
+            idPersona: coach.id,
+            nombrePersona: coach.nombre,
+            perteneceSeleccion: true,
+            categoriaSeleccion: categoryIdNum,
+        });
+        setShowCoachDetailModal(true);
+    };
 
     useEffect(() => {
         fetchData();
@@ -357,7 +384,12 @@ const SeleccionCategoriaDetalle = () => {
                                 e.stopPropagation();
                                 if (row.idPersona) {
                                     /* alert('DEBUG: Navegando a editar ID ' + row.idPersona); // Uncomment for extreme debug */
-                                    navigate(`/dashboard/atletas/editar/${row.idPersona}`);
+                                    navigate(
+                                        fedId
+                                            ? `/superadmin/federacion/${fedId}/atletas/editar/${row.idPersona}`
+                                            : `/dashboard/atletas/editar/${row.idPersona}`,
+                                        { state: { returnPath: detailReturnPath } }
+                                    );
                                 } else {
                                     setConfirmationConfig({
                                         type: 'danger',
@@ -438,7 +470,19 @@ const SeleccionCategoriaDetalle = () => {
                 ) : (
                     <div className="sel-staff-grid">
                         {coaches.map((coach) => (
-                            <div key={coach.id} className="sel-staff-chip">
+                            <div
+                                key={coach.id}
+                                className="sel-staff-chip is-clickable"
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => openCoachDetail(coach)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        openCoachDetail(coach);
+                                    }
+                                }}
+                            >
                                 <div className="sel-staff-chip-info">
                                     <strong>{coach.nombre}</strong>
                                     <span>{coach.email}</span>
@@ -449,7 +493,10 @@ const SeleccionCategoriaDetalle = () => {
                                     className="sel-staff-remove"
                                     title="Quitar de la categoría"
                                     aria-label={`Quitar a ${coach.nombre}`}
-                                    onClick={() => handleRemoveCoach(coach)}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRemoveCoach(coach);
+                                    }}
                                 >
                                     <X size={14} />
                                 </button>
@@ -474,6 +521,7 @@ const SeleccionCategoriaDetalle = () => {
                     pagination={true}
                     itemsPerPage={10}
                     emptyMessage="No hay atletas en esta categoría de selección."
+                    onRowClick={openAthleteDetail}
                 />
             </section>
 
@@ -540,6 +588,28 @@ const SeleccionCategoriaDetalle = () => {
                 confirmText={confirmationConfig.confirmText || 'Confirmar'}
                 cancelText={confirmationConfig.cancelText || 'Cancelar'}
                 showCancel={confirmationConfig.showCancel !== false}
+            />
+
+            <AtletaDetailModal
+                isOpen={showAthleteDetailModal}
+                onClose={() => {
+                    setShowAthleteDetailModal(false);
+                    setSelectedAthleteDetail(null);
+                }}
+                athlete={selectedAthleteDetail}
+                onRefresh={refreshAthletes}
+                returnPath={detailReturnPath}
+            />
+
+            <EntrenadorDetailModal
+                isOpen={showCoachDetailModal}
+                onClose={() => {
+                    setShowCoachDetailModal(false);
+                    setSelectedCoachDetail(null);
+                }}
+                entrenador={selectedCoachDetail}
+                fedId={fedId}
+                returnPath={detailReturnPath}
             />
         </div>
     );

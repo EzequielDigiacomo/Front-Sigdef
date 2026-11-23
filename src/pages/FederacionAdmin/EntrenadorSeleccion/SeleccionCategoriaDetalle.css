@@ -11,6 +11,21 @@
     justify-content: flex-end;
 }
 
+.sel-staff-chip.is-clickable {
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.sel-staff-chip.is-clickable:hover {
+    border-color: rgba(59, 130, 246, 0.45);
+    background: rgba(59, 130, 246, 0.08);
+}
+
+.sel-staff-chip.is-clickable:focus-visible {
+    outline: 2px solid rgba(59, 130, 246, 0.55);
+    outline-offset: 2px;
+}
+
 .sel-detail-summary {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 140px));
@@ -159,10 +174,12 @@
 
     .sel-detail-actions {
         width: 100%;
+        justify-content: flex-start;
     }
 
     .sel-detail-actions .btn,
     .sel-detail-actions button {
-        flex: 1;
+        flex: 1 1 auto;
+        min-width: 0;
     }
 }

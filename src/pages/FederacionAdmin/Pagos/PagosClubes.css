@@ -237,6 +237,45 @@
     background: rgba(6, 182, 212, 0.08) !important;
 }
 
+.pagos-recibo-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.pagos-btn-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.35rem 0.55rem;
+    border-radius: 8px;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    background: rgba(30, 41, 59, 0.55);
+    color: var(--text-primary);
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s, border-color 0.15s;
+}
+
+.pagos-btn-icon:hover:not(:disabled) {
+    transform: translateY(-1px);
+    border-color: rgba(59, 130, 246, 0.45);
+}
+
+.pagos-btn-icon:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagos-btn-share {
+    border-color: rgba(16, 185, 129, 0.35);
+    background: rgba(16, 185, 129, 0.12);
+    color: #34d399;
+}
+
 .pagos-btn-delete {
     display: inline-flex;
     align-items: center;
@@ -782,6 +821,24 @@
         display: none;
     }
 
+    /* Filas con botón: etiqueta arriba, acción abajo (evita que tape "Cobro") */
+    .pagos-table td[data-label='Cobro'],
+    .pagos-table td[data-label='Acciones'],
+    .pagos-table td[data-label='Marcar pago'] {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.45rem;
+        text-align: left;
+    }
+
+    .pagos-table td[data-label='Cobro']::before,
+    .pagos-table td[data-label='Acciones']::before,
+    .pagos-table td[data-label='Marcar pago']::before {
+        flex: none;
+        padding-right: 0;
+        width: 100%;
+    }
+
     .pagos-table td .pagos-club-name,
     .pagos-table td .pagos-actions,
     .pagos-table td .pagos-badge,
@@ -798,19 +855,37 @@
         justify-content: space-between;
     }
 
+    .pagos-table td[data-label='Cobro'] .pagos-btn-recibo,
+    .pagos-table td[data-label='Acciones'] .pagos-btn-recibo,
+    .pagos-table td[data-label='Acciones'] .pagos-btn-historial,
     .pagos-btn-recibo {
         width: 100%;
+        max-width: 100%;
         justify-content: center;
+        box-sizing: border-box;
+        margin-left: 0;
     }
 
     .pagos-actions {
         width: 100%;
+        margin-left: 0;
         flex-direction: column;
     }
 
     .pagos-actions .pagos-btn-recibo,
     .pagos-actions .pagos-btn-historial {
         width: 100%;
+        justify-content: center;
+    }
+
+    .pagos-table td[data-label='Acciones'] .pagos-recibo-actions {
+        width: 100%;
+        margin-left: 0;
+        justify-content: stretch;
+    }
+
+    .pagos-recibo-actions .pagos-btn-icon {
+        flex: 1 1 auto;
         justify-content: center;
     }
 

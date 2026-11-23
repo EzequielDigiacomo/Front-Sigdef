@@ -173,7 +173,39 @@ const PadronHabilitados = ({ modo = 'admin' }) => {
                             {loading ? (
                                 <tr><td colSpan="6" className="text-center">Cargando...</td></tr>
                             ) : items.length === 0 ? (
-                                <tr><td colSpan="6" className="text-center">Sin resultados.</td></tr>
+                                <tr>
+                                    <td colSpan="6" className="text-center" style={{ padding: '1.5rem 1rem' }}>
+                                        <div style={{ color: 'var(--text-secondary)', maxWidth: 520, margin: '0 auto' }}>
+                                            {soloHabilitados ? (
+                                                <>
+                                                    <strong style={{ color: 'var(--text-primary)' }}>No hay atletas habilitados.</strong>
+                                                    <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem' }}>
+                                                        Aprobar el fichaje y marcar el pago no alcanza: también hace falta
+                                                        apto médico vigente y la documentación completa (DNI/pasaporte y apto;
+                                                        si es menor, autorización).
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSoloHabilitados(false)}
+                                                        style={{
+                                                            marginTop: '0.85rem',
+                                                            background: 'transparent',
+                                                            border: 'none',
+                                                            color: 'var(--primary)',
+                                                            cursor: 'pointer',
+                                                            fontWeight: 600,
+                                                            textDecoration: 'underline',
+                                                        }}
+                                                    >
+                                                        Ver padrón completo (con motivos de bloqueo)
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <>Sin resultados para los filtros actuales.</>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
                             ) : items.map((row) => (
                                 <tr key={row.id}>
                                     <td>

@@ -10,6 +10,7 @@ import DocumentViewerModal from '../../../components/common/DocumentViewerModal'
 import { Plus, Edit, Trash2, Search, FileText, Eye, ChevronUp, ChevronDown, ChevronsUpDown, ClipboardList } from 'lucide-react';
 import { useSort } from '../../../hooks/useSort';
 import { withFederationScope, getClubId, sameClubId } from '../../../utils/apiHelpers';
+import { matchesSearch } from '../../../utils/searchUtils';
 import { getCategoriaLabel, getEstadoPagoLabel, getEstadoPagoColor, TIPO_DOCUMENTO_MAP, getEstadoFichajeColor, getEstadoAptoColor } from '../../../utils/enums';
 import { TutorStatusCell, calcEdad } from '../../../components/common/TutorStatusCell';
 import './Atletas.css';
@@ -316,12 +317,15 @@ const AtletasList = () => {
                 };
             });
 
-            // Filtrar por búsqueda
+            // Filtrar por búsqueda (tokens: orden y mayúsculas no importan)
             const filtered = debouncedSearchTerm
-                ? normalized.filter(a =>
-                    (a.nombrePersona || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-                    (a.documento || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-                    (a.nombreClub || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+                ? normalized.filter((a) =>
+                    matchesSearch(
+                        debouncedSearchTerm,
+                        a.nombrePersona,
+                        a.documento,
+                        a.nombreClub
+                    )
                 )
                 : normalized;
 

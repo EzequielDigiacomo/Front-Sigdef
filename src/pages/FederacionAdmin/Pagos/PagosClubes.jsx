@@ -10,15 +10,20 @@ import {
     Users,
     Receipt,
     Trash2,
+    FileDown,
+    Printer,
+    Share2,
 } from 'lucide-react';
 import { api } from '../../../services/api';
 import PagoService from '../../../services/pagoService';
 import { withFederationScope, getClubFederationId, pick, getClubId } from '../../../utils/apiHelpers';
 import { getEstadoPagoLabel, getEstadoPagoColor } from '../../../utils/enums';
 import { matchesSearch } from '../../../utils/searchUtils';
+import { downloadReciboPdf, printRecibo, shareRecibo } from '../../../utils/reciboExport';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
+import { useAuth } from '../../../context/AuthContext';
 import { useDevice } from '../../../hooks/useDevice';
 import PageHeader from '../../../components/common/PageHeader';
 import RegistrarPagoModal from './RegistrarPagoModal';
@@ -154,6 +159,7 @@ const getDebeLabel = (estadoPago) => {
 };
 
 const PagosClubes = () => {
+    const { user } = useAuth();
     const { isNative, isMobile } = useDevice();
     const isMobileView = isMobile || isNative;
     const { fedId } = useParams();
@@ -163,6 +169,7 @@ const PagosClubes = () => {
     const [clubes, setClubes] = useState([]);
     const [atletas, setAtletas] = useState([]);
     const [recibos, setRecibos] = useState([]);
+    const [federacion, setFederacion] = useState(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [togglingId, setTogglingId] = useState(null);
@@ -172,6 +179,7 @@ const PagosClubes = () => {
     const [reciboAtletaId, setReciboAtletaId] = useState(null);
     const [selectedReciboIds, setSelectedReciboIds] = useState([]);
     const [deletingRecibos, setDeletingRecibos] = useState(false);
+    const [exportingReciboId, setExportingReciboId] = useState(null);
     const [confirmDelete, setConfirmDelete] = useState({
         isOpen: false,
         ids: [],
@@ -227,9 +235,29 @@ const PagosClubes = () => {
         setRecibos(list);
     }, [fedId]);
 
+    const loadFederacion = useCallback(async () => {
+        const targetFedId = fedId || user?.idFederacion || null;
+        try {
+            if (targetFedId) {
+                const data = await api.get(`/Federaciones/${targetFedId}`);
+                if (data) {
+                    setFederacion(data);
+                    return;
+                }
+            }
+            const list = await api.get('/Federaciones');
+            if (Array.isArray(list) && list.length > 0) {
+                setFederacion(list[0]);
+            }
+        } catch (err) {
+            console.warn('No se pudo cargar datos de federación para recibos:', err?.message);
+            setFederacion(null);
+        }
+    }, [fedId, user?.idFederacion]);
+
     const loadAll = useCallback(async () => {
-        await Promise.all([loadClubes(), loadAtletas(), loadHistorial()]);
-    }, [loadClubes, loadAtletas, loadHistorial]);
+        await Promise.all([loadClubes(), loadAtletas(), loadHistorial(), loadFederacion()]);
+    }, [loadClubes, loadAtletas, loadHistorial, loadFederacion]);
 
     useEffect(() => {
         let cancelled = false;
@@ -515,6 +543,39 @@ const PagosClubes = () => {
             return recibo.participanteNombre || recibo.eventoNombre || 'Inscripción';
         }
         return recibo.participanteNombre || 'Atleta';
+    };
+
+    const getReciboHelpers = (recibo) => ({
+        formatMonto,
+        formatFecha,
+        tipoPagoLabel,
+        beneficiario: getReciboBeneficiario(recibo),
+    });
+
+    const runReciboAction = async (recibo, action) => {
+        setExportingReciboId(recibo.id);
+        try {
+            const helpers = getReciboHelpers(recibo);
+            if (action === 'pdf') {
+                downloadReciboPdf(recibo, federacion, helpers);
+                showAlert('success', 'PDF del recibo descargado.');
+            } else if (action === 'print') {
+                printRecibo(recibo, federacion, helpers);
+            } else if (action === 'share') {
+                const result = await shareRecibo(recibo, federacion, helpers);
+                if (result?.method === 'cancelled') return;
+                if (result?.method === 'download-only') {
+                    showAlert('success', 'PDF descargado. Podés compartirlo desde tu carpeta de descargas.');
+                } else {
+                    showAlert('success', 'Recibo listo para compartir.');
+                }
+            }
+        } catch (err) {
+            console.error('Error exportando recibo:', err);
+            showAlert('error', err.message || 'No se pudo exportar el recibo.');
+        } finally {
+            setExportingReciboId(null);
+        }
     };
 
     return (
@@ -969,7 +1030,7 @@ const PagosClubes = () => {
                                     <th>Referencia</th>
                                     <th>Registrado por</th>
                                     <th>Notas</th>
-                                    <th style={{ textAlign: 'center' }}>Borrar</th>
+                                    <th style={{ textAlign: 'center' }}>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -988,6 +1049,7 @@ const PagosClubes = () => {
                                         const beneficiario = getReciboBeneficiario(recibo);
                                         const esAtleta = recibo.tipoPago === 'AtletaAfiliacion';
                                         const isSelected = selectedReciboIds.includes(recibo.id);
+                                        const busy = exportingReciboId === recibo.id;
                                         return (
                                             <tr
                                                 key={recibo.id}
@@ -1044,16 +1106,48 @@ const PagosClubes = () => {
                                                         {recibo.notas || '—'}
                                                     </span>
                                                 </td>
-                                                <td data-label="Borrar">
-                                                    <button
-                                                        type="button"
-                                                        className="pagos-btn-delete"
-                                                        title="Borrar recibo"
-                                                        onClick={() => askDeleteRecibos([recibo.id])}
-                                                        disabled={deletingRecibos}
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
+                                                <td data-label="Acciones">
+                                                    <div className="pagos-recibo-actions">
+                                                        <button
+                                                            type="button"
+                                                            className="pagos-btn-icon"
+                                                            title="Exportar PDF"
+                                                            onClick={() => runReciboAction(recibo, 'pdf')}
+                                                            disabled={busy || deletingRecibos}
+                                                        >
+                                                            <FileDown size={14} />
+                                                            <span>PDF</span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="pagos-btn-icon"
+                                                            title="Imprimir"
+                                                            onClick={() => runReciboAction(recibo, 'print')}
+                                                            disabled={busy || deletingRecibos}
+                                                        >
+                                                            <Printer size={14} />
+                                                            <span>Imprimir</span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="pagos-btn-icon pagos-btn-share"
+                                                            title="Compartir recibo"
+                                                            onClick={() => runReciboAction(recibo, 'share')}
+                                                            disabled={busy || deletingRecibos}
+                                                        >
+                                                            <Share2 size={14} />
+                                                            <span>Compartir</span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="pagos-btn-delete"
+                                                            title="Borrar recibo"
+                                                            onClick={() => askDeleteRecibos([recibo.id])}
+                                                            disabled={deletingRecibos || busy}
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );
