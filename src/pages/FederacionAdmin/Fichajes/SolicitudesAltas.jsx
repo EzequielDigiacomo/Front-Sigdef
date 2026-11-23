@@ -133,7 +133,7 @@ const SolicitudesAltas = () => {
                 backTo="/dashboard"
                 actions={
                     <Button variant="ghost" size="sm" onClick={load} disabled={loading}>
-                        <RefreshRw size={16} /> Actualizar
+                        <RefreshCw size={16} /> Actualizar
                     </Button>
                 }
             />
